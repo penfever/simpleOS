@@ -54,6 +54,8 @@ int main(int argc, char *argv[]){
   FILE *wc;
   char c;
   int count = 1;
+  int word_count_final = 0;
+  int line_count_final = 0;
   wc = fopen(argv[1], "r");
   while(TRUE) {
     c = fgetc(wc);
@@ -62,6 +64,13 @@ int main(int argc, char *argv[]){
       }
       //TODO: FIX WinDOS carriage return
       else if (c == ' ' || c == '\n' || c == '\t' || c == '\r'){
+        while (c == '\n'){
+          line_count_final ++;
+          c = fgetc(wc);
+          if( feof(wc) ) { 
+            break;
+          }
+        }
         count --;
         ungetc(c, wc);
         long seek_val = (-1 * count);
@@ -75,11 +84,11 @@ int main(int argc, char *argv[]){
           this_word[i] = '\0';
           i++;
         }
-        printf ("%s %i \n", this_word, count);
+        word_count_final ++;
         //TODO->call new word insert function
         count = 1;
         //consume additional whitespace, if any
-        while (c == ' ' || c == '\n' || c == '\t' || c == '\r'){
+        while (c == ' ' || c == '\t' || c == '\r'){
           c = fgetc(wc);
           if( feof(wc) ) { 
             break;
@@ -92,5 +101,6 @@ int main(int argc, char *argv[]){
       }
   }
   fclose(wc);
+  printf("%i words, %i lines", word_count_final, line_count_final);
   return 0;
 }
