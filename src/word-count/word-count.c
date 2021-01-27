@@ -53,7 +53,7 @@ int main(int argc, char *argv[]){
     }
   FILE *wc;
   char c;
-  int count = 0;
+  int count = 1;
   wc = fopen(argv[1], "r");
   while(TRUE) {
     c = fgetc(wc);
@@ -62,17 +62,17 @@ int main(int argc, char *argv[]){
       }
       //TODO: FIX WinDOS carriage return
       else if (c == ' ' || c == '\n' || c == '\t' || c == '\r'){
-        //get the word
-        // if (!(){
-        //   printf("Seek error.");
-        // }
+        count --;
+        ungetc(c, wc);
         long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
-        char this_word[count + 2];
-        fgets(this_word, count, wc);
-        printf ("%s %i", this_word, count);
+        char this_word[count];
+        for (int i = 0; i < count; i++){
+          this_word[i] = fgetc(wc);
+        }
+        printf ("%s %i \n", this_word, count);
         //TODO->call new word insert function
-        count = 0;
+        count = 1;
         //consume additional whitespace, if any
         while (c == ' ' || c == '\n' || c == '\t' || c == '\r'){
           c = fgetc(wc);
