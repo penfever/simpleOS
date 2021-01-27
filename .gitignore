@@ -154,7 +154,6 @@ build/CMakeFiles/problem-set-0.dir/progress.make
 src/fix-this-program/fix-this-program.exe
 CMakeLists.txt
 main.c
-word-count.c
 word-count-old/ctest.h
 word-count-old/runAllTests.c
 word-count-old/wordcount-main.c
@@ -164,3 +163,4 @@ cscie92.code-workspace
 word-count-old/README.md
 *.txt
 word-count-old/Makefile
+word-count.exe
