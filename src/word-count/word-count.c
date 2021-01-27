@@ -31,8 +31,34 @@ Lines are delimited by a newline character
    */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <string.h>
 
-int main(void){
-    printf("Hello, world.\n");
-    return 0;
+#define FALSE 0
+#define TRUE 1
+
+int main(int argc, char *argv[]){
+
+  if (argc != 2)
+    {
+      printf("Usage: word-count filename\n");
+      return 1;
+    }
+
+  FILE *wc;
+  char c;
+  wc = fopen(argv[1],"r");
+
+  while(TRUE) {
+    c = fgetc(wc);
+      if( feof(wc) ) { 
+        break;
+      }
+    printf("%c", c);
+  }
+
+  fclose(wc);
+  return 0;
+  
 }
