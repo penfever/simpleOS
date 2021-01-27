@@ -164,3 +164,5 @@ word-count-old/README.md
 *.txt
 word-count-old/Makefile
 word-count.exe
+src/word-count/word-count-txt.c
+src/word-count/word-count-txt.exe
