@@ -67,10 +67,14 @@ int main(int argc, char *argv[]){
         long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
         char this_word[count + 1];
-        for (int i = 0; i < count; i++){
+        int i = 0;
+        for (; i < count; i++){
           this_word[i] = fgetc(wc);
         }
-        this_word[count + 1] = '\0';
+        while (i < count + 1){
+          this_word[i] = '\0';
+          i++;
+        }
         printf ("%s %i \n", this_word, count);
         //TODO->call new word insert function
         count = 1;
