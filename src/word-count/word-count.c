@@ -66,10 +66,11 @@ int main(int argc, char *argv[]){
         ungetc(c, wc);
         long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
-        char this_word[count];
+        char this_word[count + 1];
         for (int i = 0; i < count; i++){
           this_word[i] = fgetc(wc);
         }
+        this_word[count + 1] = '\0';
         printf ("%s %i \n", this_word, count);
         //TODO->call new word insert function
         count = 1;
