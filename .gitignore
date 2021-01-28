@@ -162,6 +162,7 @@ word-count-old/wordcount.h
 cscie92.code-workspace
 word-count-old/README.md
 *.txt
+!Questionnaire.txt
 word-count-old/Makefile
 word-count.exe
 src/word-count/word-count-txt.c
