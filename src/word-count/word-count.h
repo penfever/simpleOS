@@ -9,8 +9,8 @@ typedef struct Node{
   struct Node* child;
 };
 
-//assigns memory space
 struct Node* GetNewNode(char* thisWord) {
+	//assigns memory space
 	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
 	newNode->node_word = thisWord;
 	newNode->parent = NULL;
@@ -18,8 +18,8 @@ struct Node* GetNewNode(char* thisWord) {
 	return newNode;
 }
 
-//only inserts unique nodes
 struct Node* InsertAtTail(struct Node* head, char* thisWord) {
+	//inserts unique nodes
 	struct Node* temp = head;
 	struct Node* newNode = GetNewNode(thisWord);
 	if(head == NULL) {
@@ -40,6 +40,7 @@ struct Node* InsertAtTail(struct Node* head, char* thisWord) {
 }
 
 void PrintForwards(struct Node* head) {
+	//prints all nodes from head down
 	struct Node* temp = head;
 	while(temp != NULL) {
 		printf("%s ",temp->node_word);
@@ -50,6 +51,7 @@ void PrintForwards(struct Node* head) {
 }
 
 struct Node* DeleteAllNodes(struct Node* head) {
+	//deletes nodes and frees memory
 	struct Node* current = head;
 	struct Node* child;
 	if(current == NULL) {

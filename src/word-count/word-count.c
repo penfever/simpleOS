@@ -8,6 +8,7 @@
 #define TRUE 1
 
 char *make_word(FILE *wc, int count){
+  //allocates space for the new word and assigns letters
         char *this_word;
         this_word = (char *)malloc(sizeof(char) * (count + 1));
         int i = 0;
@@ -22,7 +23,7 @@ char *make_word(FILE *wc, int count){
 }
 
 int ConsumeWhitespace(FILE *wc, char c, int line_count_final){
-          //consume additional whitespace, if any
+  //consume additional whitespace, if any
   while (c == ' ' || c == '\t' || c == '\r' || c == '\n'){
     if( feof(wc) ) { 
       break;
@@ -42,7 +43,6 @@ int ConsumeWhitespace(FILE *wc, char c, int line_count_final){
 }
 
 int main(int argc, char *argv[]){
-
   if (argc != 2)
     {
       printf("Usage: word-count filename\n");
@@ -75,8 +75,6 @@ int main(int argc, char *argv[]){
         long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
         char *this_word_ptr;
-        //consume addl newlines
-        //TODO: Missing 1 or 2 characters at the end of every line
         if (c == '\n'){
           char* this_newline_word_ptr;
           this_newline_word_ptr = (char *)malloc(sizeof(char) * (count + 1));
@@ -84,7 +82,6 @@ int main(int argc, char *argv[]){
           head = InsertAtTail(head, this_newline_word_ptr);
         }
         else{
-          //TODO->call new word insert function
           this_word_ptr = make_word(wc, count);
           head = InsertAtTail(head, this_word_ptr);
         }
@@ -99,7 +96,7 @@ int main(int argc, char *argv[]){
   }
   fclose(wc);
   printf("%i words, %i lines\n", word_count_final, line_count_final);
-  PrintForwards(head); //TODO: Print uniques!
+  PrintForwards(head);
   head = DeleteAllNodes(head);
   return 0;
 }
