@@ -3,7 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 
-typedef struct Node{
+struct Node{
   char* node_word;
   int count;
   struct Node* parent;

@@ -16,7 +16,7 @@ char *make_word(FILE *wc, int count){
           this_word[i] = fgetc(wc);
         }
         while (i < count + 1){
-          this_word[i] = NULL;
+          this_word[i] = '\0';
           i++;
         }
         return this_word;
