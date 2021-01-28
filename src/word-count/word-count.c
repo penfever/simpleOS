@@ -44,6 +44,20 @@ Lines are delimited by a newline character
 #define FALSE 0
 #define TRUE 1
 
+char *make_word(FILE *wc, int count){
+        char *this_word;
+        this_word = (char *)malloc(sizeof(char) * (count + 1));
+        int i = 0;
+        for (; i < count; i++){
+          this_word[i] = fgetc(wc);
+        }
+        while (i < count + 1){
+          this_word[i] = NULL;
+          i++;
+        }
+        return this_word;
+}
+
 int main(int argc, char *argv[]){
 
   if (argc != 2)
@@ -73,33 +87,25 @@ int main(int argc, char *argv[]){
       }
       //TODO: FIX WinDOS carriage return
       else if (c == ' ' || c == '\n' || c == '\t' || c == '\r'){
+        count --;
+        long seek_val = (-1 * count);
+        //consume addl newlines
+        //TODO: Missing 1 or 2 characters at the end of every line
         while (c == '\n'){
           line_count_final ++;
+          seek_val --;
           c = fgetc(wc);
           if( feof(wc) ) { 
             break;
           }
         }
-        count --;
         ungetc(c, wc);
-        long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
-        char *this_word;
-        this_word = (char *)malloc(sizeof(char) * (count + 1));
-        int i = 0;
-        for (; i < count; i++){
-          this_word[i] = fgetc(wc);
-        }
-        while (i < count + 1){
-          this_word[i] = NULL;
-          i++;
-        }
-        word_count_final ++;
+
         //TODO->call new word insert function
-        char *this_word_ptr = this_word;
+        char *this_word_ptr = make_word(wc, count);
         head = InsertAtTail(head, this_word_ptr);
-        //reset count
-        count = 1;
+        word_count_final ++;
         //consume additional whitespace, if any
         while (c == ' ' || c == '\t' || c == '\r'){
           c = fgetc(wc);
@@ -108,6 +114,8 @@ int main(int argc, char *argv[]){
           }
         }
         ungetc(c, wc);
+        //reset count
+        count = 1;
       }
       else {
         count ++;

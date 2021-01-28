@@ -18,6 +18,7 @@ struct Node* GetNewNode(char* thisWord) {
 	return newNode;
 }
 
+//only inserts unique nodes
 struct Node* InsertAtTail(struct Node* head, char* thisWord) {
 	struct Node* temp = head;
 	struct Node* newNode = GetNewNode(thisWord);
@@ -26,7 +27,12 @@ struct Node* InsertAtTail(struct Node* head, char* thisWord) {
 		return head;
 	}
 	while(temp->child != NULL){
-		temp = temp->child; // Go To last Node
+		if (strcmp(temp->node_word, thisWord) == 0){
+			return head;
+		}
+		else{
+			temp = temp->child; // Go To last Node
+		}
 	}
 	temp->child = newNode;
 	newNode->parent = temp;
