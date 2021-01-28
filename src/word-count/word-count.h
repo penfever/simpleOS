@@ -44,12 +44,16 @@ void PrintForwards(struct Node* head) {
 }
 
 struct Node* DeleteAllNodes(struct Node* head) {
-	struct Node* temp = head;
-	if(head == NULL) {
-		return head;
+	struct Node* current = head;
+	struct Node* child;
+	if(current == NULL) {
+		return NULL;
 	}
-	while(temp->child != NULL) {
-		free(temp);
-		temp = temp->child;
+	while(current != NULL) {
+		child = current->child;
+		free(current->node_word);
+		free(current);
+		current = child;
 	}
+	return NULL;
 }
