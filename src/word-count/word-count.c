@@ -114,7 +114,7 @@ int main(int argc, char *argv[]){
       }
   }
   fclose(wc);
-  printf("%i words, %i lines", word_count_final, line_count_final);
+  printf("%i words, %i lines\n", word_count_final, line_count_final);
   PrintForwards(head); //TODO: Print uniques!
   head = DeleteAllNodes(head);
   return 0;
