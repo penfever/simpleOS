@@ -39,24 +39,33 @@ Lines are delimited by a newline character
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include "word-count.h"
 
 #define FALSE 0
 #define TRUE 1
 
-
-
 int main(int argc, char *argv[]){
+
   if (argc != 2)
     {
       printf("Usage: word-count filename\n");
       return 1;
     }
+
   FILE *wc;
+  wc = fopen(argv[1], "r");
+
+  if (wc == NULL){
+    printf("File open error.");
+    return 1;
+  }
+
   char c;
   int count = 1;
   int word_count_final = 0;
   int line_count_final = 0;
-  wc = fopen(argv[1], "r");
+  struct Node* head = NULL;
+  //main loop
   while(TRUE) {
     c = fgetc(wc);
       if( feof(wc) ) { 
@@ -75,17 +84,21 @@ int main(int argc, char *argv[]){
         ungetc(c, wc);
         long seek_val = (-1 * count);
         fseek(wc, seek_val, SEEK_CUR);
-        char this_word[count + 1];
+        char *this_word;
+        this_word = (char *)malloc(sizeof(char) * (count + 1));
         int i = 0;
         for (; i < count; i++){
           this_word[i] = fgetc(wc);
         }
         while (i < count + 1){
-          this_word[i] = '\0';
+          this_word[i] = NULL;
           i++;
         }
         word_count_final ++;
         //TODO->call new word insert function
+        char *this_word_ptr = this_word;
+        head = InsertAtTail(head, this_word_ptr);
+        //reset count
         count = 1;
         //consume additional whitespace, if any
         while (c == ' ' || c == '\t' || c == '\r'){
@@ -102,5 +115,7 @@ int main(int argc, char *argv[]){
   }
   fclose(wc);
   printf("%i words, %i lines", word_count_final, line_count_final);
+  PrintForwards(head); //TODO: Print uniques!
+  head = DeleteAllNodes(head);
   return 0;
 }

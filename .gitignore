@@ -168,3 +168,5 @@ src/word-count/word-count-txt.c
 src/word-count/word-count-txt.exe
 src/word-count/word-count-b.c
 src/word-count/word-count-lb2.c
+src/word-count/word-count-pll2.c
+src/word-count/word-count-pll.c
