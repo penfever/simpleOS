@@ -5,6 +5,7 @@
 
 typedef struct Node{
   char* node_word;
+  int count;
   struct Node* parent;
   struct Node* child;
 };
@@ -13,6 +14,7 @@ struct Node* GetNewNode(char* thisWord) {
 	//assigns memory space
 	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
 	newNode->node_word = thisWord;
+	newNode->count = 1;
 	newNode->parent = NULL;
 	newNode->child = NULL;
 	return newNode;
@@ -28,6 +30,7 @@ struct Node* InsertAtTail(struct Node* head, char* thisWord) {
 	}
 	while(temp->child != NULL){
 		if (strcmp(temp->node_word, thisWord) == 0){
+			temp->count += 1;
 			return head;
 		}
 		else{
@@ -43,7 +46,7 @@ void PrintForwards(struct Node* head) {
 	//prints all nodes from head down
 	struct Node* temp = head;
 	while(temp != NULL) {
-		printf("%s ",temp->node_word);
+		printf("%i %s \n", temp->count, temp->node_word);
 		temp = temp->child;
 	}
 	printf("\n");
