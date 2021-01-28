@@ -36,7 +36,7 @@ struct Node* InsertAtTail(struct Node* head, char* thisWord) {
 void PrintForwards(struct Node* head) {
 	struct Node* temp = head;
 	while(temp != NULL) {
-		printf("%d ",temp->node_word);
+		printf("%s ",temp->node_word);
 		temp = temp->child;
 	}
 	printf("\n");
