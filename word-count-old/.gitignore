@@ -1,6 +1,0 @@
-*.o
-runAllTests
-wordcount
-.depend*
-cmake-build-debug
-.idea
