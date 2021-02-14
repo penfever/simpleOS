@@ -1,6 +1,7 @@
 .vscode/
 build/
 ps0/
+ps2/
 src/fix-this-program
 src/word-count
 src/word-count-old
@@ -11,3 +12,11 @@ src/os/simpleshell.exe
 src/os/simpleshell-b.c
 sys/
 src/os/sys/
+src/toggle/.settings/
+src/toggle/Project_Settings/
+src/toggle/RAM/
+src/toggle/.cproject
+src/toggle/.cwGeneratedFileSetLog
+src/toggle/.project
+src/toggle/ReferencedRSESystems.xml
+src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
