@@ -23,6 +23,9 @@ int arr_empty = TRUE;
 
 int global_counter = 0;
 
+struct mem_region first = {TRUE, 0, 1, 0x0};
+struct mem_node head = {&first, NULL};
+
 void *myMalloc_allocate(char *mem_array){
     void* my_ptr = (&mem_array)[global_counter];
     return my_ptr;
@@ -45,6 +48,7 @@ void *myMalloc(unsigned int size){
         // mem_array[MAX] = 'N';
         // printf("%c \n",mem_array[MAX]);
     }
+    first.data[0] = mem_array; //TODO: probably wrong
     if (size % 8 != 0){
         size = size + size % 8; //round up to double word boundary
     }
