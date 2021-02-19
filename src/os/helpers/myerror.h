@@ -15,6 +15,7 @@ enum _os_error
     E_TOO_LONG = -6,
     E_MALLOC = -7,
     E_INF = -8,
+    E_FREE = -9,
 };
 
 struct _errordesc {
@@ -29,7 +30,8 @@ struct _errordesc {
     { E_NOINPUT, "No input or invalid input -- type help for more \n"},
     { E_TOO_LONG, "Input longer than the maximum allowable characters (256) \n" },
     { E_MALLOC, "Fatal: failed to allocate memory \n" },
-    { E_INF, "Fatal: end of infinite loop reached \n" }
+    { E_INF, "Fatal: end of infinite loop reached \n" },
+    { E_FREE, "Free: Invalid pointer \n" }
 };
 
 int error_checker(int return_value);

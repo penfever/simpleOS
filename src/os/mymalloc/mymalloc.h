@@ -9,7 +9,7 @@ struct mem_region {
     int free : 1;
     unsigned int size : 31;
     unsigned int pid;
-    uint8_t data[0];
+    uint8_t data;
 };
 
 void *myMalloc(unsigned int size);

@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "mymalloc.h"
+#include "..\helpers\myerror.h"
 
 /*    Your code may use only the following systems calls or library
    functions:
@@ -15,8 +16,6 @@
      strchr strcspn strpbrk strrchr strspn
      strstr strtok  memset  strerror    strlen */
 
-int arr_empty = TRUE;
-
 static int mem_used = 0;
 
 struct mem_region* first = NULL;
@@ -25,14 +24,15 @@ int round_size(int size){
     if (size % 8 != 0){
         size = size + size % 8; //round size up to double word boundary
     }
+    return size;
 }
 
 void subdivide(struct mem_region* mem){
-    struct mem_region* next = mem->data[0]; // SUBDIVISION: this covers the rest of memory. Anytime I am looking at a data[0] address, that's the start of a struct
+    struct mem_region* next = mem->data; // SUBDIVISION: this covers the rest of memory. Anytime I am looking at a data address, that's the start of a struct
     next->free = TRUE;
     next->size = 0;
     next->pid = 1;
-    next->data[0] = NULL;
+    next->data = NULL;
 }
 
 struct mem_region* init_struct(struct mem_region* first, int size){
@@ -44,7 +44,7 @@ struct mem_region* init_struct(struct mem_region* first, int size){
         mem_used += size;
         first->size = size;
         first->pid = 1;
-        first->data[0] = &first + sizeof(struct mem_region) + size;
+        first->data = &first + sizeof(struct mem_region) + size; //TODO: figure out how to convert ptr to and from uint8_t and make sure the ptr arith is working
         subdivide(first);
     }
     return first;
@@ -54,13 +54,13 @@ struct mem_region* init_struct(struct mem_region* first, int size){
 void* insert_at_tail(struct mem_region* first, int size){
     //TODO -- protect against having reached end of region
     struct mem_region* temp = first;
-    while (temp->data[0] != NULL){
-        temp = temp->data[0]; //traversal, assumes pointer at data
+    while (temp->data != NULL){
+        temp = temp->data; //traversal, assumes pointer at data
     }
     mem_used += size;
     temp->size = size;
     temp->pid = 1; //make this a real PID later
-    temp->data[0] = &temp + sizeof(struct mem_region) + size;
+    temp->data = &temp + sizeof(struct mem_region) + size;
     subdivide(temp);
 }
 
@@ -85,7 +85,11 @@ void *myMalloc(unsigned int size){
 }
 
 int myFreeErrorCode(void *ptr){
-
+    int arr_empty = FALSE;
+    struct mem_region* temp = first;
+    while (temp->data != ptr && temp->data != NULL){
+        temp = temp->data; //traversal, assumes pointer at data
+    }
     //walk through the entire linked list and verify that this was a previously allocated region of memory.
     //when you reach the correct pointer ...
     //merge it with the one after it and before it, if necessary.
@@ -97,8 +101,7 @@ int myFreeErrorCode(void *ptr){
            perror("free"); exit(2);
         }
     }
-    //TODO: Add error code returns to error struct, see PSET 2
-    return 0;
+    return E_FREE;
 }
 
 void myFree(void *ptr){
