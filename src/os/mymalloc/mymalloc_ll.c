@@ -3,34 +3,37 @@
 #include <errno.h>
 #include <string.h>
 #include <stdint.h>
+#include "mymalloc.h"
 #include "mymalloc_ll.h"
 
-struct mem_node* GetNewNode(char* thisWord) {
+struct mem_region* GetNewNode(int size) {
 	//assigns memory space
-	struct mem_node* newNode = (struct mem_node*)malloc(sizeof(struct mem_node));
-	newNode->mem_region = NULL;
-	newNode->child = NULL;
+	struct mem_region* newNode = (struct mem_region*)malloc(sizeof(struct mem_region)); //fix this malloc call, instead allocate memory from existing region
+	newNode->free = TRUE;
+    newNode->size = size; //TODO: allocate memory from existing region
+    newNode->pid = 1;
+	newNode->data[0] = NULL;
 	return newNode;
 }
 
-struct mem_node* InsertAtTail(struct mem_node* head, char* thisWord) {
+struct mem_region* InsertAtTail(struct mem_region* first, int size) {
 	//inserts unique nodes
-	struct mem_node* temp = head;
-	struct mem_node* newNode = GetNewNode(thisWord);
-	if(head == NULL) {
-		head = newNode;
-		return head;
+	struct mem_region* temp = first;
+	struct mem_region* newNode = GetNewNode(size);
+	// if(first == NULL) {
+	// 	first = newNode;
+	// 	return first;
+	// }
+	while(temp->data[0] != NULL){
+		temp = temp->data[0]; // Go To last Node
 	}
-	while(temp->child != NULL){
-		temp = temp->child; // Go To last Node
-	}
-	temp->child = newNode;
+	temp->data[0] = &newNode; // TODO: this isn't correct. the new node is floating somewhere in the mem region
 	return head;
 }
 
-// void PrintForwards(struct mem_node* head) {
+// void PrintForwards(struct mem_region* head) {
 // 	//prints all nodes from head down
-// 	struct mem_node* temp = head;
+// 	struct mem_region* temp = head;
 // 	while(temp != NULL) {
 // 		printf("%i %s \n", temp->count, temp->node_word);
 // 		temp = temp->child;
@@ -39,10 +42,10 @@ struct mem_node* InsertAtTail(struct mem_node* head, char* thisWord) {
 // 	return;
 // }
 
-struct mem_node* DeleteAllNodes(struct mem_node* head) {
+struct mem_region* DeleteAllNodes(struct mem_region* head) {
 	//deletes nodes and frees memory
-	struct mem_node* current = head;
-	struct mem_node* child;
+	struct mem_region* current = head;
+	struct mem_region* child;
 	if(current == NULL) {
 		return NULL;
 	}

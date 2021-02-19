@@ -6,9 +6,9 @@ struct mem_node {
     struct mem_node* child;
 };
 
-struct mem_node* GetNewNode(char* thisWord);
+struct mem_node* GetNewNode(char* mem_array, int size);
 
-struct mem_node* InsertAtTail(struct mem_node* head, char* thisWord);
+struct mem_node* InsertAtTail(struct mem_node* head, char* mem_array, int size);
 
 // void PrintForwards(struct mem_node* head);
 

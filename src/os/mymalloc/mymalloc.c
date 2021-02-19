@@ -4,8 +4,6 @@
 #include <string.h>
 #include <stdint.h>
 #include "mymalloc.h"
-#include "mymalloc_ll.h"
-#include "mymalloc_ll.c"
 
 /*    Your code may use only the following systems calls or library
    functions:
@@ -17,18 +15,53 @@
      strchr strcspn strpbrk strrchr strspn
      strstr strtok  memset  strerror    strlen */
 
-char* mem_array = NULL;
-
 int arr_empty = TRUE;
 
-int global_counter = 0;
+static int mem_used = 0;
 
-struct mem_region first = {TRUE, 0, 1, 0x0};
-struct mem_node head = {&first, NULL};
+struct mem_region* first = NULL;
 
-void *myMalloc_allocate(char *mem_array){
-    void* my_ptr = (&mem_array)[global_counter];
-    return my_ptr;
+int round_size(int size){
+    if (size % 8 != 0){
+        size = size + size % 8; //round size up to double word boundary
+    }
+}
+
+void subdivide(struct mem_region* mem){
+    struct mem_region* next = mem->data[0]; // SUBDIVISION: this covers the rest of memory. Anytime I am looking at a data[0] address, that's the start of a struct
+    next->free = TRUE;
+    next->size = 0;
+    next->pid = 1;
+    next->data[0] = NULL;
+}
+
+struct mem_region* init_struct(struct mem_region* first, int size){
+    if ((first = (struct mem_region*)malloc(128 * MEGA_BYTE)) == NULL){
+        perror("malloc"); return NULL;
+    }
+    else{
+        first->free = TRUE;
+        mem_used += size;
+        first->size = size;
+        first->pid = 1;
+        first->data[0] = &first + sizeof(struct mem_region) + size;
+        subdivide(first);
+    }
+    return first;
+    //subdivide memory
+}
+
+void* insert_at_tail(struct mem_region* first, int size){
+    //TODO -- protect against having reached end of region
+    struct mem_region* temp = first;
+    while (temp->data[0] != NULL){
+        temp = temp->data[0]; //traversal, assumes pointer at data
+    }
+    mem_used += size;
+    temp->size = size;
+    temp->pid = 1; //make this a real PID later
+    temp->data[0] = &temp + sizeof(struct mem_region) + size;
+    subdivide(temp);
 }
 
 void *myMalloc(unsigned int size){
@@ -37,23 +70,17 @@ void *myMalloc(unsigned int size){
         fprintf(stdout, "Error: not enough RAM available or no RAM requested \n");
         return return_ptr;
     }
-    if (mem_array == NULL){
-        if ((mem_array = (char *)malloc(128 * MEGA_BYTE)) == NULL){
-           perror("malloc"); return return_ptr;
+    size = round_size(size);
+    if (first == NULL){
+        if (first = init_struct(first, size) == NULL){ //build initial struct
+            return NULL;
         }
-        // for(int i=0;i<size;i++){
-        //     mem_array[i] = i;
-        //     printf("%c",mem_array[i]);
-        // }
-        // mem_array[MAX] = 'N';
-        // printf("%c \n",mem_array[MAX]);
+        return_ptr = first;
     }
-    first.data[0] = mem_array; //TODO: probably wrong
-    if (size % 8 != 0){
-        size = size + size % 8; //round up to double word boundary
+    else {
+        return_ptr = insert_at_tail(first, size);
     }
-    return_ptr = myMalloc_allocate(mem_array);
-    global_counter += size;
+    //todo: modularize function once working
     return return_ptr;
 }
 
@@ -65,8 +92,8 @@ int myFreeErrorCode(void *ptr){
     //if you reach the end of the walk, return null
     //finally ...
     if (arr_empty == TRUE){
-        free(mem_array);
-        if (mem_array != NULL){
+        free(first);
+        if (first != NULL){
            perror("free"); exit(2);
         }
     }
