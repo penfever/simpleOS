@@ -20,3 +20,4 @@ src/toggle/.cwGeneratedFileSetLog
 src/toggle/.project
 src/toggle/ReferencedRSESystems.xml
 src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
+src/os/mymalloc/main.exe

@@ -5,6 +5,13 @@
 #define MEGA_BYTE 1048576
 #define MAX (128 * 1048576) - 1
 
+struct mem_region {
+    int free : 1;
+    unsigned int size : 31;
+    unsigned int pid;
+    uint8_t data[0];
+};
+
 void *myMalloc(unsigned int size);
 
 void myFree(void *ptr);

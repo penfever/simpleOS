@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <stdint.h>
 #include "mymalloc.h"
+#include "../helpers/linked_list.c"
+#include "../helpers/linked_list.h"
 
 /*    Your code may use only the following systems calls or library
    functions:
@@ -19,8 +22,8 @@ char* mem_array = NULL;
 int arr_empty = TRUE;
 
 void *myMalloc(unsigned int size){
-    if (size > MAX){
-        fprintf(stdout, "Error: not enough RAM available \n");
+    if (size > MAX || size == 0){
+        fprintf(stdout, "Error: not enough RAM available or no RAM requested \n");
         return NULL;
     }
     if (mem_array == NULL){
@@ -34,12 +37,18 @@ void *myMalloc(unsigned int size){
         mem_array[MAX] = 'N';
         printf("%c \n",mem_array[MAX]);
     }
+    if (size % 8 != 0){
+        size = size + size % 8; //round up to double word boundary
+    }
     return 0;
 }
 
 int myFreeErrorCode(void *ptr){
 
-
+    //walk through the entire linked list and verify that this was a previously allocated region of memory.
+    //when you reach the correct pointer ...
+    //merge it with the one after it and before it, if necessary.
+    //if you reach the end of the walk, return null
     //finally ...
     if (arr_empty == TRUE){
         free(mem_array);
@@ -47,7 +56,7 @@ int myFreeErrorCode(void *ptr){
            perror("free"); exit(2);
         }
     }
-
+    //TODO: Add error code returns to error struct, see PSET 2
     return 0;
 }
 
