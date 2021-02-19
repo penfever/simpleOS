@@ -14,6 +14,8 @@ struct mem_region {
 
 void *myMalloc(unsigned int size);
 
+void *myMalloc_allocate(char *mem_array);
+
 void myFree(void *ptr);
 
 int myFreeErrorCode(void *ptr);

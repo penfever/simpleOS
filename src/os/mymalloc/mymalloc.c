@@ -21,26 +21,36 @@ char* mem_array = NULL;
 
 int arr_empty = TRUE;
 
+int global_counter = 0;
+
+void *myMalloc_allocate(char *mem_array){
+    void* my_ptr = (&mem_array)[global_counter];
+    return my_ptr;
+}
+
 void *myMalloc(unsigned int size){
-    if (size > MAX || size == 0){
+    void* return_ptr = NULL;
+    if (size > MAX || size <= 0){
         fprintf(stdout, "Error: not enough RAM available or no RAM requested \n");
-        return NULL;
+        return return_ptr;
     }
     if (mem_array == NULL){
         if ((mem_array = (char *)malloc(128 * MEGA_BYTE)) == NULL){
-           perror("malloc"); return NULL;
+           perror("malloc"); return return_ptr;
         }
-        for(int i=0;i<size;i++){
-            mem_array[i] = i;
-            printf("%c",mem_array[i]);
-        }
-        mem_array[MAX] = 'N';
-        printf("%c \n",mem_array[MAX]);
+        // for(int i=0;i<size;i++){
+        //     mem_array[i] = i;
+        //     printf("%c",mem_array[i]);
+        // }
+        // mem_array[MAX] = 'N';
+        // printf("%c \n",mem_array[MAX]);
     }
     if (size % 8 != 0){
         size = size + size % 8; //round up to double word boundary
     }
-    return 0;
+    return_ptr = myMalloc_allocate(mem_array);
+    global_counter += size;
+    return return_ptr;
 }
 
 int myFreeErrorCode(void *ptr){
