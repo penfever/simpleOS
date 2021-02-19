@@ -4,8 +4,8 @@
 #include <string.h>
 #include <stdint.h>
 #include "mymalloc.h"
-#include "../helpers/linked_list.c"
-#include "../helpers/linked_list.h"
+#include "mymalloc_ll.h"
+#include "mymalloc_ll.c"
 
 /*    Your code may use only the following systems calls or library
    functions:

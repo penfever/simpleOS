@@ -1,8 +1,6 @@
 #ifndef _LINKED_LIST_H
 #define _LINKED_LIST_H
 
-//TODO: move the function definitions to .c file
-
 struct Node{
   char* node_word;
   int count;
