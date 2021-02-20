@@ -16,6 +16,10 @@ int main(void){
     if ((odd = myMalloc(sizeof(int*)-1)) == NULL){
         error_checker(E_MALLOC);
     }
+    int* another;
+    if ((another = myMalloc(512)) == NULL){
+        error_checker(E_MALLOC);
+    }
     int* too_small;
     if ((too_small = myMalloc(0)) == NULL){
         error_checker(E_MALLOC);

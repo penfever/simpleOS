@@ -18,6 +18,8 @@
 
 static int mem_used = 0;
 
+static int node_count = 0;
+
 struct mem_region* first = NULL;
 
 int round_size(int size){
@@ -27,41 +29,56 @@ int round_size(int size){
     return size;
 }
 
-void subdivide(struct mem_region* mem){
-    struct mem_region* next = mem->data; // SUBDIVISION: this covers the rest of memory. Anytime I am looking at a data address, that's the start of a struct
-    next->free = TRUE;
-    next->size = 0;
-    next->pid = 1;
-    next->data = NULL;
-}
-
 struct mem_region* init_struct(struct mem_region* first, int size){
     if ((first = (struct mem_region*)malloc(128 * MEGA_BYTE)) == NULL){
         perror("malloc"); return NULL;
     }
     else{
+        node_count += 1;
         first->free = TRUE;
-        mem_used += size;
-        first->size = size;
+        first->size = MAX - MEMSTRUCT;
         first->pid = 1;
-        first->data = &first + sizeof(struct mem_region) + size; //TODO: figure out how to convert ptr to and from uint8_t and make sure the ptr arith is working
-        subdivide(first);
     }
     return first;
     //subdivide memory
 }
 
+void* subdivide(struct mem_region* mem, int size){
+    //1. Always breaks up the first region, which will always be the largest region
+    //2. Does this by allocating from the end of the region.
+    if (size > mem->size){
+        return NULL; //TODO: possibly send a clearer error message to stdout?
+    }
+    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region VERIFIED
+    next -= MEMSTRUCT + size; // backs up so it now points to the correct spot in memory VERIFIED
+    next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
+    next->size = size;
+    next->pid = 1;
+    node_count += 1;
+    return &(next->data[0]);
+}
+
+void* perfect_fit(struct mem_region* temp, int size){
+    for (int i = 0; i < node_count; i++){
+        if (temp->size == size && temp->free == TRUE){ // if it's a perfect fit, return it
+            temp->free = FALSE;
+            return &(temp->data[0]);
+        }
+        else{ //walk the list
+            temp = &temp->data[0] + temp->size;
+        }
+    }
+    return NULL; //eventually, return NULL
+}
+
 void* insert_at_tail(struct mem_region* first, int size){
     //TODO -- protect against having reached end of region
+    struct mem_region* my_ptr = NULL;
     struct mem_region* temp = first;
-    while (temp->data != NULL){
-        temp = temp->data; //traversal, assumes pointer at data
+    if ((my_ptr = perfect_fit(temp, size)) == NULL){
+        my_ptr = subdivide(first, size);
     }
-    mem_used += size;
-    temp->size = size;
-    temp->pid = 1; //make this a real PID later
-    temp->data = &temp + sizeof(struct mem_region) + size;
-    subdivide(temp);
+    return (void*)my_ptr;
 }
 
 void *myMalloc(unsigned int size){
@@ -72,15 +89,11 @@ void *myMalloc(unsigned int size){
     }
     size = round_size(size);
     if (first == NULL){
-        if (first = init_struct(first, size) == NULL){ //build initial struct
+        if ((first = init_struct(first, size)) == NULL){ //build initial struct
             return NULL;
         }
-        return_ptr = first;
     }
-    else {
-        return_ptr = insert_at_tail(first, size);
-    }
-    //todo: modularize function once working
+    return_ptr = insert_at_tail(first, size);
     return return_ptr;
 }
 
@@ -88,7 +101,7 @@ int myFreeErrorCode(void *ptr){
     int arr_empty = FALSE;
     struct mem_region* temp = first;
     while (temp->data != ptr && temp->data != NULL){
-        temp = temp->data; //traversal, assumes pointer at data
+        temp = temp->data; //TODO: Fix traversal, assumes pointer at data
     }
     //walk through the entire linked list and verify that this was a previously allocated region of memory.
     //when you reach the correct pointer ...
