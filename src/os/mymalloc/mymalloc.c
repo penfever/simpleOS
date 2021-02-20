@@ -55,6 +55,7 @@ void* subdivide(struct mem_region* mem, int size){
     next->size = size;
     next->pid = 1;
     node_count += 1;
+    first->size -= MEMSTRUCT + size; //shrink the size of the first block
     return &(next->data[0]);
 }
 

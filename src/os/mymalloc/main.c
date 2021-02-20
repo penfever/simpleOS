@@ -16,7 +16,7 @@ int main(void){
     if ((odd = myMalloc(sizeof(int*)-1)) == NULL){
         error_checker(E_MALLOC);
     }
-    int* another;
+    char* another;
     if ((another = myMalloc(512)) == NULL){
         error_checker(E_MALLOC);
     }
@@ -32,14 +32,21 @@ int main(void){
     if ((too_big = myMalloc(129*1024*1024)) == NULL){
         error_checker(E_MALLOC);
     }
-    for (int i = 0; i < 31; i++){
-        normal[i] = 'z';
-    }
-    normal[31] = '\0';
     int var = 4;
+    for (int i = 0; i < 31; i++){
+        normal[i] = 'c';
+    }
     odd = &var;
+    normal[31] = '\0';
+    fprintf(stdout, "Normal is %s, length is %d \n", normal, strlen(normal));
     fprintf(stdout, "Odd is %d \n", *odd);
-    fprintf(stdout, "String is %s, length is %d \n", normal, strlen(normal));
+    for (int i = 0; i < 512; i++){
+        another[i] = 'c';
+    }
+    *odd += 2;
+    fprintf(stdout, "Odd is now %d \n", *odd);
+    fprintf(stdout, "Normal is now %s, length is %d \n", normal, strlen(normal));
+    fprintf(stdout, "Long is now %s, length is %d \n", another, strlen(another));
     myFreeErrorCode(sizeof(int));
     exit(0);
 }
