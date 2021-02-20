@@ -38,6 +38,7 @@ struct mem_region* init_struct(struct mem_region* first, int size){
         first->free = TRUE;
         first->size = MAX - MEMSTRUCT;
         first->pid = 1;
+        fprintf(stdout, "Free's address is %p \n", &first);
     }
     return first;
     //subdivide memory
@@ -52,8 +53,7 @@ void* subdivide(struct mem_region* mem, int size){
     struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region VERIFIED
     int changesize = size;
     changesize += MEMSTRUCT;
-    fprintf(stdout, "changesize is now %d \n", changesize);
-    next -= changesize; // backs up so it now points to the correct spot in memory VERIFIED
+    next -= changesize; // pointer backs up so it now points to the correct spot in memory VERIFIED
     next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = 1;
@@ -75,8 +75,55 @@ void* perfect_fit(struct mem_region* temp, int size){
     return NULL; //eventually, return NULL
 }
 
+void compact(struct mem_region* prev, int size){
+    if (prev->free == TRUE){
+        prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
+        prev->size += size;
+        node_count -= 1;
+        struct mem_region* next = &(prev->data[0]) + prev->size; //TODO: there won't always be a next region
+        if (next->free == TRUE){
+            prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
+            prev->size += size;
+            node_count -= 1; 
+        }
+    }
+}
+
+int free_match(struct mem_region* temp, void* ptr){
+    int all_free = TRUE;
+    int found = FALSE;
+    struct mem_region* prev;
+    for (int i = 0; i < node_count; i++){
+        if (ptr == &(temp->data[0])){ // is ptr identical to this address?
+            if (temp->free == FALSE){ // throws error on attempt to free an already freed region
+                temp->free == TRUE;
+                if (i < node_count - 1){ //if there is a next region to compact
+                    compact(prev, temp->size); // compacts next and prior regions of memory TODO: this means the last region never gets compacted?
+                }
+                found = TRUE;
+            }
+        }
+        if (temp->free == FALSE){ //if any item is not free
+            int all_free = FALSE;
+        }
+        prev = temp; //previous gets current
+        int incr_size = temp->size;
+        temp = &(temp->data[0]);
+        temp += incr_size; //current gets next. TODO: not finding the next block
+    }
+    if (all_free == TRUE){
+        return -1;
+    }
+    else if (found == TRUE){
+        return 0;
+    }
+    else{
+        return E_FREE;
+    }
+}
+
 void* insert_at_tail(struct mem_region* first, int size){
-    //TODO -- protect against having reached end of region
+    //TODO -- protect against having reached end of region. Do I still need this?
     struct mem_region* my_ptr = NULL;
     struct mem_region* temp = first;
     if ((my_ptr = perfect_fit(temp, size)) == NULL){
@@ -87,7 +134,7 @@ void* insert_at_tail(struct mem_region* first, int size){
 
 void *myMalloc(unsigned int size){
     void* return_ptr = NULL;
-    if (size > MAX || size <= 0){
+    if (size >= MAX - MEMSTRUCT || size <= 0){
         fprintf(stdout, "Error: not enough RAM available or no RAM requested \n");
         return return_ptr;
     }
@@ -102,23 +149,23 @@ void *myMalloc(unsigned int size){
 }
 
 int myFreeErrorCode(void *ptr){
-    int arr_empty = FALSE;
+    //TODO: what if someone passes in a very large or very small garbage number?
     struct mem_region* temp = first;
-    while (temp->data != ptr && temp->data != NULL){
-        temp = temp->data; //TODO: Fix traversal, assumes pointer at data
+    int match_val = free_match(temp, ptr);
+    if (match_val > 0){ //case: match_val error
+        return E_FREE;
     }
-    //walk through the entire linked list and verify that this was a previously allocated region of memory.
-    //when you reach the correct pointer ...
-    //merge it with the one after it and before it, if necessary.
-    //if you reach the end of the walk, return null
-    //finally ...
-    if (arr_empty == TRUE){
+    else if (match_val < 0){ //case: all of memory is empty
         free(first);
         if (first != NULL){
            perror("free"); exit(2);
         }
+        return 0;
     }
-    return E_FREE;
+    else{
+        return 0; //success
+    }
+    return E_FREE; //should never reach this point
 }
 
 void myFree(void *ptr){
