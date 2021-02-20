@@ -50,12 +50,15 @@ void* subdivide(struct mem_region* mem, int size){
         return NULL; //TODO: possibly send a clearer error message to stdout?
     }
     struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region VERIFIED
-    next -= MEMSTRUCT + size; // backs up so it now points to the correct spot in memory VERIFIED
+    int changesize = size;
+    changesize += MEMSTRUCT;
+    fprintf(stdout, "changesize is now %d \n", changesize);
+    next -= changesize; // backs up so it now points to the correct spot in memory VERIFIED
     next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = 1;
     node_count += 1;
-    first->size -= MEMSTRUCT + size; //shrink the size of the first block
+    first->size -= changesize; //shrink the size of the first block
     return &(next->data[0]);
 }
 
