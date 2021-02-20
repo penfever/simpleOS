@@ -50,15 +50,14 @@ void* subdivide(struct mem_region* mem, int size){
     if (size > mem->size){
         return NULL; //TODO: possibly send a clearer error message to stdout?
     }
-    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region VERIFIED
-    int changesize = size;
-    changesize += MEMSTRUCT;
-    next -= changesize; // pointer backs up so it now points to the correct spot in memory VERIFIED
+    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region 
+    next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
+    next -= size/sizeof(next);
     next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = 1;
     node_count += 1;
-    first->size -= changesize; //shrink the size of the first block
+    first->size -= size + MEMSTRUCT; //shrink the size of the first block
     return &(next->data[0]);
 }
 
@@ -66,7 +65,7 @@ void* perfect_fit(struct mem_region* temp, int size){
     for (int i = 0; i < node_count; i++){
         if (temp->size == size && temp->free == TRUE){ // if it's a perfect fit, return it
             temp->free = FALSE;
-            return &(temp->data[0]);
+            return &temp->data[0];
         }
         else{ //walk the list
             temp = &temp->data[0] + temp->size;
@@ -80,7 +79,7 @@ void compact(struct mem_region* prev, int size){
         prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
         prev->size += size;
         node_count -= 1;
-        struct mem_region* next = &(prev->data[0]) + prev->size; //TODO: there won't always be a next region
+        struct mem_region* next = &prev->data[0] + prev->size; //TODO: there won't always be a next region
         if (next->free == TRUE){
             prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
             prev->size += size;
@@ -108,8 +107,8 @@ int free_match(struct mem_region* temp, void* ptr){
         }
         prev = temp; //previous gets current
         int incr_size = temp->size;
-        temp = &(temp->data[0]);
-        temp += incr_size; //current gets next. TODO: not finding the next block
+        temp = &temp->data[0];
+        temp += incr_size/sizeof(temp); //current gets next. TODO: not finding the next block
     }
     if (all_free == TRUE){
         return -1;

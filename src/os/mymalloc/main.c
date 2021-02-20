@@ -9,15 +9,15 @@
 
 int main(void){
     char* normal;
-    if ((normal = myMalloc(32)) == NULL){
+    if ((normal = (char *)myMalloc(32)) == NULL){
         error_checker(E_MALLOC);
     }
     int* odd;
-    if ((odd = myMalloc(sizeof(int*)-1)) == NULL){
+    if ((odd = (int *)myMalloc(sizeof(int*)-1)) == NULL){
         error_checker(E_MALLOC);
     }
     char* another;
-    if ((another = myMalloc(512)) == NULL){
+    if ((another = (char *)myMalloc(512)) == NULL){
         error_checker(E_MALLOC);
     }
     int* too_small;
