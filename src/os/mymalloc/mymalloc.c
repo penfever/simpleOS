@@ -89,7 +89,6 @@ void compact_next(struct mem_region* prev, int size){
         prev->size += size;
         node_count -= 1; 
     }
-    }
 }
 
 int free_match(struct mem_region* temp, void* ptr){
