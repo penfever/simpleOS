@@ -1,8 +1,6 @@
 #ifndef _MYMALLOC_H
 #define _MYMALLOC_H
-#ifndef TRUE
 #define TRUE 1
-#endif
 #define FALSE 0
 #define MEGA_BYTE 1048576
 #define MAX (128 * 1048576)

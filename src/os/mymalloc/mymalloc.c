@@ -35,7 +35,7 @@ struct mem_region* init_struct(struct mem_region* first, int size){
     }
     else{
         node_count += 1;
-        first->free = TRUE;
+        first->free |= TRUE;
         first->size = MAX - MEMSTRUCT;
         first->pid = 1;
         fprintf(stdout, "Free's address is %p \n", &first);
@@ -53,7 +53,7 @@ void* subdivide(struct mem_region* mem, int size){
     struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region 
     next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
     next -= size/sizeof(next);
-    next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
+    next->free |= FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = 1;
     node_count += 1;
@@ -63,8 +63,8 @@ void* subdivide(struct mem_region* mem, int size){
 
 void* perfect_fit(struct mem_region* temp, int size){
     for (int i = 0; i < node_count; i++){
-        if (temp->size == size && temp->free == TRUE){ // if it's a perfect fit, return it
-            temp->free = FALSE;
+        if (temp->size == size && temp->free != FALSE){ // if it's a perfect fit, return it
+            temp->free |= FALSE;
             return &temp->data[0];
         }
         else{ //walk the list
@@ -75,12 +75,12 @@ void* perfect_fit(struct mem_region* temp, int size){
 }
 
 void compact(struct mem_region* prev, int size){
-    if (prev->free == TRUE){
+    if (prev->free != FALSE){
         prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
         prev->size += size;
         node_count -= 1;
         struct mem_region* next = &prev->data[0] + prev->size; //TODO: there won't always be a next region
-        if (next->free == TRUE){
+        if (next->free != FALSE){
             prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
             prev->size += size;
             node_count -= 1; 
@@ -95,7 +95,7 @@ int free_match(struct mem_region* temp, void* ptr){
     for (int i = 0; i < node_count; i++){
         if (ptr == &(temp->data[0])){ // is ptr identical to this address?
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
-                temp->free = TRUE;
+                temp->free |= TRUE;
                 if (i < node_count - 1){ //if there is a next region to compact
                     compact(prev, temp->size); // compacts next and prior regions of memory TODO: this means the last region never gets compacted?
                 }
