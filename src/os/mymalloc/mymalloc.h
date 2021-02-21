@@ -23,4 +23,8 @@ int myFreeErrorCode(void *ptr);
 
 struct mem_region* walk_struct(struct mem_region* this_region);
 
+struct mem_region* first_fit(struct mem_region* temp, int size);
+
+//TODO add func declarations
+
 #endif

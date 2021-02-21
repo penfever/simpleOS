@@ -42,13 +42,10 @@ struct mem_region* init_struct(struct mem_region* first){
     //subdivide memory
 }
 
-void* subdivide(struct mem_region* mem, int size){
-    //1. Always breaks up the first region, which will always be the largest region
+struct mem_region* subdivide(struct mem_region* mem, int size){
+    //1. Breaks up the passed-in region
     //2. Does this by allocating from the end of the region.
-    if (size > mem->size){
-        return NULL; //TODO: possibly send a clearer error message to stdout?
-    }
-    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the large malloc region 
+    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the region 
     next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
     next -= size/sizeof(next);
     next->free |= FALSE; //marks the new region as allocated (since a new region will always be requested)
@@ -59,11 +56,10 @@ void* subdivide(struct mem_region* mem, int size){
     return &(next->data[0]);
 }
 
-void* perfect_fit(struct mem_region* temp, int size){
+struct mem_region* first_fit(struct mem_region* temp, int size){
     for (int i = 0; i < node_count; i++){
-        if (temp->size == size && temp->free != FALSE){ // if it's a perfect fit, return it
-            temp->free |= FALSE;
-            return &temp->data[0];
+        if ((temp->size >= size) && (temp->free != FALSE)){ // if it's a perfect fit, return it
+            return temp;
         }
         else{ //walk the list
             temp = walk_struct(temp);
@@ -141,8 +137,12 @@ void* insert_at_tail(struct mem_region* first, int size){
     //TODO -- protect against having reached end of region. Do I still need this?
     struct mem_region* my_ptr = NULL;
     struct mem_region* temp = first;
-    if ((my_ptr = perfect_fit(temp, size)) == NULL){
-        my_ptr = subdivide(first, size);
+    my_ptr = first_fit(temp, size);
+    if (my_ptr == NULL){
+        return NULL;
+    }
+    else{
+        my_ptr = subdivide(my_ptr, size);
     }
     return (void*)my_ptr;
 }
