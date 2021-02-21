@@ -68,7 +68,7 @@ void* perfect_fit(struct mem_region* temp, int size){
             return &temp->data[0];
         }
         else{ //walk the list
-            temp = &temp->data[0] + temp->size;
+            temp = walk_struct(temp);
         }
     }
     return NULL; //eventually, return NULL
@@ -92,14 +92,11 @@ void compact_next(struct mem_region* prev, int size){
 }
 
 int free_match(struct mem_region* temp, void* ptr){
-    int all_free = TRUE;
-    int found = FALSE;
     struct mem_region* prev;
     for (int i = 0; i < node_count; i++){
         if (ptr == &(temp->data[0])){ // is ptr identical to this address?
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
                 temp->free |= TRUE;
-                found = TRUE;
                 if (i == 0){ //if at first block, check ahead only
                     compact_next(temp, temp->size);
                 }
@@ -110,25 +107,36 @@ int free_match(struct mem_region* temp, void* ptr){
                     compact_prev(prev, temp->size); // compacts next and prior regions of memory
                     compact_next(temp, temp->size);
                 }
+                return 0;
             }
         }
-        if (temp->free == FALSE){ //if any item is not free
+        else {
+        prev = temp; //previous gets current
+        temp = walk_struct(temp);  //current gets next. TODO: not finding the next block
+        }
+    }
+    return E_FREE;
+}
+
+int empty_mem_check(struct mem_region* temp){
+    int all_free = TRUE;
+    for (int i = 0; i < node_count; i++){
+        if (temp->free == FALSE){
             all_free = FALSE;
         }
-        prev = temp; //previous gets current
-        int incr_size = temp->size;
-        temp = &temp->data[0];
-        temp += incr_size/sizeof(temp); //current gets next. TODO: not finding the next block
+        temp = walk_struct(temp); //current gets next. TODO: not finding the next block
     }
     if (all_free == TRUE){
         return E_EMPTYMEM;
     }
-    else if (found == TRUE){
-        return 0;
-    }
-    else{
-        return E_FREE;
-    }
+    return 0;
+}
+
+struct mem_region* walk_struct(struct mem_region* this_region){
+    int incr_size = this_region->size;
+    this_region = &this_region->data[0];
+    this_region += incr_size/sizeof(this_region);
+    return this_region;
 }
 
 void* insert_at_tail(struct mem_region* first, int size){
@@ -164,10 +172,10 @@ int myFreeErrorCode(void *ptr){
     if (match_val == E_FREE){ //case: match_val error
         return E_FREE;
     }
-    else if (match_val == E_EMPTYMEM){ //case: all of memory is empty
+    else if (empty_mem_check(first) == E_EMPTYMEM){
         free(first);
         if (first != NULL){
-           perror("free"); exit(2);
+        perror("free"); exit(2);
         }
         return 0;
     }

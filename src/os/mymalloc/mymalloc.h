@@ -21,4 +21,6 @@ void myFree(void *ptr);
 
 int myFreeErrorCode(void *ptr);
 
+struct mem_region* walk_struct(struct mem_region* this_region);
+
 #endif

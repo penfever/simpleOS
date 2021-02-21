@@ -36,7 +36,7 @@ int main(void){
     for (int i = 0; i < 31; i++){
         normal[i] = 'c';
     }
-    odd = &var;
+    *odd = var;
     normal[31] = '\0';
     fprintf(stdout, "Normal is %s, length is %d, address is %p \n", normal, strlen(normal), &normal);
     fprintf(stdout, "Odd is %d, address is %p \n", *odd, &odd);
@@ -55,11 +55,12 @@ int main(void){
     errcode = myFreeErrorCode(odd);
     fprintf(stdout, "errcode is %d \n", errcode);
     odd = myMalloc(sizeof(int*)-1); //this should find the empty slot I just created and fill it
-    odd = &var;
+    *odd = var;
     *odd += 4;
     fprintf(stdout, "Odd is now %d \n", *odd);
-    myFreeErrorCode(odd);
-    
+    errcode = myFreeErrorCode(odd);
+    fprintf(stdout, "errcode is %d \n", errcode);
+
     errcode = myFreeErrorCode(normal); //this should cause a merge in the free blocks
     fprintf(stdout, "errcode is %d \n", errcode);
     
