@@ -49,12 +49,9 @@ int main(void){
     fprintf(stdout, "Normal is now %s, length is %d \n", normal, strlen(normal));
     fprintf(stdout, "Long is %s, length is %d, address is %p \n", another, strlen(another), &another);
     int errcode;
-    errcode = myFreeErrorCode((void*)93234567);
+    errcode = myFreeErrorCode((void*)93234567); //this is an invalid pointer and should be discarded
     fprintf(stdout, "errcode is %d \n", errcode);
-    errcode = myFreeErrorCode(normal);
-    fprintf(stdout, "errcode is %d \n", errcode);
-    errcode = myFreeErrorCode(normal); // double free
-    fprintf(stdout, "errcode is %d \n", errcode);
+    
     errcode = myFreeErrorCode(odd);
     fprintf(stdout, "errcode is %d \n", errcode);
     odd = myMalloc(sizeof(int*)-1); //this should find the empty slot I just created and fill it
@@ -62,6 +59,13 @@ int main(void){
     *odd += 4;
     fprintf(stdout, "Odd is now %d \n", *odd);
     myFreeErrorCode(odd);
+    
+    errcode = myFreeErrorCode(normal); //this should cause a merge in the free blocks
+    fprintf(stdout, "errcode is %d \n", errcode);
+    
+    errcode = myFreeErrorCode(normal); // double free should cause error
+    fprintf(stdout, "errcode is %d \n", errcode);
+
     myFreeErrorCode(another); //this should free everything
     exit(0);
 }

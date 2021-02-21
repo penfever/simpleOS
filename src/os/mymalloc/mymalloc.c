@@ -95,7 +95,7 @@ int free_match(struct mem_region* temp, void* ptr){
     for (int i = 0; i < node_count; i++){
         if (ptr == &(temp->data[0])){ // is ptr identical to this address?
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
-                temp->free == TRUE;
+                temp->free = TRUE;
                 if (i < node_count - 1){ //if there is a next region to compact
                     compact(prev, temp->size); // compacts next and prior regions of memory TODO: this means the last region never gets compacted?
                 }
@@ -103,7 +103,7 @@ int free_match(struct mem_region* temp, void* ptr){
             }
         }
         if (temp->free == FALSE){ //if any item is not free
-            int all_free = FALSE;
+            all_free = FALSE;
         }
         prev = temp; //previous gets current
         int incr_size = temp->size;
@@ -111,7 +111,7 @@ int free_match(struct mem_region* temp, void* ptr){
         temp += incr_size/sizeof(temp); //current gets next. TODO: not finding the next block
     }
     if (all_free == TRUE){
-        return -1;
+        return E_EMPTYMEM;
     }
     else if (found == TRUE){
         return 0;
@@ -151,10 +151,10 @@ int myFreeErrorCode(void *ptr){
     //TODO: what if someone passes in a very large or very small garbage number?
     struct mem_region* temp = first;
     int match_val = free_match(temp, ptr);
-    if (match_val > 0){ //case: match_val error
+    if (match_val == E_FREE){ //case: match_val error
         return E_FREE;
     }
-    else if (match_val < 0){ //case: all of memory is empty
+    else if (match_val == E_EMPTYMEM){ //case: all of memory is empty
         free(first);
         if (first != NULL){
            perror("free"); exit(2);

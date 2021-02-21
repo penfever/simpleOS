@@ -16,6 +16,7 @@ enum _os_error
     E_MALLOC = -7,
     E_INF = -8,
     E_FREE = -9,
+    E_EMPTYMEM = -10
 };
 
 struct _errordesc {
