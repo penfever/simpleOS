@@ -16,8 +16,6 @@
      strchr strcspn strpbrk strrchr strspn
      strstr strtok  memset  strerror    strlen */
 
-static int mem_used = 0;
-
 static int node_count = 0;
 
 struct mem_region* first = NULL;
@@ -29,7 +27,7 @@ int round_size(int size){
     return size;
 }
 
-struct mem_region* init_struct(struct mem_region* first, int size){
+struct mem_region* init_struct(struct mem_region* first){
     if ((first = (struct mem_region*)malloc(128 * MEGA_BYTE)) == NULL){
         perror("malloc"); return NULL;
     }
@@ -157,7 +155,7 @@ void *myMalloc(unsigned int size){
     }
     size = round_size(size);
     if (first == NULL){
-        if ((first = init_struct(first, size)) == NULL){ //build initial struct
+        if ((first = init_struct(first)) == NULL){ //build initial struct
             return NULL;
         }
     }
