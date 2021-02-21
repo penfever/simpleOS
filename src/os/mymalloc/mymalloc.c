@@ -74,17 +74,21 @@ void* perfect_fit(struct mem_region* temp, int size){
     return NULL; //eventually, return NULL
 }
 
-void compact(struct mem_region* prev, int size){
+void compact_prev(struct mem_region* prev, int size){
     if (prev->free != FALSE){
         prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
         prev->size += size;
         node_count -= 1;
-        struct mem_region* next = &prev->data[0] + prev->size; //TODO: there won't always be a next region
-        if (next->free != FALSE){
-            prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
-            prev->size += size;
-            node_count -= 1; 
-        }
+    }
+}
+
+void compact_next(struct mem_region* prev, int size){
+    struct mem_region* next = &prev->data[0] + prev->size;
+    if (next->free != FALSE){
+        prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
+        prev->size += size;
+        node_count -= 1; 
+    }
     }
 }
 
@@ -96,10 +100,17 @@ int free_match(struct mem_region* temp, void* ptr){
         if (ptr == &(temp->data[0])){ // is ptr identical to this address?
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
                 temp->free |= TRUE;
-                if (i < node_count - 1){ //if there is a next region to compact
-                    compact(prev, temp->size); // compacts next and prior regions of memory TODO: this means the last region never gets compacted?
-                }
                 found = TRUE;
+                if (i == 0){ //if at first block, check ahead only
+                    compact_next(temp, temp->size);
+                }
+                else if (i == node_count - 1){ // if at last block, check behind only
+                    compact_prev(prev, temp->size);
+                }
+                else {
+                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
+                    compact_next(temp, temp->size);
+                }
             }
         }
         if (temp->free == FALSE){ //if any item is not free
