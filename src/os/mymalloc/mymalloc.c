@@ -24,7 +24,7 @@ struct mem_region* first = NULL;
 
 int round_size(int size){
     if (size % 8 != 0){
-        size = size + size % 8; //round size up to double word boundary
+        size = (size - (size % 8))+8; //round size up to double word boundary
     }
     return size;
 }
