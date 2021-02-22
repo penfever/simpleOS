@@ -140,8 +140,15 @@ void memoryMap(struct mem_region* first){
     fprintf(stdout,     "------------------------------- \n");
     struct mem_region* temp = first;
     for (int i = 0; i < node_count; i++){
-    fprintf(stdout,     "|   %d   |  %d  |  %d  | %d |\n", i, temp->free, temp->size, temp->pid);
-    fprintf(stdout,     "------------------------------- \n");
+        char* bool_str = NULL;
+        if (temp->free == FALSE){
+            bool_str = "False";
+        }
+        else{
+            bool_str = "True ";
+        }
+        fprintf(stdout, "|   %d   |  %s  |  %d  | %d |\n", i+1, bool_str, temp->size, temp->pid);
+        fprintf(stdout, "------------------------------- \n");
         temp = walk_struct(temp); //current gets next. TODO: not finding the next block
     }
     //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
