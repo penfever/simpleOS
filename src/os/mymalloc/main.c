@@ -32,37 +32,30 @@ int main(void){
     if ((too_big = myMalloc(129*1024*1024)) == NULL){
         error_checker(E_MALLOC);
     }
+    memoryMap(first);
     int var = 4;
     for (int i = 0; i < 31; i++){
         normal[i] = 'c';
     }
     *odd = var;
     normal[31] = '\0';
-    fprintf(stdout, "Normal is %s, length is %d, address is %p \n", normal, strlen(normal), &normal);
-    fprintf(stdout, "Odd is %d, address is %p \n", *odd, &odd);
     for (int i = 0; i < 511; i++){
         another[i] = 'c';
     }
     another[511] = '\0';
     *odd += 2;
-    fprintf(stdout, "Odd is now %d \n", *odd);
-    fprintf(stdout, "Normal is now %s, length is %d \n", normal, strlen(normal));
-    fprintf(stdout, "Long is %s, length is %d, address is %p \n", another, strlen(another), &another);
     int errcode;
     errcode = myFreeErrorCode((void*)93234567); //this is an invalid pointer and should be discarded
     fprintf(stdout, "errcode is %d \n", errcode);
-    
+    memoryMap(first);
     errcode = myFreeErrorCode(odd);
-    fprintf(stdout, "errcode is %d \n", errcode);
     odd = myMalloc(sizeof(int*)-1); //this should find the empty slot I just created and fill it
     *odd = var;
     *odd += 4;
     fprintf(stdout, "Odd is now %d \n", *odd);
     errcode = myFreeErrorCode(odd);
-    fprintf(stdout, "errcode is %d \n", errcode);
-
     errcode = myFreeErrorCode(normal); //this should cause a merge in the free blocks
-    fprintf(stdout, "errcode is %d \n", errcode);
+    memoryMap(first);
     
     errcode = myFreeErrorCode(normal); // double free should cause error
     fprintf(stdout, "errcode is %d \n", errcode);

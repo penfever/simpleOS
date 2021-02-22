@@ -57,6 +57,7 @@ struct mem_region* subdivide(struct mem_region* mem, int size){
 }
 
 struct mem_region* first_fit(struct mem_region* temp, int size){
+    /*TODO: add justification for use of first fit*/
     for (int i = 0; i < node_count; i++){
         if ((temp->size >= size) && (temp->free != FALSE)){ // if it's a perfect fit, return it
             return temp;
@@ -131,6 +132,19 @@ struct mem_region* walk_struct(struct mem_region* this_region){
     this_region = &this_region->data[0];
     this_region += incr_size/sizeof(this_region);
     return this_region;
+}
+
+void memoryMap(struct mem_region* first){
+    fprintf(stdout,     "-------------MEMORYMAP--------- \n\n");
+    fprintf(stdout,     "| ENTRY # | FREE | SIZE | PID | \n");
+    fprintf(stdout,     "------------------------------- \n");
+    struct mem_region* temp = first;
+    for (int i = 0; i < node_count; i++){
+    fprintf(stdout,     "|   %d   |  %d  |  %d  | %d |\n", i, temp->free, temp->size, temp->pid);
+    fprintf(stdout,     "------------------------------- \n");
+        temp = walk_struct(temp); //current gets next. TODO: not finding the next block
+    }
+    //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
 }
 
 void* insert_at_tail(struct mem_region* first, int size){
