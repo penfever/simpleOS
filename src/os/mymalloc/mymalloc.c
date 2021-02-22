@@ -14,9 +14,27 @@
      memcpy memmove strcpy  strncpy strcat
      strncat    memcmp  strcmp  strncmp memchr
      strchr strcspn strpbrk strrchr strspn
-     strstr strtok  memset  strerror    strlen */
+     strstr strtok  memset  strerror    strlen 
+     
+     TODO: In preparation for later problem sets, in this problem set you should
+allocate a single PCB (Process Control Block) struct that contains a
+place-holder PID (Process ID) number.  The PID in the PCB should be
+set to zero for now.  The PCB should be pointed to by a global
+file-scope variable named, say, currentPCB.  You should implement an
+accessor function named getCurrentPID that returns the PID contained
+in the PCB of the current process (i.e., in the PCB pointed to by
+currentPCB).  For now, because our PID is always zero, it will always
+return zero.  The value returned by this function will be used to tag
+each region of storage when that region is allocated via myMalloc.  In
+later problem sets, you will be allocating multiple PCBs.
+     
+     */
 
 static int node_count = 0;
+
+struct pcb op_sys = {"OS", 0};
+
+struct pcb* currentPCB = &op_sys;
 
 struct mem_region* first = NULL;
 
@@ -35,7 +53,7 @@ struct mem_region* init_struct(struct mem_region* first){
         node_count += 1;
         first->free |= TRUE;
         first->size = MAX - MEMSTRUCT;
-        first->pid = 1;
+        first->pid = currentPCB->pid;
         fprintf(stdout, "Free's address is %p \n", &first);
     }
     return first;
@@ -50,14 +68,18 @@ struct mem_region* subdivide(struct mem_region* mem, int size){
     next -= size/sizeof(next);
     next->free |= FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
-    next->pid = 1;
+    next->pid = currentPCB->pid;
     node_count += 1;
     first->size -= size + MEMSTRUCT; //shrink the size of the first block
     return &(next->data[0]);
 }
 
 struct mem_region* first_fit(struct mem_region* temp, int size){
-    /*TODO: add justification for use of first fit*/
+    /*Because the operating system I am writing is likely to be used mostly for small programs and will not be running
+    any massively parallel or RAM-intensive applications for now, and because the NXP/Freescale Hardware is quite
+    limited in its capabilities, I decided the speed of first-fit, combined with merging adjacent regions when free is called,
+    was the optimal choice in thhis situation. Although first-fit can lead to memory fragmentation over time, my operating
+    system is not capable of running enough concurrent programs for this to be as much of an issue as speed at the moment.*/
     for (int i = 0; i < node_count; i++){
         if ((temp->size >= size) && (temp->free != FALSE)){ // if it's a perfect fit, return it
             return temp;

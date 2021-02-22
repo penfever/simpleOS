@@ -6,6 +6,11 @@
 #define MAX (128 * 1048576)
 #define MEMSTRUCT sizeof(struct mem_region)
 
+struct pcb {
+    char* proc_name;
+    unsigned int pid;
+};
+
 struct mem_region {
     int free : 1;
     unsigned int size : 31;
