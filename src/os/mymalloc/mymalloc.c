@@ -193,8 +193,8 @@ int free_match(struct mem_region* temp, void* ptr){
                     compact_prev(prev, temp->size);
                 }
                 else {
-                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
                     compact_next(temp);
+                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
                 }
                 return 0;
             }
@@ -251,7 +251,9 @@ of) the first byte of that region. */
 int myFreeErrorCode(void *ptr){
     /*The behavior of myFreeErrorCode is the same as for myFree except that
 myFreeErrorCode returns an int to indicate success or failure of the
-storage deallocation request. */
+storage deallocation request. 
+    TODO: error freeing last item in array?
+    */
     struct mem_region* temp = first;
     int match_val = free_match(temp, ptr);
     if (match_val == E_FREE){ //case: pointer not found in memory 

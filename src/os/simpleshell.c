@@ -145,6 +145,7 @@ int cmd_exit(int argc, char *argv[]){
     }
   }
   free(argv);
+  free(first);
   exit(0);
 }
 //TODO: update help
