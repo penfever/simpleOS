@@ -2,8 +2,7 @@
 #define _MYMALLOC_H
 #define TRUE 1
 #define FALSE 0
-#define MEGA_BYTE 1048576
-#define MAX (128 * 1048576)
+#define MAX 134217728
 #define MEMSTRUCT sizeof(struct mem_region)
 
 struct pcb {
@@ -18,17 +17,33 @@ struct mem_region {
     uint8_t data[0];
 };
 
-void *myMalloc(unsigned int size);
+int round_size(int size);
 
-void *myMalloc_allocate(struct mem_region *first, int size);
+struct mem_region* init_struct(struct mem_region* first);
+
+struct mem_region* subdivide(struct mem_region* mem, int size);
+
+struct mem_region* first_fit(struct mem_region* temp, int size);
+
+void compact_prev(struct mem_region* prev, int size);
+
+void compact_next(struct mem_region* prev, int size);
+
+int free_match(struct mem_region* temp, void* ptr);
+
+int empty_mem_check(struct mem_region* temp);
+
+void memoryMap(struct mem_region* first);
+
+void* insert_at_tail(struct mem_region* first, int size);
+
+void *myMalloc(unsigned int size);
 
 void myFree(void *ptr);
 
 int myFreeErrorCode(void *ptr);
 
 struct mem_region* walk_struct(struct mem_region* this_region);
-
-struct mem_region* first_fit(struct mem_region* temp, int size);
 
 //TODO add func declarations
 

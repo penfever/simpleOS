@@ -6,30 +6,6 @@
 #include "mymalloc.h"
 #include "..\helpers\myerror.h"
 
-/*    Your code may use only the following systems calls or library
-   functions:
-     malloc free    exit    fgetc   feof
-     ferror fputc   fputs   fprintf sprintf
-     snprintf   vsprintf    vsnprintf   gettimeofday
-     memcpy memmove strcpy  strncpy strcat
-     strncat    memcmp  strcmp  strncmp memchr
-     strchr strcspn strpbrk strrchr strspn
-     strstr strtok  memset  strerror    strlen 
-     
-     TODO: In preparation for later problem sets, in this problem set you should
-allocate a single PCB (Process Control Block) struct that contains a
-place-holder PID (Process ID) number.  The PID in the PCB should be
-set to zero for now.  The PCB should be pointed to by a global
-file-scope variable named, say, currentPCB.  You should implement an
-accessor function named getCurrentPID that returns the PID contained
-in the PCB of the current process (i.e., in the PCB pointed to by
-currentPCB).  For now, because our PID is always zero, it will always
-return zero.  The value returned by this function will be used to tag
-each region of storage when that region is allocated via myMalloc.  In
-later problem sets, you will be allocating multiple PCBs.
-     
-     */
-
 static int node_count = 0;
 
 struct pcb op_sys = {"OS", 0};
@@ -46,7 +22,7 @@ int round_size(int size){
 }
 
 struct mem_region* init_struct(struct mem_region* first){
-    if ((first = (struct mem_region*)malloc(128 * MEGA_BYTE)) == NULL){
+    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
         perror("malloc"); return NULL;
     }
     else{
@@ -129,7 +105,7 @@ int free_match(struct mem_region* temp, void* ptr){
         }
         else {
         prev = temp; //previous gets current
-        temp = walk_struct(temp);  //current gets next. TODO: not finding the next block
+        temp = walk_struct(temp);  //current gets next.
         }
     }
     return E_FREE;
@@ -141,7 +117,7 @@ int empty_mem_check(struct mem_region* temp){
         if (temp->free == FALSE){
             all_free = FALSE;
         }
-        temp = walk_struct(temp); //current gets next. TODO: not finding the next block
+        temp = walk_struct(temp);
     }
     if (all_free == TRUE){
         return E_EMPTYMEM;
@@ -161,8 +137,10 @@ void memoryMap(struct mem_region* first){
     fprintf(stdout,     "| ENTRY # | FREE | SIZE | PID | \n");
     fprintf(stdout,     "------------------------------- \n");
     struct mem_region* temp = first;
+    int total_size = 0;
     for (int i = 0; i < node_count; i++){
         char* bool_str = NULL;
+        total_size += temp->size;
         if (temp->free == FALSE){
             bool_str = "False";
         }
@@ -171,13 +149,13 @@ void memoryMap(struct mem_region* first){
         }
         fprintf(stdout, "|   %d   |  %s  |  %d  | %d |\n", i+1, bool_str, temp->size, temp->pid);
         fprintf(stdout, "------------------------------- \n");
-        temp = walk_struct(temp); //current gets next. TODO: not finding the next block
+        temp = walk_struct(temp);
     }
+    fprintf(stdout,     "TOTAL MEMORY SIZE = %d \n", total_size);
     //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
 }
 
 void* insert_at_tail(struct mem_region* first, int size){
-    //TODO -- protect against having reached end of region. Do I still need this?
     struct mem_region* my_ptr = NULL;
     struct mem_region* temp = first;
     my_ptr = first_fit(temp, size);
@@ -192,9 +170,8 @@ void* insert_at_tail(struct mem_region* first, int size){
 
 void *myMalloc(unsigned int size){
     void* return_ptr = NULL;
-    if (size >= MAX - MEMSTRUCT || size <= 0){
-        fprintf(stdout, "Error: not enough RAM available or no RAM requested \n");
-        return return_ptr;
+    if (size >= MAX - MEMSTRUCT || size <= 0){ //returns error if size is invalid
+        return E_MALLOC;
     }
     size = round_size(size);
     if (first == NULL){
@@ -210,8 +187,11 @@ int myFreeErrorCode(void *ptr){
     //TODO: what if someone passes in a very large or very small garbage number?
     struct mem_region* temp = first;
     int match_val = free_match(temp, ptr);
-    if (match_val == E_FREE){ //case: match_val error
+    if (match_val == E_FREE){ //case: pointer not found in memory 
         return E_FREE;
+    }
+    if (temp.pid != currentPCB.pid){ //case: PIDs do not match
+        return E_FREE_PERM;
     }
     else if (empty_mem_check(first) == E_EMPTYMEM){
         free(first);
@@ -227,6 +207,6 @@ int myFreeErrorCode(void *ptr){
 }
 
 void myFree(void *ptr){
-    //TODO
+    myFreeErrorCode(*ptr); //calls myFreeErrorCode and ignores return value
     return;
 }
