@@ -72,6 +72,11 @@ int cmd_echo(int argc, char *argv[]);
 int cmd_exit(int argc, char *argv[]);
 int cmd_help(int argc, char *argv[]);
 int cmd_clockdate(int argc, char *argv[]);
+int cmd_malloc(int argc, char *argv[]);
+int cmd_free(int argc, char *argv[]);
+int cmd_memset(int argc, char *argv[]);
+int cmd_memchk(int argc, char *argv[]);
+int cmd_memorymap(int argc, char *argv[]);
 
 struct date_time {
   char* month;
@@ -108,7 +113,12 @@ struct commandEntry {
                 {"echo", cmd_echo},
                 {"exit", cmd_exit},
                 {"help", cmd_help},
-                {"clockdate", cmd_clockdate}};
+                {"clockdate", cmd_clockdate},
+                {"malloc", cmd_malloc},
+                {"free", cmd_free},
+                {"memorymap", cmd_memorymap},
+                {"memset", cmd_memset},
+                {"memchk", cmd_memchk}};
 
 int check_digit (char c) {
     //basic implementation of isdigit

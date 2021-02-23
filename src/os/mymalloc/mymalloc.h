@@ -20,6 +20,8 @@ struct mem_region {
 
 int round_size(int size);
 
+unsigned int bounds(void* ptr);
+
 struct mem_region* init_struct(struct mem_region* first);
 
 struct mem_region* subdivide(struct mem_region* mem, int size);

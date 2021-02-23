@@ -130,6 +130,10 @@ void memoryMap(struct mem_region* first){
     fprintf(stdout,     "| ENTRY # | FREE | SIZE | PID | \n");
     fprintf(stdout,     "------------------------------- \n");
     struct mem_region* temp = first;
+    if (temp == NULL){
+        fprintf (stdout, "NULL \n");
+        return;
+    }
     int total_size = 0;
     for (int i = 0; i < node_count; i++){
         char* bool_str = NULL;
@@ -147,6 +151,29 @@ void memoryMap(struct mem_region* first){
     }
     fprintf(stdout,     "TOTAL MEMORY SIZE = %d \n", total_size);
     //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
+}
+
+unsigned int bounds(void* ptr){
+    /*bounds accepts as a parameter a void* ptr. It then finds the appropriate
+    position in memory (if such exists) and returns the size of the referenced memory block.*/
+    
+    struct mem_region* mem_ptr = (struct mem_region*)ptr;
+    struct mem_region* temp = first;
+    struct mem_region* prev;
+    if (mem_ptr < first){
+        return 0;
+    }
+    for (int i = 0; i < node_count; i++){
+        if (mem_ptr > temp){ 
+            prev = temp;
+            walk_struct(temp);
+        }
+        else{
+            ptrdiff_t diff = mem_ptr - prev;
+            return prev->size - diff;
+        }
+    }
+    return 0;
 }
 
 int free_match(struct mem_region* temp, void* ptr){

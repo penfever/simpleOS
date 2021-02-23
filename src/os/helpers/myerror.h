@@ -17,7 +17,8 @@ enum _os_error
     E_INF = -8,
     E_FREE = -9,
     E_EMPTYMEM = -10,
-    E_FREE_PERM = -11
+    E_FREE_PERM = -11,
+    E_MEMCHK = -12
 };
 
 struct _errordesc {
@@ -35,7 +36,8 @@ struct _errordesc {
     { E_INF, "Fatal: end of infinite loop reached \n" },
     { E_FREE, "Free: Invalid pointer \n" },
     { E_EMPTYMEM, "There is no memory allocated. Freeing block. \n"},
-    { E_FREE_PERM, "Your PID does not have permission to free this block \n"}
+    { E_FREE_PERM, "Your PID does not have permission to free this block \n"},
+    { E_MEMCHK, "memchk failed \n"}
 };
 
 int error_checker(int return_value);

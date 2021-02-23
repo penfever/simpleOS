@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <sys/time.h>
+#include "sys/time.h" // TODO: change to <sys/time.h> before submitting
 #include "simpleshell.h"
 #include "helpers/myerror.c"
 #include "helpers/myerror.h"
-
+#include "mymalloc/mymalloc.c"
+#include "mymalloc/mymalloc.h"
 
 char escape_char(char* user_cmd, int* str_len){
   //Checks a string from stdin for escape characters and processes it accordingly
@@ -146,7 +147,7 @@ int cmd_exit(int argc, char *argv[]){
   free(argv);
   exit(0);
 }
-
+//TODO: update help
 int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
@@ -255,6 +256,113 @@ int cmd_clockdate(int argc, char *argv[]){
   return 0;
 }
 
+size_t hex_dec_oct(char* str){
+//   Each argument should be able
+// to be specified either as a decimal integer constant (of arbitrary
+// length), an octal integer constant (indicated by a prefix of 0 not
+// followed by x or X followed by an arbitrary length octal constant), or
+// as a hexadecimal number (indicated by a prefix of 0x or 0X followed by
+// an arbitrary length hexadecimal constant).
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || 'X'){
+      return strtoul(str, NULL, 16); //return hex
+    }
+    return strtoul(str, NULL, 8); //return octal
+  }
+  return strtoul(str, NULL, 10); //return decimal
+   //TODO: check hex/decimal/octal?
+}
+
+int cmd_malloc(int argc, char *argv[]){
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  size_t mal_size;
+  void* mal_val = NULL;
+  mal_size = hex_dec_oct(argv[1]);
+  if ((mal_val = myMalloc(mal_size)) == NULL){
+    return E_MALLOC;
+  }
+  else{
+    fprintf(stdout, "0x%x \n", mal_val);
+    return 0;
+  }
+}
+
+int cmd_free(int argc, char *argv[]){
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  size_t ptr_val = 0;
+  int err_val = 0;
+  ptr_val = hex_dec_oct(argv[1]);
+  err_val = myFreeErrorCode((void *)ptr_val);
+  if (err_val == 0){
+    fprintf(stdout, "Free successful \n");
+  }
+  return err_val;
+}
+
+int cmd_memorymap(int argc, char *argv[]){
+  if (argc != 1){
+    return E_NUMARGS;
+  }
+  memoryMap(first);
+  return 0;
+}
+
+int cmd_memset(int argc, char *argv[]){
+//   The memset command should accept three arguments.  The first is the
+// start address of a memory region, the second is the value to which
+// each byte in the specified region will be set, and the third is the
+// length (in bytes) of the memory region.
+  if (argc != 4){
+    return E_NUMARGS;
+  }
+  size_t ptr_val = 0;
+  size_t reg_len = 0;
+  unsigned int set_val = 0;
+  ptr_val = hex_dec_oct(argv[1]);
+  set_val = hex_dec_oct(argv[2]);
+  reg_len = hex_dec_oct(argv[3]);
+  unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
+  if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
+    return E_TOO_LONG;
+  }
+  char *write_val = (char *)ptr_val;
+  for (int i = 0; i < reg_len; i++){
+    write_val[i] = set_val;
+  }
+  return 0;
+}
+
+int cmd_memchk(int argc, char *argv[]){
+  if (argc != 4){
+    return E_NUMARGS;
+  }
+  size_t ptr_val = 0;
+  size_t reg_len = 0;
+  unsigned int set_val = 0;
+  strtoul(argv[1], NULL, ptr_val); //TODO: check hex/decimal/octal? Error checking?
+  strtoul(argv[2], NULL, set_val); //TODO: ensure positive value?
+  strtoul(argv[3], NULL, reg_len); //TODO: check hex/decimal/octal?
+  unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
+  if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
+    return E_TOO_LONG;
+  }
+  char *write_val = (char *)ptr_val;
+  for (int i = 0; i < reg_len; i++){
+    if (write_val[i] != set_val){
+      return E_MEMCHK;
+    }
+  }
+  fprintf(stdout, "memchk successful \n");
+  return 0;
+}
+
 int shell(void){
     //command line shell accepts user input and executes basic commands
     while(TRUE){
@@ -280,9 +388,8 @@ int shell(void){
         for (int i = 0; i < argc; i++){
           argv[i]=(char*)malloc(sizeof(char)*(arg_len[i]+1));
           if (argv[i] == NULL) {
-            error_t err_code = E_MALLOC;
-            error_checker(err_code);
-            return err_code;
+            error_checker(E_MALLOC);
+            return E_MALLOC;
           }
           for (int j = 0; j < arg_len[i]; j++){
             argv[i][j] = user_cmd[user_cmd_offset + j];
@@ -300,8 +407,7 @@ int shell(void){
             break;
           }
           if (i == NUMCOMMANDS - 1){
-            error_t err_code = E_CMD_NOT_FOUND;
-            error_checker(err_code);
+            error_checker(E_CMD_NOT_FOUND);
           }
         }
         //free memory and repeat

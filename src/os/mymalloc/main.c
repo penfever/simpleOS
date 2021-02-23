@@ -48,6 +48,8 @@ int main(void){
     errcode = myFreeErrorCode((void*)93234567); //this is an invalid pointer and should be discarded
     fprintf(stdout, "errcode is %d \n", errcode);
     memoryMap(first);
+    unsigned int my_bound = bounds(odd);
+    fprintf (stdout, "%d \n", my_bound);
     errcode = myFreeErrorCode(odd);
     odd = myMalloc(sizeof(int*)-1); //this should find the empty slot I just created and fill it
     *odd = var;
