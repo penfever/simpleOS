@@ -4,7 +4,7 @@
 #include <sys/time.h>
 #include "simpleshell.h"
 #include "helpers/myerror.c"
-#include "../helpers/myerror.h"
+#include "helpers/myerror.h"
 
 
 char escape_char(char* user_cmd, int* str_len){
