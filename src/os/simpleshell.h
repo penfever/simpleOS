@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifndef _SIMPLE_SHELL_H
+#define _SIMPLE_SHELL_H
 #ifndef TRUE
 #define TRUE 1
 #endif 
@@ -24,7 +26,12 @@
                   "help will show you a list of commands and how they work. \n"\
                   "echo will echo back whatever words follow the command itself. \n"\
                   "date will print the current date and time (GMT). \n"\
-                  "clockdate tests the date function. \n"
+                  "clockdate tests the date function. \n"\
+                  "malloc allocates memory. \n"\
+                  "free frees memory. \n"\
+                  "memset sets an allocated memory region to a value. \n"\
+                  "memchk checks that an allocated memory region is set to a value. \n"\
+                  "memorymap prints a map of all allocated memory. \n"
 #endif
 #ifndef SECYEAR
 #define SECYEAR 31536000
@@ -67,17 +74,6 @@ struct escape_chars {
     {'"', 34}
 };
 
-int cmd_date(int argc, char *argv[]);
-int cmd_echo(int argc, char *argv[]);
-int cmd_exit(int argc, char *argv[]);
-int cmd_help(int argc, char *argv[]);
-int cmd_clockdate(int argc, char *argv[]);
-int cmd_malloc(int argc, char *argv[]);
-int cmd_free(int argc, char *argv[]);
-int cmd_memset(int argc, char *argv[]);
-int cmd_memchk(int argc, char *argv[]);
-int cmd_memorymap(int argc, char *argv[]);
-
 struct date_time {
   char* month;
   int day;
@@ -106,6 +102,37 @@ struct months {
               {"December", 11, 31}, 
               {"February", 12, 29}};
 
+int cmd_date(int argc, char *argv[]);
+int cmd_echo(int argc, char *argv[]);
+int cmd_exit(int argc, char *argv[]);
+int cmd_help(int argc, char *argv[]);
+int cmd_clockdate(int argc, char *argv[]);
+int cmd_malloc(int argc, char *argv[]);
+int cmd_free(int argc, char *argv[]);
+int cmd_memset(int argc, char *argv[]);
+int cmd_memchk(int argc, char *argv[]);
+int cmd_memorymap(int argc, char *argv[]);
+
+int shell(void);
+
+int check_digit (char c);
+
+int string_cmp(const char *first, const char *second);
+
+int isleapyear(int inyear);
+
+size_t hex_dec_oct(char* str);
+
+void print_time (const struct date_time curr_date, const struct timeval my_time);
+
+struct date_time get_time(time_t sec_now);
+
+int get_string(char* user_cmd, int arg_len[]);
+
+char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* this_len);
+
+char escape_char(char* user_cmd, int* str_len);
+
 struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
@@ -120,39 +147,4 @@ struct commandEntry {
                 {"memset", cmd_memset},
                 {"memchk", cmd_memchk}};
 
-int check_digit (char c) {
-    //basic implementation of isdigit
-    if ((c >= '0') && (c <= '9')) return 1;
-    return 0;
-}
-                
-int string_cmp(const char *first, const char *second)
-//basic implementation of strcmp
-{
-    while(*first)
-    {
-        // if characters differ or end of second string is reached, break
-        if (*first != *second){
-          break;
-        }
-        // move to next pair of characters
-        first++;
-        second++;
-    }
- 
-    // return the ASCII difference after converting char* to unsigned char*
-    return *(const unsigned char*)first - *(const unsigned char*)second;
-}
-
-int isleapyear(int inyear){
-    //checks if a given integer, assumed to be a year, is a leap year
-    if(inyear % 400 == 0){
-        return TRUE;
-    }
-    else if(inyear % 4 == 0 && inyear % 100 != 0){
-        return TRUE;
-    }
-    else{
-        return FALSE;
-    }
-}
+#endif

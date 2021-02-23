@@ -1,12 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
-#include "sys/time.h" // TODO: change to <sys/time.h> before submitting
+#include <sys/time.h>
 #include "simpleshell.h"
 #include "helpers/myerror.c"
 #include "helpers/myerror.h"
 #include "mymalloc/mymalloc.c"
 #include "mymalloc/mymalloc.h"
+
+//TODO: test weird memset values, weird pointers, hex conversions
+//TODO: implement notes on pset 1
 
 char escape_char(char* user_cmd, int* str_len){
   //Checks a string from stdin for escape characters and processes it accordingly
@@ -148,7 +151,7 @@ int cmd_exit(int argc, char *argv[]){
   free(first);
   exit(0);
 }
-//TODO: update help
+
 int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
@@ -415,6 +418,43 @@ int shell(void){
     error_t err_code = E_INF;
     error_checker(err_code);
     return err_code;
+}
+
+int check_digit (char c) {
+    //basic implementation of isdigit
+    if ((c >= '0') && (c <= '9')) return 1;
+    return 0;
+}
+                
+int string_cmp(const char *first, const char *second)
+//basic implementation of strcmp
+{
+    while(*first)
+    {
+        // if characters differ or end of second string is reached, break
+        if (*first != *second){
+          break;
+        }
+        // move to next pair of characters
+        first++;
+        second++;
+    }
+ 
+    // return the ASCII difference after converting char* to unsigned char*
+    return *(const unsigned char*)first - *(const unsigned char*)second;
+}
+
+int isleapyear(int inyear){
+    //checks if a given integer, assumed to be a year, is a leap year
+    if(inyear % 400 == 0){
+        return TRUE;
+    }
+    else if(inyear % 4 == 0 && inyear % 100 != 0){
+        return TRUE;
+    }
+    else{
+        return FALSE;
+    }
 }
 
 int main(void){
