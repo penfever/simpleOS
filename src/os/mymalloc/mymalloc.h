@@ -3,6 +3,7 @@
 #define TRUE 1
 #define FALSE 0
 #define MAX 134217728
+#define DOUBLE_WORD 8
 #define MEMSTRUCT sizeof(struct mem_region)
 
 struct pcb {
@@ -27,7 +28,7 @@ struct mem_region* first_fit(struct mem_region* temp, int size);
 
 void compact_prev(struct mem_region* prev, int size);
 
-void compact_next(struct mem_region* prev, int size);
+void compact_next(struct mem_region* prev);
 
 int free_match(struct mem_region* temp, void* ptr);
 

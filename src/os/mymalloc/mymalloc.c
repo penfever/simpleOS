@@ -15,13 +15,19 @@ struct pcb* currentPCB = &op_sys;
 struct mem_region* first = NULL;
 
 int round_size(int size){
-    if (size % 8 != 0){
-        size = (size - (size % 8))+8; //round size up to double word boundary
+    /* round_size accepts as a parameter a size, in bytes, 
+    and returns a size, in bytes, rounded up to the nearest double word boundary.  */
+    if (size % DOUBLE_WORD != 0){
+        size = (size - (size % DOUBLE_WORD))+DOUBLE_WORD; //round size up to double word boundary
     }
     return size;
 }
 
 struct mem_region* init_struct(struct mem_region* first){
+    /* init_struct accepts as a parameter a struct representing the first region of memory
+    allocated to myMalloc, attempts to call malloc to acquire the necessary memory, and returns an error if that attempt fails. 
+    init_struct then fills in the correct values for 'free', 'size' and 'pid' for the initial struct. Finally, it updates the
+    global variable for total node count and returns the modified struct. */
     if ((first = (struct mem_region*)malloc(MAX)) == NULL){
         perror("malloc"); return NULL;
     }
@@ -37,8 +43,10 @@ struct mem_region* init_struct(struct mem_region* first){
 }
 
 struct mem_region* subdivide(struct mem_region* mem, int size){
-    //1. Breaks up the passed-in region
-    //2. Does this by allocating from the end of the region.
+    /* subdivide accepts as a parameter a struct representing a region of memory to be subdivided and a size in bytes to be 
+    broken off from the larger region of memory. After subdividing, it fills in the correct values for 'free', 'size' and 
+    'pid' for the initial struct. Finally, it updates the global variable for total node count and returns the modified struct. */
+
     struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the region 
     next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
     next -= size/sizeof(next);
@@ -51,11 +59,10 @@ struct mem_region* subdivide(struct mem_region* mem, int size){
 }
 
 struct mem_region* first_fit(struct mem_region* temp, int size){
-    /*Because the operating system I am writing is likely to be used mostly for small programs and will not be running
-    any massively parallel or RAM-intensive applications for now, and because the NXP/Freescale Hardware is quite
-    limited in its capabilities, I decided the speed of first-fit, combined with merging adjacent regions when free is called,
-    was the optimal choice in thhis situation. Although first-fit can lead to memory fragmentation over time, my operating
-    system is not capable of running enough concurrent programs for this to be as much of an issue as speed at the moment.*/
+    /*first_fit accepts as a parameter a struct representing a region of memory and a size in bytes to be 
+    allocated. It then walks through each address in memory until it finds a free region greater than or equal to
+    the required size, in bytes. Finally, it returns a pointer to the region it has found, or, if it has not found such a 
+    region, it returns NULL. */
     for (int i = 0; i < node_count; i++){
         if ((temp->size >= size) && (temp->free != FALSE)){ // if it's a perfect fit, return it
             return temp;
@@ -68,6 +75,9 @@ struct mem_region* first_fit(struct mem_region* temp, int size){
 }
 
 void compact_prev(struct mem_region* prev, int size){
+    /*compact_prev accepts as a parameter a struct representing the previous region of memory and a size in bytes representing the 
+    size of the region that was just freed. If it finds the previous region is also free, it merges the two free regions together and
+    updates the global node_count variable. */
     if (prev->free != FALSE){
         prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
         prev->size += size;
@@ -75,43 +85,22 @@ void compact_prev(struct mem_region* prev, int size){
     }
 }
 
-void compact_next(struct mem_region* prev, int size){
-    struct mem_region* next = &prev->data[0] + prev->size;
+void compact_next(struct mem_region* curr){
+    /*compact_next accepts as a parameter a struct representing the freed region of memory. 
+    If it finds the next region is also free, it merges the two free regions together and
+    updates the global node_count variable. */
+    struct mem_region* next = &curr->data[0] + curr->size;
     if (next->free != FALSE){
-        prev->size += MEMSTRUCT; //expand previous free block to include newly freed one
-        prev->size += size;
+        curr->size += MEMSTRUCT; //expand previous free block to include newly freed one
+        curr->size += next->size;
         node_count -= 1; 
     }
 }
 
-int free_match(struct mem_region* temp, void* ptr){
-    struct mem_region* prev;
-    for (int i = 0; i < node_count; i++){
-        if (ptr == &(temp->data[0])){ // is ptr identical to this address?
-            if (temp->free == FALSE){ // throws error on attempt to free an already freed region
-                temp->free |= TRUE;
-                if (i == 0){ //if at first block, check ahead only
-                    compact_next(temp, temp->size);
-                }
-                else if (i == node_count - 1){ // if at last block, check behind only
-                    compact_prev(prev, temp->size);
-                }
-                else {
-                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
-                    compact_next(temp, temp->size);
-                }
-                return 0;
-            }
-        }
-        else {
-        prev = temp; //previous gets current
-        temp = walk_struct(temp);  //current gets next.
-        }
-    }
-    return E_FREE;
-}
-
 int empty_mem_check(struct mem_region* temp){
+    /*empty_mem_check accepts as a parameter a struct representing a region of memory. 
+    It then checks each region of memory to determine whether that region is allocated.
+    If no region of memory is allocated, empty_mem_check returns an error code.*/
     int all_free = TRUE;
     for (int i = 0; i < node_count; i++){
         if (temp->free == FALSE){
@@ -126,6 +115,8 @@ int empty_mem_check(struct mem_region* temp){
 }
 
 struct mem_region* walk_struct(struct mem_region* this_region){
+    /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
+    address of the next struct in memory. */
     int incr_size = this_region->size;
     this_region = &this_region->data[0];
     this_region += incr_size/sizeof(this_region);
@@ -133,6 +124,8 @@ struct mem_region* walk_struct(struct mem_region* this_region){
 }
 
 void memoryMap(struct mem_region* first){
+    /*memoryMap accepts as a parameter a struct representing the first region of memory and prints
+    the contents of memory in their entirety.*/
     fprintf(stdout,     "-------------MEMORYMAP--------- \n\n");
     fprintf(stdout,     "| ENTRY # | FREE | SIZE | PID | \n");
     fprintf(stdout,     "------------------------------- \n");
@@ -141,6 +134,7 @@ void memoryMap(struct mem_region* first){
     for (int i = 0; i < node_count; i++){
         char* bool_str = NULL;
         total_size += temp->size;
+        total_size += MEMSTRUCT;
         if (temp->free == FALSE){
             bool_str = "False";
         }
@@ -155,7 +149,42 @@ void memoryMap(struct mem_region* first){
     //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
 }
 
+int free_match(struct mem_region* temp, void* ptr){
+    /*free_match accepts as a parameter a struct representing a region of memory and a void pointer representing the
+    value myFreeErrorCode will ultimately return. For each region in memory, free_match executes a series of error
+    checks, returning error values where appropriate. If it finds a match in memory, it frees and compacts that
+    region of memory, as appropriate. Finally, if successful, it returns 0.*/
+    struct mem_region* prev;
+    for (int i = 0; i < node_count; i++){
+        if (ptr == &(temp->data[0])){ // is ptr identical to this address?
+            if (temp->free == FALSE){ // throws error on attempt to free an already freed region
+                temp->free |= TRUE;
+                if (i == 0){ //if at first block, check ahead only
+                    compact_next(temp);
+                }
+                else if (i == node_count - 1){ // if at last block, check behind only
+                    compact_prev(prev, temp->size);
+                }
+                else {
+                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
+                    compact_next(temp);
+                }
+                return 0;
+            }
+        }
+        else {
+        prev = temp; //previous gets current
+        temp = walk_struct(temp);  //current gets next.
+        }
+    }
+    return E_FREE;
+}
+
 void* insert_at_tail(struct mem_region* first, int size){
+    /*insert_at_tail accepts as a parameter a struct representing a region of memory and a size in bytes. 
+    insert_at_tail first checks first_fit to find an appropriate place in memory. If it finds one, it 
+    subdivides memory and returns the pointer to the newly subdivided region. If it cannot find a match,
+    it returns NULL.*/
     struct mem_region* my_ptr = NULL;
     struct mem_region* temp = first;
     my_ptr = first_fit(temp, size);
@@ -169,9 +198,18 @@ void* insert_at_tail(struct mem_region* first, int size){
 }
 
 void *myMalloc(unsigned int size){
+    /*The myMalloc function is declared as taking an unsigned int as its
+only parameter and returning a pointer to void, as follows:
+
+	void *myMalloc(unsigned int size);
+
+The "size" parameter is the size in bytes of the storage needed by the
+caller.  The myMalloc function should allocate an appropriately sized
+region of memory and it should return a pointer to (i.e., the address
+of) the first byte of that region. */
     void* return_ptr = NULL;
     if (size >= MAX - MEMSTRUCT || size <= 0){ //returns error if size is invalid
-        return E_MALLOC;
+        return NULL;
     }
     size = round_size(size);
     if (first == NULL){
@@ -184,13 +222,15 @@ void *myMalloc(unsigned int size){
 }
 
 int myFreeErrorCode(void *ptr){
-    //TODO: what if someone passes in a very large or very small garbage number?
+    /*The behavior of myFreeErrorCode is the same as for myFree except that
+myFreeErrorCode returns an int to indicate success or failure of the
+storage deallocation request. */
     struct mem_region* temp = first;
     int match_val = free_match(temp, ptr);
     if (match_val == E_FREE){ //case: pointer not found in memory 
         return E_FREE;
     }
-    if (temp.pid != currentPCB.pid){ //case: PIDs do not match
+    if (temp->pid != currentPCB->pid){ //case: PIDs do not match
         return E_FREE_PERM;
     }
     else if (empty_mem_check(first) == E_EMPTYMEM){
@@ -207,6 +247,14 @@ int myFreeErrorCode(void *ptr){
 }
 
 void myFree(void *ptr){
-    myFreeErrorCode(*ptr); //calls myFreeErrorCode and ignores return value
+    /*The myFree function is declared as taking a pointer to void as its
+only parameter and not returning anything, as follows:
+
+	void myFree(void *ptr);
+
+The "ptr" parameter is a pointer to a region of memory previously
+allocated by the myMalloc function.  The myFree function deallocates
+the entire region of memory pointed to by the parameter. */
+    myFreeErrorCode(ptr); //calls myFreeErrorCode and ignores return value
     return;
 }
