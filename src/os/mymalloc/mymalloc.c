@@ -262,9 +262,7 @@ storage deallocation request. */
     }
     else if (empty_mem_check(first) == E_EMPTYMEM){
         free(first);
-        if (first != NULL){
-        perror("free"); exit(2);
-        }
+        perror("free");
         return 0;
     }
     else{
