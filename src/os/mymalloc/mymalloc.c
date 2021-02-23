@@ -164,13 +164,16 @@ unsigned int bounds(void* ptr){
         return 0;
     }
     for (int i = 0; i < node_count; i++){
-        if (mem_ptr > temp){ 
+        if ((mem_ptr - MEMSTRUCT/sizeof(struct mem_region)) > temp){ 
             prev = temp;
-            walk_struct(temp);
+            if (i < node_count - 1){ //TODO: this needs to do something substantially different
+                temp = walk_struct(temp);
+            }
         }
         else{
-            ptrdiff_t diff = mem_ptr - prev;
-            return prev->size - diff;
+            long bounds = (unsigned char*)mem_ptr - &prev->data[0]; //overcorrect (jump back too far)
+            bounds -= prev->size + sizeof(struct mem_region) - temp->size;
+            return bounds;
         }
     }
     return 0;

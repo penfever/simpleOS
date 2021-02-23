@@ -258,13 +258,7 @@ int cmd_clockdate(int argc, char *argv[]){
 }
 
 size_t hex_dec_oct(char* str){
-//   Each argument should be able
-// to be specified either as a decimal integer constant (of arbitrary
-// length), an octal integer constant (indicated by a prefix of 0 not
-// followed by x or X followed by an arbitrary length octal constant), or
-// as a hexadecimal number (indicated by a prefix of 0x or 0X followed by
-// an arbitrary length hexadecimal constant).
-  if (!check_digit(str[0])){
+  if (!check_digit(str[0])){ //TODO: other error checking?
     return 0;
   }
   if (str[0] == '0'){
@@ -274,7 +268,6 @@ size_t hex_dec_oct(char* str){
     return strtoul(str, NULL, 8); //return octal
   }
   return strtoul(str, NULL, 10); //return decimal
-   //TODO: check hex/decimal/octal?
 }
 
 int cmd_malloc(int argc, char *argv[]){
@@ -331,7 +324,7 @@ int cmd_memset(int argc, char *argv[]){
   reg_len = hex_dec_oct(argv[3]);
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
   if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
-    return E_TOO_LONG;
+    return E_NOINPUT;
   }
   char *write_val = (char *)ptr_val;
   for (int i = 0; i < reg_len; i++){
@@ -347,12 +340,12 @@ int cmd_memchk(int argc, char *argv[]){
   size_t ptr_val = 0;
   size_t reg_len = 0;
   unsigned int set_val = 0;
-  strtoul(argv[1], NULL, ptr_val); //TODO: check hex/decimal/octal? Error checking?
-  strtoul(argv[2], NULL, set_val); //TODO: ensure positive value?
-  strtoul(argv[3], NULL, reg_len); //TODO: check hex/decimal/octal?
+  ptr_val = hex_dec_oct(argv[1]);
+  set_val = hex_dec_oct(argv[2]);
+  reg_len = hex_dec_oct(argv[3]);
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
   if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
-    return E_TOO_LONG;
+    return E_NOINPUT;
   }
   char *write_val = (char *)ptr_val;
   for (int i = 0; i < reg_len; i++){
