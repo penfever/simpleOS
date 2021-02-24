@@ -9,7 +9,6 @@
 #include "mymalloc/mymalloc.h"
 
 //TODO: test weird memset values, weird pointers, hex conversions
-//TODO: implement notes on pset 1
 
 extern struct escape_chars escapechars[] = {
     {'0', 0},
@@ -73,13 +72,11 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   *str_len = *str_len + 1;
   c = fgetc(stdin);
   while (c != '"') {
-    //check if too long
     if (c == '\r'){
       c = fgetc(stdin);
     }
     if (c == '\n'){
       return E_NOINPUT;
-      //TODO: something sensible
     }
     user_cmd_ptr = user_cmd + *str_len;
     sprintf(user_cmd_ptr, &c);
@@ -118,10 +115,11 @@ int get_string(char* user_cmd, int arg_len[]){
         //attempt to handle special shell escape char
         c = fgetc(stdin);
       }
-      //if it finds a backslash, check escapechar function
+      //if it finds a backslash, assumes the use of escape character
       if (c == BACKSLASH){
         c = escape_char(user_cmd, &str_len);
       }
+      //otherwise, falls through and checks for a quotation mark
       if (c == '"'){
         int* this_len = &arg_len[argc + 1];
         c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
@@ -309,10 +307,12 @@ size_t hex_dec_oct(char* str){
     return 0;
   }
   if (str[0] == '0'){
-    if (str[1] == 'x' || 'X'){
+    if (str[1] == 'x' || str[1] == 'X'){
       return strtoul(str, NULL, 16); //return hex
     }
-    return strtoul(str, NULL, 8); //return octal
+    else{
+      return strtoul(str, NULL, 8); //get octal
+    }
   }
   return strtoul(str, NULL, 10); //return decimal
 }

@@ -33,7 +33,7 @@ struct mem_region* init_struct(struct mem_region* first){
     }
     else{
         node_count += 1;
-        first->free |= TRUE;
+        first->free = TRUE;
         first->size = MAX - MEMSTRUCT;
         first->pid = currentPCB->pid;
     }
@@ -49,7 +49,7 @@ struct mem_region* subdivide(struct mem_region* mem, int size){
     struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the region 
     next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
     next -= size/sizeof(next);
-    next->free |= FALSE; //marks the new region as allocated (since a new region will always be requested)
+    next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = currentPCB->pid;
     node_count += 1;
@@ -187,7 +187,7 @@ int free_match(struct mem_region* temp, void* ptr){
     for (int i = 0; i < node_count; i++){
         if (ptr == &(temp->data[0])){ // is ptr identical to this address?
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
-                temp->free |= TRUE;
+                temp->free = TRUE;
                 if (i == 0){ //if at first block, check ahead only
                     compact_next(temp);
                 }
@@ -264,12 +264,12 @@ storage deallocation request.
     if (temp->pid != currentPCB->pid){ //case: PIDs do not match
         return E_FREE_PERM;
     }
-    else if (empty_mem_check(first) == E_EMPTYMEM){
-        free(first);
-        perror("free");
-        first = NULL;
-        return 0;
-    }
+    // else if (empty_mem_check(first) == E_EMPTYMEM){
+    //     free(first);
+    //     perror("free");
+    //     first = NULL;
+    //     return 0;
+    // }
     else{
         return 0; //success
     }
