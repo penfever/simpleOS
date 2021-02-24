@@ -8,8 +8,6 @@
 #include "mymalloc/helpers/myerror.h"
 #include "mymalloc/mymalloc.h"
 
-//TODO: test weird memset values, attempts to overwrite memset buffers
-
 struct escape_chars escapechars[] = {
     {'0', 0},
     {'a', 7},
