@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "mymalloc.h"
-#include "..\helpers\myerror.h"
+#include "helpers\myerror.h"
 
 static int node_count = 0;
 
@@ -268,6 +268,7 @@ storage deallocation request.
     else if (empty_mem_check(first) == E_EMPTYMEM){
         free(first);
         perror("free");
+        first = NULL;
         return 0;
     }
     else{

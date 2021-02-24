@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <stdint.h>
 #include <sys/time.h>
 #include "simpleshell.h"
-#include "helpers/myerror.c"
-#include "helpers/myerror.h"
-#include "mymalloc/mymalloc.c"
+#include "mymalloc/helpers/myerror.h"
 #include "mymalloc/mymalloc.h"
 
 //TODO: test weird memset values, weird pointers, hex conversions
@@ -149,6 +148,7 @@ int cmd_exit(int argc, char *argv[]){
   }
   free(argv);
   free(first);
+  first = NULL;
   exit(0);
 }
 
@@ -221,7 +221,7 @@ struct date_time get_time(time_t sec_now){
   return curr_date;
 }
 
-void print_time (const struct date_time curr_date, const struct timeval my_time){
+void print_time(const struct date_time curr_date, const struct timeval my_time){
   //formats and prints a date and time from get_time
   fprintf(stdout, "The current date is %s %d, %d. \n", curr_date.month, curr_date.day, curr_date.year);
   fprintf(stdout, "The time is " TIMESTAMP "\n", curr_date.hour, curr_date.minute, curr_date.second, my_time.tv_usec);

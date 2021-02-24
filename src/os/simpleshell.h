@@ -10,16 +10,9 @@
 #ifndef FALSE
 #define FALSE 0
 #endif 
-#ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
-#endif
-#ifndef MAXARGS
 #define MAXARGS 32 //accepts args 0->32
-#endif
-#ifndef NULLCHAR
 #define NULLCHAR '\0'
-#endif 
-#ifndef HELPBLOCK
 #define HELPBLOCK "Welcome to the simple shell!\n"\
                   "Here are a few commands you can try: \n"\
                   "exit will exit this shell. \n"\
@@ -32,31 +25,24 @@
                   "memset sets an allocated memory region to a value. \n"\
                   "memchk checks that an allocated memory region is set to a value. \n"\
                   "memorymap prints a map of all allocated memory. \n"
-#endif
-#ifndef SECYEAR
 #define SECYEAR 31536000
-#endif
-#ifndef SECDAY
 #define SECDAY 86400
-#endif
-#ifndef SECHOUR
 #define SECHOUR 3600
-#endif
-#ifndef SECMIN
 #define SECMIN 60
-#endif
-#ifndef TIMESTAMP
 #define TIMESTAMP "%02d:%02d:%02d.%06.ld"
-#endif
-#ifndef NUMCOMMANDS
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
-#endif
-#ifndef NUMESCAPES
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
-#endif
-#ifndef BACKSLASH
 #define BACKSLASH 92
-#endif
+
+struct date_time {
+  char* month;
+  int day;
+  int year;
+  int hour;
+  int minute;
+  int second;
+  char* clock;
+};
 
 struct escape_chars {
     char c;
@@ -72,16 +58,6 @@ struct escape_chars {
     {'t', 9},
     {'v', 11},
     {'"', 34}
-};
-
-struct date_time {
-  char* month;
-  int day;
-  int year;
-  int hour;
-  int minute;
-  int second;
-  char* clock;
 };
 
 struct months {
@@ -113,26 +89,6 @@ int cmd_memset(int argc, char *argv[]);
 int cmd_memchk(int argc, char *argv[]);
 int cmd_memorymap(int argc, char *argv[]);
 
-int shell(void);
-
-int check_digit (char c);
-
-int string_cmp(const char *first, const char *second);
-
-int isleapyear(int inyear);
-
-size_t hex_dec_oct(char* str);
-
-void print_time (const struct date_time curr_date, const struct timeval my_time);
-
-struct date_time get_time(time_t sec_now);
-
-int get_string(char* user_cmd, int arg_len[]);
-
-char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* this_len);
-
-char escape_char(char* user_cmd, int* str_len);
-
 struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
@@ -146,5 +102,17 @@ struct commandEntry {
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
                 {"memchk", cmd_memchk}};
+
+int check_digit(char c);
+
+int string_cmp(const char *first, const char *second);
+
+int isleapyear(int inyear);
+
+size_t hex_dec_oct(char* str);
+
+void print_time(const struct date_time curr_date, const struct timeval my_time);
+
+struct date_time get_time(time_t sec_now);
 
 #endif
