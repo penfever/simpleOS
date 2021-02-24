@@ -8,9 +8,9 @@
 #include "mymalloc/helpers/myerror.h"
 #include "mymalloc/mymalloc.h"
 
-//TODO: test weird memset values, weird pointers, hex conversions
+//TODO: test weird memset values, attempts to overwrite memset buffers
 
-extern struct escape_chars escapechars[] = {
+struct escape_chars escapechars[] = {
     {'0', 0},
     {'a', 7},
     {'b', 34},
@@ -23,7 +23,7 @@ extern struct escape_chars escapechars[] = {
     {'"', 34}
 };
 
-extern struct months months[] = {{"January", 0, 31}, 
+struct months months[] = {{"January", 0, 31}, 
               {"February", 1, 28}, 
               {"March", 2, 31},  
               {"April", 3, 30},  
@@ -187,7 +187,7 @@ int cmd_exit(int argc, char *argv[]){
   free(argv);
   free(first);
   first = NULL;
-  exit(0);
+  exit(0); //TODO: main segfault on exit?
 }
 
 int cmd_help(int argc, char *argv[]){
@@ -302,17 +302,45 @@ int cmd_clockdate(int argc, char *argv[]){
   return 0;
 }
 
+int check_digit_all(char* str){
+  for (int i = 0; i < strlen(str); i++){
+    if (!check_digit(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+int check_hex_all(char* str){
+  for (int i = 0; i < strlen(str); i++){
+    if (!check_hex(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
 size_t hex_dec_oct(char* str){
-  if (!check_digit(str[0])){ //TODO: other error checking?
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
     return 0;
   }
   if (str[0] == '0'){
     if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
       return strtoul(str, NULL, 16); //return hex
     }
-    else{
-      return strtoul(str, NULL, 8); //get octal
+    if (check_str == FALSE){
+      return 0;
     }
+    return strtoul(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
   }
   return strtoul(str, NULL, 10); //return decimal
 }
@@ -366,21 +394,25 @@ int cmd_memset(int argc, char *argv[]){
   }
   size_t ptr_val = 0;
   size_t reg_len = 0;
-  unsigned int set_val = 0;
+  char set_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
   check_overflow(ptr_val);
-  set_val = hex_dec_oct(argv[2]);
-  check_overflow(set_val);
+  if (strlen(argv[2]) != 1 || argv[2][0] > 255 || argv[2][0] < 0){
+    return E_NOINPUT;
+  }
+  set_val = (char)argv[2][0];
   reg_len = hex_dec_oct(argv[3]);
   check_overflow(reg_len);
+  // unsigned long* my_offset = malloc(sizeof(long*));
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
-  if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
+  if (my_bound == 0 || my_bound < reg_len){
     return E_NOINPUT;
   }
   char *write_val = (char *)ptr_val;
   for (int i = 0; i < reg_len; i++){
     write_val[i] = set_val;
   }
+  // free(my_offset);
   return 0;
 }
 
@@ -390,30 +422,34 @@ int cmd_memchk(int argc, char *argv[]){
   }
   size_t ptr_val = 0;
   size_t reg_len = 0;
-  unsigned int set_val = 0;
+  char set_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
   check_overflow(ptr_val);
-  set_val = hex_dec_oct(argv[2]);
-  check_overflow(set_val);
-  reg_len = hex_dec_oct(argv[3]);
-  check_overflow(reg_len);
-  unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
-  if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
+  if (strlen(argv[2]) != 1 || argv[2][0] > 255 || argv[2][0] < 0){
     return E_NOINPUT;
   }
-  char *write_val = (char *)ptr_val;
+  set_val = (char)argv[2][0];
+  reg_len = hex_dec_oct(argv[3]);
+  check_overflow(reg_len);
+  // unsigned long* my_offset = malloc(sizeof(long*));
+  unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
+  if (my_bound == 0 || my_bound < reg_len){
+    return E_NOINPUT;
+  }
+  char *read_val = (char *)ptr_val;
   for (int i = 0; i < reg_len; i++){
-    if (write_val[i] != set_val){
+    if (read_val[i] != set_val){
       return E_MEMCHK;
     }
   }
   fprintf(stdout, "memchk successful \n");
+  // free(my_offset);
   return 0;
 }
 
 int shell(void){
     //command line shell accepts user input and executes basic commands
-    char cmd_array[MAX];
+    char cmd_array[MAXLEN];
     char* user_cmd = &cmd_array;
     while(TRUE){
         fprintf(stdout, "$ ");
@@ -478,6 +514,13 @@ int shell(void){
 int check_digit (char c) {
     //basic implementation of isdigit
     if ((c >= '0') && (c <= '9')) return 1;
+    return 0;
+}
+
+int check_hex (char c) {
+    //basic implementation of isdigit
+    if ((c >= '0') && (c <= '9')) return 1;
+    if ((c >= 'a') && (c <= 'f')) return 1;
     return 0;
 }
                 

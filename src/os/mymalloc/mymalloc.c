@@ -154,7 +154,9 @@ void memoryMap(struct mem_region* first){
 
 unsigned int bounds(void* ptr){
     /*bounds accepts as a parameter a void* ptr. It then finds the appropriate
-    position in memory (if such exists) and returns the size of the referenced memory block.*/
+    position in memory (if such exists) and returns the maximum amount memcheck may fill from its given
+    position, as well as modifying a pointer to an offset value indicating how far memcheck's pointer 
+    was from the start of the region.*/
     
     struct mem_region* mem_ptr = (struct mem_region*)ptr;
     struct mem_region* temp = first;
@@ -167,6 +169,14 @@ unsigned int bounds(void* ptr){
             prev = temp;
             if (i < node_count - 1){ //TODO: this needs to do something substantially different
                 temp = walk_struct(temp);
+            }
+            else if (i == node_count - 1){ // mem_ptr points either into or past the last region
+                long bounds = (unsigned char*)mem_ptr - &temp->data[0];
+                if (bounds > temp->size){ // mem-ptr points past the last region
+                    return 0;
+                }
+                // *offset = bounds;
+                return temp->size - bounds; //return the difference
             }
         }
         else{

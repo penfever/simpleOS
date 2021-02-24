@@ -79,6 +79,12 @@ struct commandEntry {
 
 int check_digit(char c);
 
+int check_hex (char c);
+
+int check_digit_all(char* str);
+
+int check_hex_all(char* str);
+
 int string_cmp(const char *first, const char *second);
 
 int isleapyear(int inyear);
