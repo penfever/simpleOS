@@ -1,5 +1,5 @@
-#ifndef MYMALLOC_H
-#define MYMALLOC_H
+#ifndef _MYMALLOC_H
+#define _MYMALLOC_H
 #define TRUE 1
 #define FALSE 0
 #define MAX 134217728
@@ -22,13 +22,7 @@ struct mem_region {
 
 int round_size(int size);
 
-unsigned int bounds(void* ptr);
-
 struct mem_region* init_struct(struct mem_region* first);
-
-struct mem_region* subdivide(struct mem_region* mem, int size);
-
-struct mem_region* first_fit(struct mem_region* temp, int size);
 
 void memoryMap(struct mem_region* first);
 

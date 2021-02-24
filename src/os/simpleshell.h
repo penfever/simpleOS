@@ -10,7 +10,9 @@
 #ifndef FALSE
 #define FALSE 0
 #endif 
+#ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
+#endif
 #define MAXARGS 32 //accepts args 0->32
 #define NULLCHAR '\0'
 #define HELPBLOCK "Welcome to the simple shell!\n"\
@@ -47,36 +49,17 @@ struct date_time {
 struct escape_chars {
     char c;
     int ascii;
-} escapechars[] = {
-    {'0', 0},
-    {'a', 7},
-    {'b', 34},
-    {'e', 27},
-    {'f', 12},
-    {'n', 10},
-    {'r', 13},
-    {'t', 9},
-    {'v', 11},
-    {'"', 34}
 };
+
+extern struct escape_chars escapechars[];
 
 struct months {
   char *month;
   int order;
   int offset;
-} months[] = {{"January", 0, 31}, 
-              {"February", 1, 28}, 
-              {"March", 2, 31},  
-              {"April", 3, 30},  
-              {"May", 4, 31},  
-              {"June", 5, 31},  
-              {"July", 6, 31}, 
-              {"August", 7, 31}, 
-              {"September", 8, 30}, 
-              {"October", 9, 31}, 
-              {"November", 10, 30}, 
-              {"December", 11, 31}, 
-              {"February", 12, 29}};
+};
+
+extern struct months months[];
 
 int cmd_date(int argc, char *argv[]);
 int cmd_echo(int argc, char *argv[]);
@@ -92,16 +75,7 @@ int cmd_memorymap(int argc, char *argv[]);
 struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
-} commands[] = {{"date", cmd_date},
-                {"echo", cmd_echo},
-                {"exit", cmd_exit},
-                {"help", cmd_help},
-                {"clockdate", cmd_clockdate},
-                {"malloc", cmd_malloc},
-                {"free", cmd_free},
-                {"memorymap", cmd_memorymap},
-                {"memset", cmd_memset},
-                {"memchk", cmd_memchk}};
+};
 
 int check_digit(char c);
 

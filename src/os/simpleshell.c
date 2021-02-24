@@ -3,12 +3,51 @@
 #include <errno.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <string.h>
 #include "simpleshell.h"
 #include "mymalloc/helpers/myerror.h"
 #include "mymalloc/mymalloc.h"
 
 //TODO: test weird memset values, weird pointers, hex conversions
 //TODO: implement notes on pset 1
+
+extern struct escape_chars escapechars[] = {
+    {'0', 0},
+    {'a', 7},
+    {'b', 34},
+    {'e', 27},
+    {'f', 12},
+    {'n', 10},
+    {'r', 13},
+    {'t', 9},
+    {'v', 11},
+    {'"', 34}
+};
+
+extern struct months months[] = {{"January", 0, 31}, 
+              {"February", 1, 28}, 
+              {"March", 2, 31},  
+              {"April", 3, 30},  
+              {"May", 4, 31},  
+              {"June", 5, 31},  
+              {"July", 6, 31}, 
+              {"August", 7, 31}, 
+              {"September", 8, 30}, 
+              {"October", 9, 31}, 
+              {"November", 10, 30}, 
+              {"December", 11, 31}, 
+              {"February", 12, 29}};
+
+struct commandEntry commands[] = {{"date", cmd_date},
+                {"echo", cmd_echo},
+                {"exit", cmd_exit},
+                {"help", cmd_help},
+                {"clockdate", cmd_clockdate},
+                {"malloc", cmd_malloc},
+                {"free", cmd_free},
+                {"memorymap", cmd_memorymap},
+                {"memset", cmd_memset},
+                {"memchk", cmd_memchk}};
 
 char escape_char(char* user_cmd, int* str_len){
   //Checks a string from stdin for escape characters and processes it accordingly
@@ -40,6 +79,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     }
     if (c == '\n'){
       return E_NOINPUT;
+      //TODO: something sensible
     }
     user_cmd_ptr = user_cmd + *str_len;
     sprintf(user_cmd_ptr, &c);
@@ -85,8 +125,8 @@ int get_string(char* user_cmd, int arg_len[]){
       if (c == '"'){
         int* this_len = &arg_len[argc + 1];
         c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
-        if (c == -5){
-          return E_NUMARGS;
+        if (c == E_NOINPUT){
+          return E_NOINPUT;
         }
       }
       if (c == ' ' || c == '\t'){
@@ -170,22 +210,20 @@ struct date_time get_time(time_t sec_now){
   }
   //check leap years
   for (int i = 1970; i < 1970 + year_count; i++){
-    //TODO: is this count off by one?
     if (isleapyear(i)){
       sec_now -= SECDAY;
       if (sec_now < 0){
-        //TODO: make sure this works, compensating for overcounting years
         sec_now += SECYEAR;
         year_count -= 1;
       }
     }
   }
-  //TODO: modularize this
   curr_date.year = 1970 + year_count;
   curr_date.day = 1;
   curr_date.hour = 0;
   curr_date.minute = 0;
   curr_date.clock = "";
+
   while (sec_now > SECDAY){
     sec_now -= SECDAY;
     curr_date.day += 1;
@@ -210,7 +248,6 @@ struct date_time get_time(time_t sec_now){
           curr_date.month = months[i].month;
           break;
         }
-        //TODO: error checking/resetting if overflow -- is this working?
       }
     }
     else {
@@ -222,9 +259,21 @@ struct date_time get_time(time_t sec_now){
 }
 
 void print_time(const struct date_time curr_date, const struct timeval my_time){
-  //formats and prints a date and time from get_time
-  fprintf(stdout, "The current date is %s %d, %d. \n", curr_date.month, curr_date.day, curr_date.year);
-  fprintf(stdout, "The time is " TIMESTAMP "\n", curr_date.hour, curr_date.minute, curr_date.second, my_time.tv_usec);
+  /*formats and prints a date and time from get_time
+  (4) "date" will output to stdout the current date and time in the format "January
+   23, 2014 15:57:07.123456".  "date" will call the POSIX system call "gettimeofday" to determine the time and date.  "gettimeofday"
+   returns the number of seconds and microseconds since midnight (zero
+   hours) on January 1, 1970 -- this time is referred to as the Unix
+   Epoch. 
+  */
+  fprintf(stdout, "%s %d, %d " TIMESTAMP "\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, my_time.tv_usec);
+}
+
+void check_overflow(unsigned long my_num){
+  if (my_num == 0){
+    perror("strtoul");
+  }
+  return;
 }
 
 int cmd_date(int argc, char *argv[]){
@@ -245,15 +294,10 @@ int cmd_clockdate(int argc, char *argv[]){
   if (argc != 2){
     return E_NUMARGS;
   }
-  long test_sec = 0;
+  unsigned long test_sec = 0;
   int i = 0;
-  while (argv[1][i] != NULLCHAR){
-    if (!check_digit(argv[1][i])){
-      return E_NOINPUT;
-    }
-    test_sec = 10*test_sec + (argv[1][i] - '0');
-    i++;
-  }
+  test_sec = strtoul(argv[1], NULL, 10);
+  check_overflow(test_sec);
   struct timeval my_time = {test_sec, 0};
   struct date_time curr_date = get_time(test_sec);
   print_time(curr_date, my_time);
@@ -284,7 +328,7 @@ int cmd_malloc(int argc, char *argv[]){
     return E_MALLOC;
   }
   else{
-    fprintf(stdout, "0x%x \n", mal_val);
+    fprintf(stdout, "%p \n", mal_val);
     return 0;
   }
 }
@@ -296,6 +340,7 @@ int cmd_free(int argc, char *argv[]){
   size_t ptr_val = 0;
   int err_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
+  check_overflow(ptr_val);
   err_val = myFreeErrorCode((void *)ptr_val);
   if (err_val == 0){
     fprintf(stdout, "Free successful \n");
@@ -323,8 +368,11 @@ int cmd_memset(int argc, char *argv[]){
   size_t reg_len = 0;
   unsigned int set_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
+  check_overflow(ptr_val);
   set_val = hex_dec_oct(argv[2]);
+  check_overflow(set_val);
   reg_len = hex_dec_oct(argv[3]);
+  check_overflow(reg_len);
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
   if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
     return E_NOINPUT;
@@ -344,8 +392,11 @@ int cmd_memchk(int argc, char *argv[]){
   size_t reg_len = 0;
   unsigned int set_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
+  check_overflow(ptr_val);
   set_val = hex_dec_oct(argv[2]);
+  check_overflow(set_val);
   reg_len = hex_dec_oct(argv[3]);
+  check_overflow(reg_len);
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
   if (my_bound == 0 || my_bound < reg_len || set_val > 255){ //TODO: error check? Correct value?
     return E_NOINPUT;
@@ -362,17 +413,19 @@ int cmd_memchk(int argc, char *argv[]){
 
 int shell(void){
     //command line shell accepts user input and executes basic commands
+    char cmd_array[MAX];
+    char* user_cmd = &cmd_array;
     while(TRUE){
         fprintf(stdout, "$ ");
-        char* user_cmd = (char*)malloc(MAXLEN*sizeof(char));
         if (user_cmd == NULL) {
           error_checker(E_MALLOC);
           return E_MALLOC;
         }
         int arg_len[MAXARGS+2] = {0};
         //get argc, create string itself
-        int return_value = get_string(user_cmd, arg_len);
-        error_checker(return_value);
+        if ((error_checker(get_string(user_cmd, arg_len))) != 0){
+          return -99;
+        }
         int argc = arg_len[MAXARGS+1];
         char** argv = (char **)malloc((argc + 1) * sizeof(char *));
         if (argv == NULL) {
@@ -394,10 +447,12 @@ int shell(void){
           argv[i][arg_len[i]] = NULLCHAR;
           user_cmd_offset += arg_len[i];
         }
-        free(user_cmd);
         //check if command exists in struct
         for (int i = 0; i < NUMCOMMANDS; i++){
-          if (string_cmp(argv[0], commands[i].name) == 0){
+          if (argv[0] == NULL){
+            break;
+          }
+          if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) == 0){
             //execute command
             int return_value = commands[i].functionp(argc, argv);
             error_checker(return_value);

@@ -1,6 +1,9 @@
 #ifndef MYERROR_H
 #define MYERROR_H
 #define NUMCODES (int)(sizeof(errordesc)/sizeof(errordesc[0]))
+#ifndef MAXLEN
+#define MAXLEN 256 //accepts chars 0->255, plus newline 256
+#endif
 
 typedef enum _os_error error_t;
 
@@ -26,7 +29,7 @@ struct _errordesc {
     char *message;
 };
 
-extern struct _errordesc errordesc[];
+//extern struct _errordesc errordesc[];
 
 int error_checker(int return_value);
 

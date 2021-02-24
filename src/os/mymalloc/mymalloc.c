@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "mymalloc.h"
-#include "helpers\myerror.h"
+#include "helpers/myerror.h"
 
 static int node_count = 0;
 
@@ -36,7 +36,6 @@ struct mem_region* init_struct(struct mem_region* first){
         first->free |= TRUE;
         first->size = MAX - MEMSTRUCT;
         first->pid = currentPCB->pid;
-        fprintf(stdout, "Free's address is %p \n", &first);
     }
     return first;
     //subdivide memory

@@ -3,7 +3,7 @@
 #include <string.h>
 #include "myerror.h"
 
-extern struct _errordesc errordesc[] = {
+struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
     { E_CONSTRUCTION, "Under construction \n" },
     { E_CMD_NOT_FOUND, "Invalid command -- type help for a list \n" },
@@ -19,11 +19,19 @@ extern struct _errordesc errordesc[] = {
     { E_MEMCHK, "memchk failed \n"}
 };
 
+#ifndef BUFFER_SIZE
+#define BUFFER_SIZE MAXLEN
+#endif
+
 int error_checker(int return_value){
   //Checks inputted error values against a struct and prints the appropriate error string, when possible
   if (return_value < 0 && return_value >= (-1*NUMCODES)){
-    char* error_string = errordesc[-1*return_value].message;
-    fprintf(stderr, "error %d: %s", return_value, error_string);
+    char buffer[BUFFER_SIZE];
+    int length = snprintf(buffer, BUFFER_SIZE, errordesc[-1*return_value].message);
+    if (length >= BUFFER_SIZE) {
+      return E_TOO_LONG;
+    }
+    fprintf(stdout, "error %d: %s", return_value, buffer);
     if (return_value == E_NUMARGS){
       return E_NUMARGS;
     }
