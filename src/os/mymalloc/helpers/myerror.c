@@ -31,7 +31,7 @@ int error_checker(int return_value){
     if (length >= BUFFER_SIZE) {
       return E_TOO_LONG;
     }
-    fprintf(stdout, "error %d: %s", return_value, buffer);
+    fprintf(stderr, "error %d: %s", return_value, buffer);
     if (return_value == E_NUMARGS){
       return E_NUMARGS;
     }

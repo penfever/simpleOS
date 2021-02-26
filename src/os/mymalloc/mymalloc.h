@@ -22,6 +22,8 @@ struct mem_region {
 
 int round_size(int size);
 
+unsigned int getCurrentPid();
+
 struct mem_region* init_struct(struct mem_region* first);
 
 void memoryMap(struct mem_region* first);

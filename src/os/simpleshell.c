@@ -47,7 +47,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"memchk", cmd_memchk}};
 
 char escape_char(char* user_cmd, int* str_len){
-  //Checks a string from stdin for escape characters and processes it accordingly
+  /*Takes as arguments a user command and the length of that command.
+It then compares the next character to a list of escape characters and processes it accordingly.*/
   char c = fgetc(stdin);
   for (int i = 0; i < NUMESCAPES; i++){
     if (c == escapechars[i].c){
@@ -58,11 +59,14 @@ char escape_char(char* user_cmd, int* str_len){
       return fgetc(stdin);
     }
   }
-  return fgetc(stdin);
+  return c;
 }
 
 char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* this_len){
-  //Checks a string from stdin for quotation marks and processes it accordingly
+  /*Takes as arguments a user command, the length of a string, the number of arguments, 
+  the current scan position and a pointer to an updateable scan position.
+  It then scans the string until it encounters a close_quote and updates the scan position
+  as necessary. If it does not encounter a close quote, returns an error.*/
   int right_pos = *str_len;
   char* user_cmd_ptr = user_cmd + *str_len;
   char c = '"';
@@ -91,7 +95,9 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
 }
 
 int get_string(char* user_cmd, int arg_len[]){
-    //Takes raw input from stdin and creates a string, user_cmd. Also calculates argc and the length of the string
+    /*Takes user input from stdin and sends it to a char* array representing the user's command, also 
+    keeping accurate track of the length of the user string. Once it encounters a newline, get_string
+    parses user arguments to create argc and argv. */
     char c;
     char* user_cmd_ptr = NULL;
     int left_pos = 0;
@@ -185,7 +191,7 @@ int cmd_exit(int argc, char *argv[]){
   free(argv);
   free(first);
   first = NULL;
-  exit(0); //TODO: main segfault on exit?
+  exit(0);
 }
 
 int cmd_help(int argc, char *argv[]){
@@ -266,6 +272,7 @@ void print_time(const struct date_time curr_date, const struct timeval my_time){
 }
 
 void check_overflow(unsigned long my_num){
+  /*Checks strtoul output for integer overflow error and prints error if one is encountered.*/
   if (my_num == 0){
     perror("strtoul");
   }
@@ -291,7 +298,6 @@ int cmd_clockdate(int argc, char *argv[]){
     return E_NUMARGS;
   }
   unsigned long test_sec = 0;
-  int i = 0;
   test_sec = strtoul(argv[1], NULL, 10);
   check_overflow(test_sec);
   struct timeval my_time = {test_sec, 0};
@@ -301,6 +307,7 @@ int cmd_clockdate(int argc, char *argv[]){
 }
 
 int check_digit_all(char* str){
+  /*Helper function accepts a string and returns true if every character in the string is a digit.*/
   for (int i = 0; i < strlen(str); i++){
     if (!check_digit(str[i])){
       return FALSE;
@@ -310,6 +317,7 @@ int check_digit_all(char* str){
 }
 
 int check_hex_all(char* str){
+  /*Helper function accepts a string and returns true if every character in the string is a hex digit.*/
   for (int i = 0; i < strlen(str); i++){
     if (!check_hex(str[i])){
       return FALSE;
@@ -319,6 +327,8 @@ int check_hex_all(char* str){
 }
 
 size_t hex_dec_oct(char* str){
+  /*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
+  it is an integer. If it is not an integer or some other error has occurred, returns 0.*/
   char* p_str = str + 2;
   int check_str;
   check_str = check_digit_all(str);
@@ -347,10 +357,9 @@ int cmd_malloc(int argc, char *argv[]){
   if (argc != 2){
     return E_NUMARGS;
   }
-  size_t mal_size;
   void* mal_val = NULL;
-  mal_size = hex_dec_oct(argv[1]);
-  if ((mal_val = myMalloc(mal_size)) == NULL){
+  long long unsigned int my_size = hex_dec_oct(argv[1]);
+  if ((mal_val = myMalloc(my_size)) == NULL){
     return E_MALLOC;
   }
   else{
@@ -516,9 +525,10 @@ int check_digit (char c) {
 }
 
 int check_hex (char c) {
-    //basic implementation of isdigit
+    //basic implementation of ishex
     if ((c >= '0') && (c <= '9')) return 1;
     if ((c >= 'a') && (c <= 'f')) return 1;
+    if ((c >= 'A') && (c <= 'F')) return 1;
     return 0;
 }
                 
