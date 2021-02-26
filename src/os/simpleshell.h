@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <errno.h>
 
+#ifndef _SIMPLE_SHELL_H
+#define _SIMPLE_SHELL_H
 #ifndef TRUE
 #define TRUE 1
 #endif 
@@ -11,100 +13,28 @@
 #ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
-#ifndef MAXARGS
 #define MAXARGS 32 //accepts args 0->32
-#endif
-#ifndef NULLCHAR
 #define NULLCHAR '\0'
-#endif 
-#ifndef HELPBLOCK
 #define HELPBLOCK "Welcome to the simple shell!\n"\
                   "Here are a few commands you can try: \n"\
                   "exit will exit this shell. \n"\
                   "help will show you a list of commands and how they work. \n"\
                   "echo will echo back whatever words follow the command itself. \n"\
                   "date will print the current date and time (GMT). \n"\
-                  "clockdate tests the date function. \n"
-#endif
-#ifndef SECYEAR
+                  "clockdate tests the date function. \n"\
+                  "malloc allocates memory. \n"\
+                  "free frees memory. \n"\
+                  "memset sets an allocated memory region to a value. \n"\
+                  "memchk checks that an allocated memory region is set to a value. \n"\
+                  "memorymap prints a map of all allocated memory. \n"
 #define SECYEAR 31536000
-#endif
-#ifndef SECDAY
 #define SECDAY 86400
-#endif
-#ifndef SECHOUR
 #define SECHOUR 3600
-#endif
-#ifndef SECMIN
 #define SECMIN 60
-#endif
-#ifndef TIMESTAMP
 #define TIMESTAMP "%02d:%02d:%02d.%06.ld"
-#endif
-#ifndef NUMCOMMANDS
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
-#endif
-#ifndef NUMCODES
-#define NUMCODES (int)(sizeof(errordesc)/sizeof(errordesc[0]))
-#endif
-#ifndef NUMESCAPES
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
-#endif
-#ifndef BACKSLASH
 #define BACKSLASH 92
-#endif
-
-struct escape_chars {
-    char c;
-    int ascii;
-} escapechars[] = {
-    {'0', 0},
-    {'a', 7},
-    {'b', 34},
-    {'e', 27},
-    {'f', 12},
-    {'n', 10},
-    {'r', 13},
-    {'t', 9},
-    {'v', 11},
-    {'"', 34}
-};
-
-enum _os_error
-{
-    E_SUCCESS = 0,
-    E_CONSTRUCTION = -1,
-    E_CMD_NOT_FOUND = -2,
-    E_SYSCALL = -3,
-    E_NUMARGS = -4,
-    E_NOINPUT = -5,
-    E_TOO_LONG = -6,
-    E_MALLOC = -7,
-    E_INF = -8,
-};
-
-typedef enum _os_error error_t;
-
-struct _errordesc {
-    int  code;
-    char *message;
-} errordesc[] = {
-    { E_SUCCESS, "No error \n" },
-    { E_CONSTRUCTION, "Under construction \n" },
-    { E_CMD_NOT_FOUND, "Invalid command -- type help for a list \n" },
-    { E_SYSCALL, "System call failed \n" },
-    { E_NUMARGS, "Wrong number of arguments \n" },
-    { E_NOINPUT, "No input or invalid input -- type help for more \n"},
-    { E_TOO_LONG, "Input longer than the maximum allowable characters (256) \n" },
-    { E_MALLOC, "Fatal: failed to allocate memory \n" },
-    { E_INF, "Fatal: end of infinite loop reached \n" }
-};
-
-int cmd_date(int argc, char *argv[]);
-int cmd_echo(int argc, char *argv[]);
-int cmd_exit(int argc, char *argv[]);
-int cmd_help(int argc, char *argv[]);
-int cmd_clockdate(int argc, char *argv[]);
 
 struct date_time {
   char* month;
@@ -116,66 +46,53 @@ struct date_time {
   char* clock;
 };
 
+struct escape_chars {
+    char c;
+    int ascii;
+};
+
+extern struct escape_chars escapechars[];
+
 struct months {
   char *month;
   int order;
   int offset;
-} months[] = {{"January", 0, 31}, 
-              {"February", 1, 28}, 
-              {"March", 2, 31},  
-              {"April", 3, 30},  
-              {"May", 4, 31},  
-              {"June", 5, 31},  
-              {"July", 6, 31}, 
-              {"August", 7, 31}, 
-              {"September", 8, 30}, 
-              {"October", 9, 31}, 
-              {"November", 10, 30}, 
-              {"December", 11, 31}, 
-              {"February", 12, 29}};
+};
+
+extern struct months months[];
+
+int cmd_date(int argc, char *argv[]);
+int cmd_echo(int argc, char *argv[]);
+int cmd_exit(int argc, char *argv[]);
+int cmd_help(int argc, char *argv[]);
+int cmd_clockdate(int argc, char *argv[]);
+int cmd_malloc(int argc, char *argv[]);
+int cmd_free(int argc, char *argv[]);
+int cmd_memset(int argc, char *argv[]);
+int cmd_memchk(int argc, char *argv[]);
+int cmd_memorymap(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
-} commands[] = {{"date", cmd_date},
-                {"echo", cmd_echo},
-                {"exit", cmd_exit},
-                {"help", cmd_help},
-                {"clockdate", cmd_clockdate}};
+};
 
-int check_digit (char c) {
-    //basic implementation of isdigit
-    if ((c >= '0') && (c <= '9')) return 1;
-    return 0;
-}
-                
-int string_cmp(const char *first, const char *second)
-//basic implementation of strcmp
-{
-    while(*first)
-    {
-        // if characters differ or end of second string is reached, break
-        if (*first != *second){
-          break;
-        }
-        // move to next pair of characters
-        first++;
-        second++;
-    }
- 
-    // return the ASCII difference after converting char* to unsigned char*
-    return *(const unsigned char*)first - *(const unsigned char*)second;
-}
+int check_digit(char c);
 
-int isleapyear(int inyear){
-    //checks if a given integer, assumed to be a year, is a leap year
-    if(inyear % 400 == 0){
-        return TRUE;
-    }
-    else if(inyear % 4 == 0 && inyear % 100 != 0){
-        return TRUE;
-    }
-    else{
-        return FALSE;
-    }
-}
+int check_hex (char c);
+
+int check_digit_all(char* str);
+
+int check_hex_all(char* str);
+
+int string_cmp(const char *first, const char *second);
+
+int isleapyear(int inyear);
+
+size_t hex_dec_oct(char* str);
+
+void print_time(const struct date_time curr_date, const struct timeval my_time);
+
+struct date_time get_time(time_t sec_now);
+
+#endif
