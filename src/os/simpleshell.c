@@ -198,6 +198,10 @@ int cmd_fclose(int argc, char *argv[]){
   //or does the user get a file name?
 }
 
+char* dec_to_pr_hex(int c){
+  
+}
+
 int cmd_fgetc(int argc, char *argv[]){
   //TODO
   char* path = argv[1];
@@ -206,10 +210,15 @@ int cmd_fgetc(int argc, char *argv[]){
   // from 0 to 31 decimal (0x1f), inclusive, and from 127 decimal (0x7f) to
   // 255 decimal (0xff), inclusive, should be printed in hexadecimal with a
   // prefix of "0x" (without the quotes).
-  if (c < 32){
-    return 0x
+  if (c < 32 || c > 126){
+    char buf[16];
+    sprintf(buf, "%x", c); //TODO: This will probably print extra characters. null terminate?
+    fprintf(stdout, "0x%s \n", buf);
   }
-  return c;
+  else{
+    fprintf(stdout, "%c \n", c);
+  }
+  return 0;
 }
 
 int cmd_fputc(int argc, char *argv[]){
