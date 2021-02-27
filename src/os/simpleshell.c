@@ -179,31 +179,55 @@ int get_string(char* user_cmd, int arg_len[]){
   return 0;
 }
 
-int cmd_fopen(const char *path, const char *mode){
+int cmd_fopen(int argc, char *argv[]){
   //TODO: error check input
+  char* path = argv[1];
+  char* mode = argv[2];
   FILE* my_file = fopen(path, mode);
   //TODO: store the file pointer in an array in the PCB
   return 0;
 }
 
-int cmd_fclose(void){
-  
+int cmd_fclose(int argc, char *argv[]){
+  char* path = argv[1];
+  //TODO: create pointer retrieval function if user inputs filename
+  //TODO: error checking
+  fclose(path);
+  //FClose usually takes a pointer -- does that mean the user
+  //needs to know the pointer in addition to it being in the struct?
+  //or does the user get a file name?
 }
 
-int cmd_fgetc(void){
-  
+int cmd_fgetc(int argc, char *argv[]){
+  //TODO
+  char* path = argv[1];
+  char c = fgetc(path);
+  // Characters with ASCII values
+  // from 0 to 31 decimal (0x1f), inclusive, and from 127 decimal (0x7f) to
+  // 255 decimal (0xff), inclusive, should be printed in hexadecimal with a
+  // prefix of "0x" (without the quotes).
+  if (c < 32){
+    return 0x
+  }
+  return c;
 }
 
-int cmd_fputc(void){
-  
+int cmd_fputc(int argc, char *argv[]){
+  //TODO
+  char* path = argv[1];
+  int c = strtoul(argv[2], NULL, 10); //TODO: ensure null terminating
+  fputc(c, path);
+  return 0;
 }
 
-int cmd_create(void){
-  
+int cmd_create(int argc, char *argv[]){
+  //creates file at path
+  char* path = argv[1];
 }
 
-int cmd_delete(void){
-  
+int cmd_delete(int argc, char *argv[]){
+  //deletes file at path
+  char* path = argv[1];
 }
 
 int cmd_echo(int argc, char *argv[]){

@@ -71,6 +71,12 @@ int cmd_free(int argc, char *argv[]);
 int cmd_memset(int argc, char *argv[]);
 int cmd_memchk(int argc, char *argv[]);
 int cmd_memorymap(int argc, char *argv[]);
+int cmd_fopen(int argc, char *argv[]);
+int cmd_fclose(int argc, char *argv[]);
+int cmd_fgetc(int argc, char *argv[]);
+int cmd_fputc(int argc, char *argv[]);
+int cmd_create(int argc, char *argv[]);
+int cmd_delete(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;
