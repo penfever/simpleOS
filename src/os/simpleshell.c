@@ -35,6 +35,8 @@ struct months months[] = {{"January", 0, 31},
               {"December", 11, 31}, 
               {"February", 12, 29}};
 
+             // fopen, fclose, fgetc, fputc, create, and delete 
+
 struct commandEntry commands[] = {{"date", cmd_date},
                 {"echo", cmd_echo},
                 {"exit", cmd_exit},
@@ -44,7 +46,13 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"free", cmd_free},
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
-                {"memchk", cmd_memchk}};
+                {"memchk", cmd_memchk},
+                {"fopen", cmd_fopen},
+                {"fclose", cmd_fclose},
+                {"fgetc", cmd_fgetc},
+                {"fputc", cmd_fputc},
+                {"create", cmd_create},
+                {"delete", cmd_delete}};
 
 char escape_char(char* user_cmd, int* str_len){
   /*Takes as arguments a user command and the length of that command.
@@ -169,6 +177,33 @@ int get_string(char* user_cmd, int arg_len[]){
     arg_len[MAXARGS+1] = argc;
   }
   return 0;
+}
+
+int cmd_fopen(const char *path, const char *mode){
+  //TODO: error check input
+  FILE* my_file = fopen(path, mode);
+  //TODO: store the file pointer in an array in the PCB
+  return 0;
+}
+
+int cmd_fclose(void){
+  
+}
+
+int cmd_fgetc(void){
+  
+}
+
+int cmd_fputc(void){
+  
+}
+
+int cmd_create(void){
+  
+}
+
+int cmd_delete(void){
+  
 }
 
 int cmd_echo(int argc, char *argv[]){
