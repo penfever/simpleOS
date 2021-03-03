@@ -238,6 +238,9 @@ int cmd_delete(int argc, char *argv[]){
 }
 
 int cmd_echo(int argc, char *argv[]){
+  if (argc == 1){
+    return 0;
+  }
   for (int i = 1; i < argc - 1; i++){
     uart_printf(argv[i]);
   }
@@ -455,7 +458,11 @@ int cmd_memorymap(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
   }
-  memoryMap(first);
+  if (first == NULL){ //Initialize
+      void* ptr = myMalloc(8);
+      myFree(ptr);
+  }
+  memoryMap();
   return 0;
 }
 

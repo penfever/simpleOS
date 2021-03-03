@@ -10,7 +10,7 @@ extern struct mem_region* first;
 
 struct pcb {
     char* proc_name;
-    unsigned int pid;
+    uint8_t pid;
 };
 
 struct mem_region {
@@ -22,13 +22,13 @@ struct mem_region {
 
 int round_size(int size);
 
-unsigned int getCurrentPid();
+uint8_t getCurrentPid();
 
 struct mem_region* init_struct(struct mem_region* first);
 
-void memoryMap(struct mem_region* first);
+void memoryMap(void);
 
-unsigned int bounds(void* ptr);
+uint32_t bounds(void* ptr);
 
 void *myMalloc(unsigned int size);
 

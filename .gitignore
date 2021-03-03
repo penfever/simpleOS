@@ -1,3 +1,4 @@
+*.exe
 .vscode/
 build/
 ps0/
@@ -8,8 +9,8 @@ src/word-count-old
 word-count-old/
 CMakeLists.txt
 cscie92.code-workspace
-src/os/simpleshell.exe
 src/os/simpleshell-b.c
+src/os/mymalloc/main.c
 sys/
 src/os/sys/
 src/toggle/.settings/
