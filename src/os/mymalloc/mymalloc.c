@@ -45,9 +45,9 @@ struct mem_region* init_struct(struct mem_region* first){
 broken off from the larger region of memory. After subdividing, it fills in the correct values for 'free', 'size' and 
 'pid' for the initial struct. Finally, it updates the global variable for total node count and returns the modified struct. */
 struct mem_region* subdivide(struct mem_region* mem, int size){
-    struct mem_region* next = &mem->data[0] + mem->size; // takes you all the way to the end of the region 
-    next -= MEMSTRUCT/sizeof(next); // pointer backs up so it now points to the correct spot in memory 
-    next -= size/sizeof(next);
+    char* next_c = (char *)mem;
+    next_c += (mem->size - size);
+    struct mem_region* next = (struct mem_region*)next_c;// pointer backs up so it now points to the correct spot in memory 
     next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
     next->pid = getCurrentPid();
@@ -105,9 +105,9 @@ uint8_t getCurrentPid(){
 address of the next struct in memory. */
 struct mem_region* walk_struct(struct mem_region* this_region){
     int incr_size = this_region->size;
-    this_region = &this_region->data[0];
-    this_region += incr_size/sizeof(this_region);
-    return this_region;
+    char* char_region = (char *)&this_region->data[0];
+    char_region += incr_size;
+    return (struct mem_region*)char_region;
 }
 
 /*memoryMap prints the contents of memory in their entirety. If memory is empty, it prints NULL.*/
@@ -139,7 +139,7 @@ void memoryMap(void){
 position in memory (if such exists) and returns the maximum amount memcheck may fill from its given
 position, as well as modifying a pointer to an offset value indicating how far memcheck's pointer 
 was from the start of the region.*/
-unsigned int bounds(void* ptr){
+uint32_t bounds(void* ptr){
     struct mem_region* mem_ptr = (struct mem_region*)ptr;
     struct mem_region* temp = first;
     struct mem_region* prev;

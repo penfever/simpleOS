@@ -22,3 +22,4 @@ src/toggle/.project
 src/toggle/ReferencedRSESystems.xml
 src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
 ps3/*
+src/os_hw/
