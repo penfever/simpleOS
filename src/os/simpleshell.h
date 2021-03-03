@@ -9,7 +9,8 @@
 #endif 
 #ifndef FALSE
 #define FALSE 0
-#endif 
+#endif
+#define DELAYCOUNT = 200000
 #ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
@@ -82,6 +83,12 @@ struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
 };
+
+char uart_getchar(void);
+
+void uart_launch(void);
+
+void uart_printf(char* string);
 
 int check_digit(char c);
 

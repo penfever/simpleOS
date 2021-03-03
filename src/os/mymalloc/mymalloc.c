@@ -118,9 +118,9 @@ the contents of memory in their entirety. If memory is empty, it prints NULL.*/
     fprintf(stdout,     "| ENTRY # | FREE | SIZE | PID | \n");
     fprintf(stdout,     "------------------------------- \n");
     struct mem_region* temp = first;
-    if (temp == NULL){
-        fprintf (stdout, "NULL \n");
-        return;
+    if (temp == NULL){ //initialize memory region
+        myMalloc(8);
+        free(8);
     }
     int total_size = 0;
     for (int i = 0; i < node_count; i++){

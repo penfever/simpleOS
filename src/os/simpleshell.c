@@ -7,6 +7,8 @@
 #include "simpleshell.h"
 #include "mymalloc/helpers/myerror.h"
 #include "mymalloc/mymalloc.h"
+#include "helpers/uart.h"
+#include "helpers/delay.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -57,14 +59,14 @@ struct commandEntry commands[] = {{"date", cmd_date},
 char escape_char(char* user_cmd, int* str_len){
   /*Takes as arguments a user command and the length of that command.
 It then compares the next character to a list of escape characters and processes it accordingly.*/
-  char c = fgetc(stdin);
+  char c = uart_getchar();
   for (int i = 0; i < NUMESCAPES; i++){
     if (c == escapechars[i].c){
       char* user_cmd_ptr = user_cmd + *str_len;
       char escape = escapechars[i].ascii;
       sprintf(user_cmd_ptr, &escape);
       *str_len = *str_len + 1;
-      return fgetc(stdin);
+      return uart_getchar();
     }
   }
   return c;
@@ -80,10 +82,10 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   char c = '"';
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  c = fgetc(stdin);
+  c = uart_getchar();
   while (c != '"') {
     if (c == '\r'){
-      c = fgetc(stdin);
+      c = uart_getchar();
     }
     if (c == '\n'){
       return E_NOINPUT;
@@ -91,7 +93,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     user_cmd_ptr = user_cmd + *str_len;
     sprintf(user_cmd_ptr, &c);
     *str_len = *str_len + 1;
-    c = fgetc(stdin);
+    c = uart_getchar();
   }
   *this_len = right_pos - left_pos;
   left_pos = right_pos;
@@ -99,7 +101,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   user_cmd_ptr = user_cmd + *str_len;
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  return fgetc(stdin);
+  return uart_getchar();
 }
 
 int get_string(char* user_cmd, int arg_len[]){
@@ -118,14 +120,10 @@ int get_string(char* user_cmd, int arg_len[]){
         buffer[1] = NULLCHAR;
       }
       else{
-        c = fgetc(stdin);
+        c = uart_getchar();
       }
       if (c == '\n'){
         break;
-      }
-      if (c == '\033'){
-        //attempt to handle special shell escape char
-        c = fgetc(stdin);
       }
       //if it finds a backslash, assumes the use of escape character
       if (c == BACKSLASH){
@@ -144,7 +142,7 @@ int get_string(char* user_cmd, int arg_len[]){
         buffer[0] = c;
         while( buffer[0] == ' ' || buffer[0] == '\t' ){
           buffer[1] = buffer[0];
-          buffer[0] = fgetc(stdin);
+          buffer[0] = uart_getchar();
         }
         c = buffer[0];
         arg_len[argc] = right_pos - left_pos;
@@ -241,9 +239,9 @@ int cmd_delete(int argc, char *argv[]){
 
 int cmd_echo(int argc, char *argv[]){
   for (int i = 1; i < argc - 1; i++){
-    fprintf(stdout, "%s ", argv[i]);
+    uart_printf(argv[i]);
   }
-  fprintf(stdout, "%s\n", argv[argc - 1]);
+  uart_printf(argv[argc - 1]);
   return 0;
 }
 
@@ -266,7 +264,7 @@ int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
   }
-  fprintf(stdout, HELPBLOCK);
+  uart_printf(HELPBLOCK);
   return 0;
 }
 
@@ -336,13 +334,13 @@ void print_time(const struct date_time curr_date, const struct timeval my_time){
    hours) on January 1, 1970 -- this time is referred to as the Unix
    Epoch. 
   */
-  fprintf(stdout, "%s %d, %d " TIMESTAMP "\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, my_time.tv_usec);
+  //fprintf(stdout, "%s %d, %d " TIMESTAMP "\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, my_time.tv_usec);
 }
 
 void check_overflow(unsigned long my_num){
   /*Checks strtoul output for integer overflow error and prints error if one is encountered.*/
   if (my_num == 0){
-    perror("strtoul");
+    perror("strtoul"); //TODO: perror, errno, UART?
   }
   return;
 }
@@ -431,7 +429,9 @@ int cmd_malloc(int argc, char *argv[]){
     return E_MALLOC;
   }
   else{
-    fprintf(stdout, "%p \n", mal_val);
+    char* string = malloc(sizeof(void*));
+    snprintf(string, "%p", mal_val);
+    uart_printf(string);
     return 0;
   }
 }
@@ -446,7 +446,7 @@ int cmd_free(int argc, char *argv[]){
   check_overflow(ptr_val);
   err_val = myFreeErrorCode((void *)ptr_val);
   if (err_val == 0){
-    fprintf(stdout, "Free successful \n");
+    uart_printf("Free successful");
   }
   return err_val;
 }
@@ -517,17 +517,18 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-  fprintf(stdout, "memchk successful \n");
+  uart_printf("memchk successful");
   // free(my_offset);
   return 0;
 }
 
 int shell(void){
     //command line shell accepts user input and executes basic commands
+    uart_launch();
     char cmd_array[MAXLEN];
     char* user_cmd = &cmd_array;
     while(TRUE){
-        fprintf(stdout, "$ ");
+        uart_printf("$ ");
         if (user_cmd == NULL) {
           error_checker(E_MALLOC);
           return E_MALLOC;
@@ -584,6 +585,33 @@ int shell(void){
     error_t err_code = E_INF;
     error_checker(err_code);
     return err_code;
+}
+
+//begin helpers and utilities section
+
+void uart_launch(void){
+  //TODO: open uart channel uartInit(UART_MemMapPtr uartChannel, int clockInKHz, 115200)
+  //You should configure the UART for 115,200 baud with eight data bits,
+  //one stop bit, and no parity. <--These are probably SecureCRT settings. See 2:43:00 Lecture 5.
+  const int IRC = 32000;					/* Internal Reference Clock */
+  const int FLL_Factor = 640;
+  const int moduleClock = FLL_Factor*IRC;
+  const int KHzInHz = 1000;
+  const int baud = 115200;
+  uartInit(UART2_BASE_PTR, moduleClock/KHzInHz, baud);
+  return;
+}
+
+char uart_getchar(void){
+  while(!uartGetcharPresent(UART2_BASE_PTR)){
+    delay(200000);
+  }
+  char c = uartGetchar(UART2_BASE_PTR);
+  return c;
+}
+
+void uart_printf(char* string){
+  //uartPuts(UART2_BASE_PTR, "%s \r\n", string);
 }
 
 int check_digit (char c) {
