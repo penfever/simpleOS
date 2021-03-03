@@ -1,5 +1,5 @@
-#ifndef MYERROR_H
-#define MYERROR_H
+#ifndef _MYERROR_H
+#define _MYERROR_H
 #define NUMCODES (int)(sizeof(errordesc)/sizeof(errordesc[0]))
 #ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
@@ -7,7 +7,7 @@
 
 typedef enum _os_error error_t;
 
-extern enum _os_error
+enum _os_error
 {
     E_SUCCESS = 0,
     E_CONSTRUCTION = -1,

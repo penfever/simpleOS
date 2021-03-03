@@ -1,3 +1,4 @@
+*.exe
 .vscode/
 build/
 ps0/
@@ -8,8 +9,8 @@ src/word-count-old
 word-count-old/
 CMakeLists.txt
 cscie92.code-workspace
-src/os/simpleshell.exe
 src/os/simpleshell-b.c
+src/os/mymalloc/main.c
 sys/
 src/os/sys/
 src/toggle/.settings/
@@ -20,5 +21,4 @@ src/toggle/.cwGeneratedFileSetLog
 src/toggle/.project
 src/toggle/ReferencedRSESystems.xml
 src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
-src/os/mymalloc/main.exe
-ps3/ProblemSet3.txt
+ps3/*
