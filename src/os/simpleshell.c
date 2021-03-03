@@ -172,6 +172,9 @@ int get_string(char* user_cmd, int arg_len[]){
 }
 
 int cmd_echo(int argc, char *argv[]){
+  if (argc == 1){
+    return 0;
+  }
   for (int i = 1; i < argc - 1; i++){
     fprintf(stdout, "%s ", argv[i]);
   }
@@ -387,7 +390,11 @@ int cmd_memorymap(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
   }
-  memoryMap(first);
+  if (first == NULL){ //Initialize
+      void* ptr = myMalloc(8);
+      myFree(ptr);
+  }
+  memoryMap();
   return 0;
 }
 
