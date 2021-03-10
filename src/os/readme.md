@@ -1,4 +1,4 @@
-# simple shell
+# Simple Shell
 
 ## Purpose
 
@@ -25,5 +25,9 @@ Because the operating system I am writing is likely to be used mostly for small 
 ## Use
 
 myMalloc and myFree can be called from the simple shell using the commands malloc and free, respectively. Memory can be set to a particular value with the memset command. Memchk checks that the value was properly assigned.
+
+# Codewarrior Notes
+
+I used C99 conventions, so please enable C99 in the Codewarrior Project when testing.
 
 

@@ -1,0 +1,35 @@
+"./Project_Settings/Startup_Code/kinetis_sysinit.o"
+"./Project_Settings/Startup_Code/__arm_start.o"
+"./Project_Settings/Startup_Code/__arm_end.o"
+"./Sources/util.o"
+"./Sources/uartNL.o"
+"./Sources/uart.o"
+"./Sources/microSD.o"
+"./Sources/main.o"
+"./Sources/fsInfo.o"
+"./Sources/bootSector.o"
+"./Sources/SDHC_FAT32_Files.o"
+"./Sources/FAT.o"
+-mcpu=cortex-m4
+-mthumb
+-mfloat-abi=hard
+-mfpu=fpv4-sp-d16
+-g3
+-gdwarf-2
+-gstrict-dwarf
+-T"C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Settings/Linker_Files/MK70FN1M0_ram.ld"
+-Xlinker
+--gc-sections
+-L"C:/Freescale/CW MCU v10.6/MCU/ARM_GCC_Support/ewl/lib/armv7e-m/fpu"
+-L"C:/Freescale/CW MCU v10.6/MCU/ARM_GCC_Support/ewl/lib/armv7e-m"
+-Wl,-Map,Fat32.map
+-n
+-specs=ewl_c_hosted.specs
+-Xlinker
+--undefined=__pformatter_
+-Xlinker
+--defsym=__pformatter=__pformatter_
+-Xlinker
+--undefined=__sformatter
+-Xlinker
+--defsym=__sformatter=__sformatter
