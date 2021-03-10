@@ -133,7 +133,7 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
     struct sdhc_card_status card_status;
 	int finished = 1;
 	int numSector = 0;
-	finished = dir_read_sector_search(data, logicalSector, NULL);
+	finished = dir_read_sector_search(data, logicalSector, search);
 	    while (finished == 1){
 	        if (numSector < sectors_per_cluster){
 	        	numSector ++;
@@ -148,12 +148,12 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 		    	//update dir_entry?
 	        	numSector = 0;
 	        }
-	    	finished = dir_read_sector_search(data, logicalSector, NULL);
+	    	finished = dir_read_sector_search(data, logicalSector, search);
 	    }
 	    return finished;
 }
 
-int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){
+int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){//make attr printing optional
 		int i;
 	    struct dir_entry_8_3 *dir_entry;
 	    int numSector = 0;

@@ -566,14 +566,14 @@ END GROUP
                 0x1fff1bf0       0x88 ./Sources/SDHC_FAT32_Files.o
                 0x1fff1bf0                dir_entry_print_attributes
  .text.read_all
-                0x1fff1c78       0xc4 ./Sources/SDHC_FAT32_Files.o
+                0x1fff1c78       0xc0 ./Sources/SDHC_FAT32_Files.o
                 0x1fff1c78                read_all
  .text.dir_read_sector_search
-                0x1fff1d3c      0x188 ./Sources/SDHC_FAT32_Files.o
-                0x1fff1d3c                dir_read_sector_search
+                0x1fff1d38      0x188 ./Sources/SDHC_FAT32_Files.o
+                0x1fff1d38                dir_read_sector_search
  .text.dir_find_file
-                0x1fff1ec4       0x9c ./Sources/SDHC_FAT32_Files.o
-                0x1fff1ec4                dir_find_file
+                0x1fff1ec0       0xa0 ./Sources/SDHC_FAT32_Files.o
+                0x1fff1ec0                dir_find_file
  .text.determineEndianness
                 0x1fff1f60       0x54 ./Sources/FAT.o
  .text.read_FAT_entry
@@ -1259,7 +1259,7 @@ OUTPUT(Fat32.elf elf32-littlearm)
  .debug_str     0x00000594      0xab8 ./Sources/microSD.o
                                 0xe19 (size before relaxing)
  .debug_str     0x0000104c       0x35 ./Sources/main.o
-                                0x179 (size before relaxing)
+                                0x178 (size before relaxing)
  .debug_str     0x00001081       0xf7 ./Sources/fsInfo.o
                                 0x730 (size before relaxing)
  .debug_str     0x00001178      0x529 ./Sources/bootSector.o

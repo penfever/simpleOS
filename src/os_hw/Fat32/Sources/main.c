@@ -15,8 +15,8 @@ int main(void){
     printf("CWD changed \n");
     //dir_ls(0);
     //printf("Directory listed \n");
-    char *file_name = "FUN     ";
-    printf("%d \n", dir_find_file(file_name, MOUNT->cwd_cluster));
+    char *filename = "DRUMSE~1";
+    printf("%d \n", dir_find_file(filename, MOUNT->cwd_cluster));
     file_structure_umount();
     return 0;
 }
