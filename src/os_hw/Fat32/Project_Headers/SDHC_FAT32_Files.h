@@ -10,6 +10,8 @@ struct myfat_mount{
    uint32_t cwd_cluster;
 };
 
+extern struct myfat_mount *MOUNT;
+
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
 
@@ -164,6 +166,8 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp);
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen);
 
-int dir_read_sector(uint8_t data[512], int logicalSector);
+int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search);
+
+int read_all(uint8_t data[512], int logicalSector, char* search);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

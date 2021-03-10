@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include "SDHC_FAT32_Files.h"
 #include "fsInfo.h"
 #include "microSD.h"
@@ -63,7 +64,7 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  * Returns an error code if the file structure is not mounted
  */
 int file_structure_umount(void){
-	//TODO: check if buffer is clean
+	//TODO: check if buffer is clean, if dirty, call putbuf or write?
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
@@ -124,30 +125,35 @@ int dir_ls(int full){
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
-    int finished = 1;
-    int numSector = 0;
-    finished = dir_read_sector(data, logicalSector);
-    while (finished == 1){
-        if (numSector < sectors_per_cluster){
-        	numSector ++;
-        	logicalSector ++; //advance logicalsector pointer
-            if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
-            	__BKPT();
-            }
-        }
-        else{
-	    	uint32_t nextAddr = read_FAT_entry(MOUNT->rca, MOUNT->cwd_cluster); //returns a FAT entry
-	    	logicalSector = first_sector_of_cluster(nextAddr); //takes a cluster as an argument
-	    	//update dir_entry?
-        	numSector = 0;
-        }
-    	finished = dir_read_sector(data, logicalSector);
-    }
-    ;
-    return 0;
+    int err = read_all(data, logicalSector, NULL);
+    return err;
 }
 
-int dir_read_sector(uint8_t data[512], int logicalSector){
+int read_all(uint8_t data[512], int logicalSector, char* search){
+    struct sdhc_card_status card_status;
+	int finished = 1;
+	int numSector = 0;
+	finished = dir_read_sector_search(data, logicalSector, NULL);
+	    while (finished == 1){
+	        if (numSector < sectors_per_cluster){
+	        	numSector ++;
+	        	logicalSector ++; //advance logicalsector pointer
+	            if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
+	            	__BKPT();
+	            }
+	        }
+	        else{
+		    	uint32_t nextAddr = read_FAT_entry(MOUNT->rca, MOUNT->cwd_cluster); //returns a FAT entry
+		    	logicalSector = first_sector_of_cluster(nextAddr); //takes a cluster as an argument
+		    	//update dir_entry?
+	        	numSector = 0;
+	        }
+	    	finished = dir_read_sector_search(data, logicalSector, NULL);
+	    }
+	    return finished;
+}
+
+int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){
 		int i;
 	    struct dir_entry_8_3 *dir_entry;
 	    int numSector = 0;
@@ -181,6 +187,13 @@ int dir_read_sector(uint8_t data[512], int logicalSector){
 			printf("\n");
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 			printf(" First Cluster: %lu\n", firstCluster);
+	    	if(strncmp(dir_entry->DIR_Name, search, 8)==0){ //TODO: this may have trouble matching because of file extensions
+	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
+	    		if(MYFAT_DEBUG){
+	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
+	    		}
+	    		return (int)clusterAddr;//TODO: risk of truncation?
+	    	}
 			printf(" Size: %lu\n", dir_entry->DIR_FileSize);
 			printf("\n\n");
 	    }
@@ -216,8 +229,19 @@ int dir_ls_next(void *statep, char *filename){
  * Returns an error code if filename is not in the cwd
  * Returns an error code if the filename is a directory
  */
-int dir_find_file(char *filename, uint32_t *firstCluster){
-    ;
+int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
+    uint8_t data[512];
+    struct sdhc_card_status card_status;
+    if (0 == MOUNT){
+        	return 0; //TODO: error checking
+        }
+    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+    	__BKPT();
+    }
+    uint32_t err = read_all(data, logicalSector, filename);
+    return err;
 }
 
 /**

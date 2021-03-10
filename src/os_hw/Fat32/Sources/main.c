@@ -13,8 +13,10 @@ int main(void){
     printf("Card mounted. \n");
     dir_set_cwd_to_root();
     printf("CWD changed \n");
-    dir_ls(0);
-    printf("Directory listed \n");
+    //dir_ls(0);
+    //printf("Directory listed \n");
+    char *file_name = "FUN     ";
+    printf("%d \n", dir_find_file(file_name, MOUNT->cwd_cluster));
     file_structure_umount();
     return 0;
 }

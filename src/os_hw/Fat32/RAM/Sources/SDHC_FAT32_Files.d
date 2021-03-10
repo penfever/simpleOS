@@ -28,6 +28,9 @@ Sources/SDHC_FAT32_Files.o: ../Sources/SDHC_FAT32_Files.c \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/stdlib.h \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstdlib \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/div_t.h \
+ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string.h \
+ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring \
+ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDHC_FAT32_Files.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/fsInfo.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDCardReader.h \
@@ -99,6 +102,12 @@ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/stdlib.h:
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstdlib:
 
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/div_t.h:
+
+C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string.h:
+
+C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring:
+
+C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDHC_FAT32_Files.h:
 
