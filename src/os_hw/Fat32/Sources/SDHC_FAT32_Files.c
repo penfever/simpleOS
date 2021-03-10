@@ -63,6 +63,7 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  * Returns an error code if the file structure is not mounted
  */
 int file_structure_umount(void){
+	//TODO: check if buffer is clean
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
@@ -135,11 +136,10 @@ int dir_ls(int full){
             }
         }
         else{
-	    	/*uint32_t nextAddr = read_FAT_entry(rca, uint32_t cluster);
-	    	logicalSector = first_sector_of_cluster(nextAddr);
+	    	uint32_t nextAddr = read_FAT_entry(MOUNT->rca, MOUNT->cwd_cluster); //returns a FAT entry
+	    	logicalSector = first_sector_of_cluster(nextAddr); //takes a cluster as an argument
 	    	//update dir_entry?
-	    	uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
-        	numSector = 0;*/
+        	numSector = 0;
         }
     	finished = dir_read_sector(data, logicalSector);
     }
