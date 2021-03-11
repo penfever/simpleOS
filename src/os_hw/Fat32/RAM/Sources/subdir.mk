@@ -9,6 +9,7 @@ C_SRCS_QUOTED += \
 "../Sources/FAT.c" \
 "../Sources/SDHC_FAT32_Files.c" \
 "../Sources/bootSector.c" \
+"../Sources/devices.c" \
 "../Sources/fsInfo.c" \
 "../Sources/main.c" \
 "../Sources/microSD.c" \
@@ -16,12 +17,14 @@ C_SRCS_QUOTED += \
 "../Sources/mymalloc.c" \
 "../Sources/uart.c" \
 "../Sources/uartNL.c" \
+"../Sources/univio.c" \
 "../Sources/util.c" \
 
 C_SRCS += \
 ../Sources/FAT.c \
 ../Sources/SDHC_FAT32_Files.c \
 ../Sources/bootSector.c \
+../Sources/devices.c \
 ../Sources/fsInfo.c \
 ../Sources/main.c \
 ../Sources/microSD.c \
@@ -29,12 +32,14 @@ C_SRCS += \
 ../Sources/mymalloc.c \
 ../Sources/uart.c \
 ../Sources/uartNL.c \
+../Sources/univio.c \
 ../Sources/util.c \
 
 OBJS += \
 ./Sources/FAT.o \
 ./Sources/SDHC_FAT32_Files.o \
 ./Sources/bootSector.o \
+./Sources/devices.o \
 ./Sources/fsInfo.o \
 ./Sources/main.o \
 ./Sources/microSD.o \
@@ -42,12 +47,14 @@ OBJS += \
 ./Sources/mymalloc.o \
 ./Sources/uart.o \
 ./Sources/uartNL.o \
+./Sources/univio.o \
 ./Sources/util.o \
 
 C_DEPS += \
 ./Sources/FAT.d \
 ./Sources/SDHC_FAT32_Files.d \
 ./Sources/bootSector.d \
+./Sources/devices.d \
 ./Sources/fsInfo.d \
 ./Sources/main.d \
 ./Sources/microSD.d \
@@ -55,12 +62,14 @@ C_DEPS += \
 ./Sources/mymalloc.d \
 ./Sources/uart.d \
 ./Sources/uartNL.d \
+./Sources/univio.d \
 ./Sources/util.d \
 
 OBJS_QUOTED += \
 "./Sources/FAT.o" \
 "./Sources/SDHC_FAT32_Files.o" \
 "./Sources/bootSector.o" \
+"./Sources/devices.o" \
 "./Sources/fsInfo.o" \
 "./Sources/main.o" \
 "./Sources/microSD.o" \
@@ -68,12 +77,14 @@ OBJS_QUOTED += \
 "./Sources/mymalloc.o" \
 "./Sources/uart.o" \
 "./Sources/uartNL.o" \
+"./Sources/univio.o" \
 "./Sources/util.o" \
 
 C_DEPS_QUOTED += \
 "./Sources/FAT.d" \
 "./Sources/SDHC_FAT32_Files.d" \
 "./Sources/bootSector.d" \
+"./Sources/devices.d" \
 "./Sources/fsInfo.d" \
 "./Sources/main.d" \
 "./Sources/microSD.d" \
@@ -81,12 +92,14 @@ C_DEPS_QUOTED += \
 "./Sources/mymalloc.d" \
 "./Sources/uart.d" \
 "./Sources/uartNL.d" \
+"./Sources/univio.d" \
 "./Sources/util.d" \
 
 OBJS_OS_FORMAT += \
 ./Sources/FAT.o \
 ./Sources/SDHC_FAT32_Files.o \
 ./Sources/bootSector.o \
+./Sources/devices.o \
 ./Sources/fsInfo.o \
 ./Sources/main.o \
 ./Sources/microSD.o \
@@ -94,6 +107,7 @@ OBJS_OS_FORMAT += \
 ./Sources/mymalloc.o \
 ./Sources/uart.o \
 ./Sources/uartNL.o \
+./Sources/univio.o \
 ./Sources/util.o \
 
 
@@ -122,9 +136,17 @@ Sources/bootSector.o: ../Sources/bootSector.c
 	@echo 'Finished building: $<'
 	@echo ' '
 
-Sources/fsInfo.o: ../Sources/fsInfo.c
+Sources/devices.o: ../Sources/devices.c
 	@echo 'Building file: $<'
 	@echo 'Executing target #4 $<'
+	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
+	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/devices.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/devices.o"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+Sources/fsInfo.o: ../Sources/fsInfo.c
+	@echo 'Building file: $<'
+	@echo 'Executing target #5 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/fsInfo.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/fsInfo.o"
 	@echo 'Finished building: $<'
@@ -132,7 +154,7 @@ Sources/fsInfo.o: ../Sources/fsInfo.c
 
 Sources/main.o: ../Sources/main.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #5 $<'
+	@echo 'Executing target #6 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/main.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/main.o"
 	@echo 'Finished building: $<'
@@ -140,7 +162,7 @@ Sources/main.o: ../Sources/main.c
 
 Sources/microSD.o: ../Sources/microSD.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #6 $<'
+	@echo 'Executing target #7 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/microSD.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/microSD.o"
 	@echo 'Finished building: $<'
@@ -148,7 +170,7 @@ Sources/microSD.o: ../Sources/microSD.c
 
 Sources/myerror.o: ../Sources/myerror.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #7 $<'
+	@echo 'Executing target #8 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/myerror.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/myerror.o"
 	@echo 'Finished building: $<'
@@ -156,7 +178,7 @@ Sources/myerror.o: ../Sources/myerror.c
 
 Sources/mymalloc.o: ../Sources/mymalloc.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #8 $<'
+	@echo 'Executing target #9 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/mymalloc.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/mymalloc.o"
 	@echo 'Finished building: $<'
@@ -164,7 +186,7 @@ Sources/mymalloc.o: ../Sources/mymalloc.c
 
 Sources/uart.o: ../Sources/uart.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #9 $<'
+	@echo 'Executing target #10 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/uart.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/uart.o"
 	@echo 'Finished building: $<'
@@ -172,15 +194,23 @@ Sources/uart.o: ../Sources/uart.c
 
 Sources/uartNL.o: ../Sources/uartNL.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #10 $<'
+	@echo 'Executing target #11 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/uartNL.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/uartNL.o"
 	@echo 'Finished building: $<'
 	@echo ' '
 
+Sources/univio.o: ../Sources/univio.c
+	@echo 'Building file: $<'
+	@echo 'Executing target #12 $<'
+	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
+	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/univio.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/univio.o"
+	@echo 'Finished building: $<'
+	@echo ' '
+
 Sources/util.o: ../Sources/util.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #11 $<'
+	@echo 'Executing target #13 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/util.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/util.o"
 	@echo 'Finished building: $<'

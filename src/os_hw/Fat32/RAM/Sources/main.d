@@ -20,6 +20,7 @@ Sources/main.o: ../Sources/main.c \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDHC_FAT32_Files.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/bootSector.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/breakpoint.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/devices.h \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/stdio.h \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstdio \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstddef \
@@ -76,6 +77,8 @@ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Heade
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/bootSector.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/breakpoint.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/devices.h:
 
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/stdio.h:
 

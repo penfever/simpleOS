@@ -7,7 +7,6 @@
 #include <stdio.h>
 
 int main(void){
-	struct pcb* currentPCB = &op_sys; //TODO: copy this code into simpleshell
     int error = file_structure_mount();
     if (0 != error) { //TODO: error check
         __BKPT();
@@ -18,7 +17,9 @@ int main(void){
     //dir_ls(0);
     //printf("Directory listed \n");
     char *filename = "DRUMSE~1";
-    printf("%d \n", file_open(filename, MOUNT->cwd_cluster));
+    file_descriptor* fileptr;
+    file_open(filename, fileptr);
+    printf("%p \n", *fileptr);
     file_structure_umount();
     return 0;
 }

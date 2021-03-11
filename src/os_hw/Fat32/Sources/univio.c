@@ -12,4 +12,6 @@ int fopen (char* filename, char mode){
 	//else, filename is a file or directory, call FAT32 struct
 		//if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor
 		//if mode is write, do something else
+	//TODO: set deviceType, minorID and mode
+	return 0;
 }

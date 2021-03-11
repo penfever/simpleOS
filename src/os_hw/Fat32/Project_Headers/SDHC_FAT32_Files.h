@@ -170,4 +170,6 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search);
 
 int read_all(uint8_t data[512], int logicalSector, char* search);
 
+struct stream* find_open_stream();
+
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

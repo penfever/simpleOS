@@ -2,8 +2,10 @@
  * devices.h
  *
  *  Created on: Mar 11, 2021
- *      Author: penfe
+ *   
  */
+
+#include <stdint.h>
 
 #ifndef DEVICES_H_
 #define DEVICES_H_
@@ -13,32 +15,26 @@
 extern struct pcb* currentPCB;
 extern struct pcb op_sys;
 
+struct stream { //Abstraction: what device is this, and how do I talk to it?
+	enum device_type{ // Abstraction: Major IDs
+		UNUSED = 0,
+		FAT32 = 1,
+		PUSHBUTTON = 2,
+		LED = 3
+	}deviceType; //Major ID
+	int minorId;
+	int mode;  //rw mode
+	uint32_t cursor; // current position in file
+	//FAT32 specific entries
+	uint32_t clusterAddr;
+	uint8_t *fileName;
+	uint32_t fileSize;
+};
+
 struct pcb {
     char* proc_name;
     uint8_t pid;
     struct stream openFiles[MAXOPEN];
-};
-
-struct stream { //Abstraction: what device is this, and how do I talk to it?
-	enum device_type deviceType; //Major ID
-	int minorId;
-	int mode;  //rw mode
-	uint32_t cursor; // current position in file
-	uint8_t pid; //who has this open
-	uint8_t open; //is file open
-	//FAT32 specific entries
-	uint32_t clusterAddr;
-	uint8_t fileName[11];
-	uint32_t fileSize;
-};
-
-// Abstraction: Major IDs
-
-enum device_type
-{
-	FAT32 = 1,
-	PUSHBUTTON = 2,
-	LED = 3
 };
 
 // Abstraction: Minor IDs

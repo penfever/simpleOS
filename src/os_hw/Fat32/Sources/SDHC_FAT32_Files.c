@@ -34,6 +34,7 @@
 struct myfat_mount *MOUNT;
 struct sdhc_card_status card_status;
 struct dir_entry_8_3 *latest; //records most recent dir_entry of successful search
+struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
     if(MOUNT == 0){
@@ -248,9 +249,9 @@ int dir_ls_next(void *statep, char *filename){
  */
 int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
     uint8_t data[512];
-    if (temp->pid != getCurrentPid()){ //case: PIDs do not match
-        return E_FREE_PERM;
-    }
+    //if (temp->pid != getCurrentPid()){ //case: PIDs do not match
+    //    return E_FREE_PERM;
+    //}
     if (0 == MOUNT){
         	return 0; //TODO: error checking
         }
@@ -329,35 +330,31 @@ int file_open(char *filename, file_descriptor *descrp){
 			__BKPT();
 		}
 	int err;
-	struct stream* userptr;
-	if ((err = find_open_stream(userptr)) != 0){ //Now *descrp has an open slot
-		return err;
+	struct stream* userptr = find_open_stream();
+	if (userptr == NULL){
+		return E_UNFREE;
 	}
 	//if it is a directory, return error. TODO: figure out how to open directories
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
+	userptr->deviceType = FAT32;
+	userptr->minorId = sdhc;
 	userptr->fileName = latest->DIR_Name;
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
-	userptr->pid = getCurrentPid();
-	userptr->open = TRUE;
 	userptr->cursor = 0;
-    *descrp = (file_descriptor *)userptr;
+    descrp = (file_descriptor*)userptr;
 	return 0;
 }
 
-int get_file_data(uint8_t read_buffer[512]){
-    struct dir_entry_8_3 *dir_entry;
-}
-
-int find_open_stream(struct stream *fileptr){
+struct stream* find_open_stream(){
 	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
-		if (currentPCB->openFiles[i] == 0){
-			fileptr = currentPCB->openFiles[i]; //fileptr now points to the allocated Stream
-			return 0;
+		if (currentPCB->openFiles[i].deviceType == UNUSED){
+			struct stream *fileptr = &(currentPCB->openFiles[i]); //fileptr now points to the allocated Stream
+			return fileptr;
 		}
 	}
-	return E_UNFREE;
+	return NULL;
 }
 
 /**
