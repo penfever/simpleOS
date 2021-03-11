@@ -343,7 +343,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
 	userptr->cursor = 0;
-    descrp = (file_descriptor*)userptr;
+    *descrp = userptr;
 	return 0;
 }
 
@@ -364,8 +364,18 @@ struct stream* find_open_stream(){
  * and indicates that the descriptor is closed
  */
 int file_close(file_descriptor descr){
-    return 0;
-    //walk currentPCB and null out descr. If there's no match, return error -- that isn't your file
+    //TODO: If there's no match, return error -- that isn't your file
+	struct stream* userptr = (struct stream*)descr;
+	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+		if (userptr == &(currentPCB->openFiles[i])){
+			//TODO: write buffer?
+			userptr->deviceType = UNUSED;
+			return 0;
+			//match found, release the file
+		}
+	}
+	return E_FREE;
+    //walk currentPCB and null out descr. 
 }
 
 /**

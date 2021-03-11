@@ -20,6 +20,7 @@ int main(void){
     file_descriptor* fileptr;
     file_open(filename, fileptr);
     printf("%p \n", *fileptr);
+    file_close(*fileptr);
     file_structure_umount();
     return 0;
 }

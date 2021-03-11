@@ -58,4 +58,4 @@ enum pushbutton
 	sw2 = 2
 };
 
-#endif DEVICES_H_
+#endif
