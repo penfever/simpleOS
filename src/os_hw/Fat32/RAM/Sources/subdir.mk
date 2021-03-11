@@ -12,6 +12,8 @@ C_SRCS_QUOTED += \
 "../Sources/fsInfo.c" \
 "../Sources/main.c" \
 "../Sources/microSD.c" \
+"../Sources/myerror.c" \
+"../Sources/mymalloc.c" \
 "../Sources/uart.c" \
 "../Sources/uartNL.c" \
 "../Sources/util.c" \
@@ -23,6 +25,8 @@ C_SRCS += \
 ../Sources/fsInfo.c \
 ../Sources/main.c \
 ../Sources/microSD.c \
+../Sources/myerror.c \
+../Sources/mymalloc.c \
 ../Sources/uart.c \
 ../Sources/uartNL.c \
 ../Sources/util.c \
@@ -34,6 +38,8 @@ OBJS += \
 ./Sources/fsInfo.o \
 ./Sources/main.o \
 ./Sources/microSD.o \
+./Sources/myerror.o \
+./Sources/mymalloc.o \
 ./Sources/uart.o \
 ./Sources/uartNL.o \
 ./Sources/util.o \
@@ -45,6 +51,8 @@ C_DEPS += \
 ./Sources/fsInfo.d \
 ./Sources/main.d \
 ./Sources/microSD.d \
+./Sources/myerror.d \
+./Sources/mymalloc.d \
 ./Sources/uart.d \
 ./Sources/uartNL.d \
 ./Sources/util.d \
@@ -56,6 +64,8 @@ OBJS_QUOTED += \
 "./Sources/fsInfo.o" \
 "./Sources/main.o" \
 "./Sources/microSD.o" \
+"./Sources/myerror.o" \
+"./Sources/mymalloc.o" \
 "./Sources/uart.o" \
 "./Sources/uartNL.o" \
 "./Sources/util.o" \
@@ -67,6 +77,8 @@ C_DEPS_QUOTED += \
 "./Sources/fsInfo.d" \
 "./Sources/main.d" \
 "./Sources/microSD.d" \
+"./Sources/myerror.d" \
+"./Sources/mymalloc.d" \
 "./Sources/uart.d" \
 "./Sources/uartNL.d" \
 "./Sources/util.d" \
@@ -78,6 +90,8 @@ OBJS_OS_FORMAT += \
 ./Sources/fsInfo.o \
 ./Sources/main.o \
 ./Sources/microSD.o \
+./Sources/myerror.o \
+./Sources/mymalloc.o \
 ./Sources/uart.o \
 ./Sources/uartNL.o \
 ./Sources/util.o \
@@ -132,9 +146,25 @@ Sources/microSD.o: ../Sources/microSD.c
 	@echo 'Finished building: $<'
 	@echo ' '
 
-Sources/uart.o: ../Sources/uart.c
+Sources/myerror.o: ../Sources/myerror.c
 	@echo 'Building file: $<'
 	@echo 'Executing target #7 $<'
+	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
+	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/myerror.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/myerror.o"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+Sources/mymalloc.o: ../Sources/mymalloc.c
+	@echo 'Building file: $<'
+	@echo 'Executing target #8 $<'
+	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
+	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/mymalloc.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/mymalloc.o"
+	@echo 'Finished building: $<'
+	@echo ' '
+
+Sources/uart.o: ../Sources/uart.c
+	@echo 'Building file: $<'
+	@echo 'Executing target #9 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/uart.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/uart.o"
 	@echo 'Finished building: $<'
@@ -142,7 +172,7 @@ Sources/uart.o: ../Sources/uart.c
 
 Sources/uartNL.o: ../Sources/uartNL.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #8 $<'
+	@echo 'Executing target #10 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/uartNL.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/uartNL.o"
 	@echo 'Finished building: $<'
@@ -150,7 +180,7 @@ Sources/uartNL.o: ../Sources/uartNL.c
 
 Sources/util.o: ../Sources/util.c
 	@echo 'Building file: $<'
-	@echo 'Executing target #9 $<'
+	@echo 'Executing target #11 $<'
 	@echo 'Invoking: ARM Ltd Windows GCC C Compiler'
 	"$(ARMSourceryDirEnv)/arm-none-eabi-gcc" "$<" @"Sources/util.args" -MMD -MP -MF"$(@:%.o=%.d)" -o"Sources/util.o"
 	@echo 'Finished building: $<'

@@ -11,6 +11,9 @@
 #include "breakpoint.h"
 #include "bootSector.h"
 #include "directory for students.h"
+#include "mymalloc.h"
+#include "myerror.h"
+#include "devices.h"
 
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
@@ -29,6 +32,8 @@
  * Returns an error code if the file structure is already mounted
  */
 struct myfat_mount *MOUNT;
+struct sdhc_card_status card_status;
+struct dir_entry_8_3 *latest; //records most recent dir_entry of successful search
 
 int file_structure_mount(void){ //TODO: integrate with myerror
     if(MOUNT == 0){
@@ -65,6 +70,7 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  */
 int file_structure_umount(void){
 	//TODO: check if buffer is clean, if dirty, call putbuf or write?
+	//if any files aren't closed, close them
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
@@ -109,7 +115,6 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 
 int dir_ls(int full){
     uint8_t data[512];
-    struct sdhc_card_status card_status;
     //check if file system is mounted
     if (0 == MOUNT){
     	return 0; //TODO: error checking
@@ -125,12 +130,12 @@ int dir_ls(int full){
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
+    //TODO: verify this is a directory, return error otherwise
     int err = read_all(data, logicalSector, NULL);
     return err;
 }
 
 int read_all(uint8_t data[512], int logicalSector, char* search){
-    struct sdhc_card_status card_status;
 	int finished = 1;
 	int numSector = 0;
 	finished = dir_read_sector_search(data, logicalSector, search);
@@ -182,8 +187,10 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    	}    
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 			printf("%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[0]);
+			//TODO: if FULL is true, print attr
 			printf("Attributes: ");
 			dir_entry_print_attributes(dir_entry);
+			
 			printf("\n");
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 			printf(" First Cluster: %lu\n", firstCluster);
@@ -192,6 +199,7 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
+	    		latest = dir_entry;
 	    		return (int)clusterAddr;//TODO: risk of truncation?
 	    	}
 			printf(" Size: %lu\n", dir_entry->DIR_FileSize);
@@ -205,6 +213,12 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
  * Returns in *statepp a pointer to a malloc'ed struct that contains necessary
  * state for the iterator
  * Optional with dir_ls_next
+ * The idea of this is that when you're trying to do an LS of the directory
+ * This mallocs storage for a struct including everything that this dir_ls_next needs to iterate
+ * through the directory entry by entry.
+ * It initializes the memory and puts a bunch of stuff there that says, I haven't read any entries yet.
+ * The first time you call dir_ls_next, it will return the next file in the directory.
+ * 
  */
 int dir_ls_init(void **statepp){
     ;
@@ -218,6 +232,9 @@ int dir_ls_init(void **statepp){
  * Returns NULL for filename if at end of the directory; If returning NULL,
  * the malloc'ed struct pointed to by statep is free'd
  * Optional with dir_ls_init
+ * This gives you each entry, but as a filename only. But this could be expanded
+ * so that it gives you a pointer to a struct that contained all the info from that
+ * entry.
  */
 int dir_ls_next(void *statep, char *filename){
     ;
@@ -231,7 +248,9 @@ int dir_ls_next(void *statep, char *filename){
  */
 int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
     uint8_t data[512];
-    struct sdhc_card_status card_status;
+    if (temp->pid != getCurrentPid()){ //case: PIDs do not match
+        return E_FREE_PERM;
+    }
     if (0 == MOUNT){
         	return 0; //TODO: error checking
         }
@@ -252,6 +271,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
  * Implementing this function is optional
  */
 int dir_set_cwd_to_filename(char *filename){
+	//calls find_file
     ;
 }
 
@@ -300,9 +320,44 @@ int dir_delete_dir(char *filename){
  * for that file into *descrp
  * Returns an error code if filename is not in the cwd
  * Returns an error code if the filename is not a regular file
+ * This should only be receiving FAT32 files and directories
  */
 int file_open(char *filename, file_descriptor *descrp){
-    ;
+	uint32_t fileCluster = dir_find_file(filename, MOUNT->cwd_cluster);
+		if (fileCluster <= 2){
+			//TODO: error handling
+			__BKPT();
+		}
+	int err;
+	struct stream* userptr;
+	if ((err = find_open_stream(userptr)) != 0){ //Now *descrp has an open slot
+		return err;
+	}
+	//if it is a directory, return error. TODO: figure out how to open directories
+    //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
+	//populate struct in PCB with file data
+	userptr->fileName = latest->DIR_Name;
+	userptr->clusterAddr = fileCluster;
+	userptr->fileSize =latest->DIR_FileSize;
+	userptr->pid = getCurrentPid();
+	userptr->open = TRUE;
+	userptr->cursor = 0;
+    *descrp = (file_descriptor *)userptr;
+	return 0;
+}
+
+int get_file_data(uint8_t read_buffer[512]){
+    struct dir_entry_8_3 *dir_entry;
+}
+
+int find_open_stream(struct stream *fileptr){
+	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+		if (currentPCB->openFiles[i] == 0){
+			fileptr = currentPCB->openFiles[i]; //fileptr now points to the allocated Stream
+			return 0;
+		}
+	}
+	return E_UNFREE;
 }
 
 /**
@@ -312,7 +367,8 @@ int file_open(char *filename, file_descriptor *descrp){
  * and indicates that the descriptor is closed
  */
 int file_close(file_descriptor descr){
-    ;
+    return 0;
+    //walk currentPCB and null out descr. If there's no match, return error -- that isn't your file
 }
 
 /**
@@ -325,7 +381,8 @@ int file_close(file_descriptor descr){
  * file (EOF, this is, End Of File)
  */
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
-    ;
+	//copy from stream buffer into char buffer
+    return 0;
 }
 
 /**
@@ -337,5 +394,5 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
-    ;
+    return 0;
 }

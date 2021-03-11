@@ -43,7 +43,9 @@ Sources/SDHC_FAT32_Files.o: ../Sources/SDHC_FAT32_Files.c \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDCardReader.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/breakpoint.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/bootSector.h \
- C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/directory\ for\ students.h
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/directory\ for\ students.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/mymalloc.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/myerror.h
 
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/lib_ewl.prefix:
 
@@ -134,3 +136,7 @@ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Heade
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/bootSector.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/directory\ for\ students.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/mymalloc.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/myerror.h:

@@ -4,6 +4,8 @@
 "./Sources/util.o"
 "./Sources/uartNL.o"
 "./Sources/uart.o"
+"./Sources/mymalloc.o"
+"./Sources/myerror.o"
 "./Sources/microSD.o"
 "./Sources/main.o"
 "./Sources/fsInfo.o"
