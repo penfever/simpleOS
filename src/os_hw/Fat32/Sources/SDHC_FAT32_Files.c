@@ -388,8 +388,63 @@ int file_close(file_descriptor descr){
  * file (EOF, this is, End Of File)
  */
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
-	//copy from stream buffer into char buffer
+    //TODO: If there's no match, return error -- that isn't your file
+	if (buflen <= 0){
+		return E_NOINPUT;
+	}
+	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
+	int i = 0;
+    uint8_t data[bytes_per_sector];
+    int numCluster = userptr->clusterAddr;
+    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    numSector = curr_sector_from_offset();
+    while (numSector > sectors_per_cluster){
+    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+    	numSector -= bytes_per_sector;
+    }
+    logicalSector += numSector;
+	*charsreadp = i;
+	//TODO: fix reads of < 512 chars
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+    	__BKPT();
+    }
+    uint32_t remSize = userptr->fileSize - userptr->cursor;
+	if (buflen > remSize){
+		buflen = remSize;
+	}
+	while (i < buflen){
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+	    	__BKPT();
+	    }
+		if (buflen - i < bytes_per_sector){ 
+			//sscanf a smaller amount somehow
+			break;
+		}
+		else{
+			sscanf(data, "%s", bufp);
+		}
+		userptr->cursor += bytes_per_sector;
+		logicalSector ++;
+		numSector ++;
+	    if (numSector > sectors_per_cluster){
+	    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+	    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+        	numSector = 0;
+	    }
+	}
+	i = buflen;
     return 0;
+}
+
+int curr_sector_from_offset(struct stream* userptr){
+	int numSector = 0;
+	int cursor = userptr->cursor;
+	while (cursor > bytes_per_sector){
+		numSector ++;
+		cursor -= bytes_per_sector;
+	}
+	return numSector;
 }
 
 /**
