@@ -311,7 +311,10 @@ int dir_create_file(char *filename){
 	int len = strlen(filename);
 	uint32_t myCluster = 0;
 	uint32_t* myClusterPtr = &myCluster;
-	if (len > 11 || len < 4 || dir_find_file(filename, myClusterPtr) > 0 || (dir_create_dir_entry(filename, len) != 0)){
+	//if (dir_find_file(filename, myClusterPtr) > 0){ TODO: re-implement this error check (skipped for speed)
+	//	return E_NOINPUT;
+	//}
+	if (len > 11 || len < 4 || (dir_create_dir_entry(filename, len) != 0)){
 		return E_NOINPUT;
 	}
     return 0;
@@ -320,6 +323,9 @@ int dir_create_file(char *filename){
 int dir_create_dir_entry(char* filename, int len){
 	if (unused != NULL){ //if we already know where an unused dir_entry is, use that
 		dir_set_attr_newfile(unused, filename, len);
+		if (MYFAT_DEBUG){
+			printf("File created at %p \n", unused);
+		}
 		unused = NULL;
 		return 0;
 	}
@@ -340,6 +346,9 @@ int dir_create_dir_entry(char* filename, int len){
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
 		dir_set_attr_newfile(unused, filename, len);
+		if (MYFAT_DEBUG){
+			printf("File created at %p \n", unused);
+		}
 		unused = NULL;
 		return 0;
 	}
