@@ -5,6 +5,7 @@
 #include "directory for students.h"
 
 #define MYFAT_DEBUG 1
+#define FOUND_AND_RETURNING 2
 
 struct myfat_mount{
    uint32_t rca;
@@ -167,7 +168,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp);
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen);
 
-int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search);
+int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, uint32_t currCluster);
 
 int read_all(uint8_t data[512], int logicalSector, char* search);
 
@@ -179,8 +180,12 @@ int curr_sector_from_offset(struct stream* userptr);
 
 uint32_t find_free_cluster();
 
+int dir_create_dir_entry(char* filename, int len);
+
+int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logicalSector, uint32_t currCluster);
+
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
 
-int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len, uint32_t newFile);
+int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

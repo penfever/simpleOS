@@ -36,6 +36,7 @@ struct sdhc_card_status card_status;
 struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry of successful search
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cwd = NULL;
+int g_unusedSeek = FALSE;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -147,7 +148,11 @@ int dir_ls(int full){
 int read_all(uint8_t data[512], int logicalSector, char* search){
 	int finished = 1;
 	int numSector = 0;
-	finished = dir_read_sector_search(data, logicalSector, search);
+	uint32_t currCluster = MOUNT->cwd_cluster;
+	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
+	if (g_unusedSeek == FOUND_AND_RETURNING){
+		return 0;
+	}
 	    while (finished == 1){
 	        if (numSector < sectors_per_cluster){
 	        	numSector ++;
@@ -157,17 +162,16 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 	            }
 	        }
 	        else{
-		    	uint32_t nextAddr = read_FAT_entry(MOUNT->rca, MOUNT->cwd_cluster); //returns a FAT entry
-		    	logicalSector = first_sector_of_cluster(nextAddr); //takes a cluster as an argument
-		    	//update dir_entry?
+		    	currCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
+		    	logicalSector = first_sector_of_cluster(currCluster); //takes a cluster as an argument
 	        	numSector = 0;
 	        }
-	    	finished = dir_read_sector_search(data, logicalSector, search);
+	    	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
 	    }
 	    return finished;
 }
 
-int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){//make attr printing optional
+int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
 		int i;
 	    struct dir_entry_8_3 *dir_entry;
 	    int numSector = 0;
@@ -175,6 +179,14 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
 	    		//we've reached the end of the directory
+	    		if (g_unusedSeek == TRUE){
+	    			int err = dir_extend_dir(dir_entry, i, logicalSector, currCluster);//TODO: implement directory extending function
+	    			if (err != 0){
+	    				__BKPT();//TODO: error check
+	    			}
+	    			g_unusedSeek = FOUND_AND_RETURNING;
+	    			return 0;
+	    		}
 	    		if(MYFAT_DEBUG){
 	    			printf("Reached end of directory at sector %d, entry %d \n", logicalSector, i);
 	    		}
@@ -183,6 +195,10 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 	    		//this directory is unused
 	    		unused = dir_entry;
+	    		if (g_unusedSeek == TRUE){
+	    			g_unusedSeek = FOUND_AND_RETURNING;
+	    			return 0;
+	    		}
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d is unused\n", logicalSector, i);
 	    		}
@@ -204,7 +220,7 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 			printf(" First Cluster: %lu\n", firstCluster);
 	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
-	    	if(strncmp(dir_entry->DIR_Name, search, 8)==0){ //TODO: this may have trouble matching because of file extensions
+	    	if(strncmp(dir_entry->DIR_Name, search, 8) == 0){ //TODO: this may have trouble matching because of file extensions
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
@@ -262,14 +278,14 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
     //    return E_FREE_PERM;
     //}
     if (0 == MOUNT){
-        	return 0; //TODO: error checking
+        	return E_NOINPUT; //TODO: error checking
         }
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
-    uint32_t err = read_all(data, logicalSector, filename);
+    uint32_t err = read_all(data, logicalSector, filename); //TODO: fix pointer situation
     return err;
 }
 
@@ -293,37 +309,44 @@ int dir_set_cwd_to_filename(char *filename){
  */
 int dir_create_file(char *filename){
 	int len = strlen(filename);
-	if (len > 11 || len < 4){
+	uint32_t myCluster = 0;
+	uint32_t* myClusterPtr = &myCluster;
+	if (len > 11 || len < 4 || dir_find_file(filename, myClusterPtr) > 0 || (dir_create_dir_entry(filename, len) != 0)){
 		return E_NOINPUT;
 	}
-	uint32_t emptyCluster;
-    dir_create_dir_entry(filename, len, emptyCluster);
     return 0;
 }
 
-int dir_create_dir_entry(char* filename, int len, uint32_t newFile){
-	if (unused != NULL){
-		dir_set_attr_newfile(unused, filename, len, newFile);
+int dir_create_dir_entry(char* filename, int len){
+	if (unused != NULL){ //if we already know where an unused dir_entry is, use that
+		dir_set_attr_newfile(unused, filename, len);
+		unused = NULL;
 		return 0;
 	}
-    uint8_t data[512];
-    //check if file system is mounted
-    if (0 == MOUNT){
-    	return 0; //TODO: error checking
+	g_unusedSeek = TRUE;
+    if (0 == MOUNT){     //check if file system is mounted
+    	return E_NOINPUT;
     }
+    uint8_t data[512];     //scan directory for free entry
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
-    int err = read_all(data, logicalSector, NULL); //Unless there's a dir_entry for last used sector ...
+    //int err = read_all(data, logicalSector, NULL);
+    //if (err != 0){
+    //	__BKPT(); //TODO: error check
+    //}
+    read_all(data, logicalSector, NULL);
+	g_unusedSeek = FALSE;
 	if (unused != NULL){
-		dir_set_attr_newfile(unused, filename, len, newFile);
+		dir_set_attr_newfile(unused, filename, len);
+		unused = NULL;
 		return 0;
 	}
+	return E_NOINPUT; //free spot could not be created and was not found
 }
 
-int dir_extend_dir(){
+int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logicalSector, uint32_t currCluster){
 	//Findeitheranunuseddirectoryentry (designated by DIR_ENTRY_UNUSED) 
 	//or, if no unused entry is found, extend the directory by adding an entry to the end
 	//•Extendingadirectorymaybeassimpleasusingtheentry tagged as DIR_ENTRY_LAST_AND_UNUSED 
@@ -338,23 +361,22 @@ int dir_extend_dir(){
 	return 0;
 }
 
-int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len, uint32_t newFile){
+int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len){
 	int i = 0;
-	for (; i < len-4; i++){ //zero or one indexing?
+	for (; i < len-3; i++){ //zero or one indexing?
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
-	unused->DIR_Name[9] = (uint8_t)filename[len-3];
-	unused->DIR_Name[10] = (uint8_t)filename[len-2];
-	unused->DIR_Name[11] = (uint8_t)filename[len-1];
-	char sp = " ";
-	for (; i < 8; i++){
+	char sp = ' ';
+	for (; i < 8; i++){ //space padding
 		unused->DIR_Name[i] = (uint8_t)sp;
 	}
-	unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
+	unused->DIR_Name[8] = (uint8_t)filename[len-3]; //extension
+	unused->DIR_Name[9] = (uint8_t)filename[len-2];
+	unused->DIR_Name[10] = (uint8_t)filename[len-1];
+	//unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
 	//unused->DIR_CrtTime;			/* Offset 14 */
 	//unused->DIR_CrtDate;			/* Offset 16 */
-	unused->DIR_FileSize = 0; //TODO: is filesize 0 correct?
-	unused = NULL;
+	unused->DIR_FileSize = 0;
 }
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
@@ -428,7 +450,6 @@ int file_open(char *filename, file_descriptor *descrp){
 			//TODO: error handling
 			__BKPT();
 		}
-	int err;
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		return E_UNFREE;
@@ -527,7 +548,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 				char c = data[j];
 				sscanf(c, "%s", bufp);
 			}
-			char c = '/0';
+			char c = '\0';
 			sscanf(c, "%s", bufp); //TODO: do IO buffers have to be exactly the same size for sscanf to work?
 			userptr->cursor += i;
 			*charsreadp = i;
@@ -572,8 +593,8 @@ int curr_sector_from_offset(struct stream* userptr){
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     uint8_t data[512];
-    int logicalSector;
-    int* lsptr;
+    int logicalSector = 0;
+    int* lsptr = &logicalSector;
     int err = dir_get_cwd(lsptr, data);
 	if (buflen <= 0 || err != 0){
 		return E_NOINPUT;
