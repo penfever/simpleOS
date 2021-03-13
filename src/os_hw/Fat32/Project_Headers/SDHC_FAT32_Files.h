@@ -2,6 +2,7 @@
 #define _SDHC_FAT32_FILES_H_
 
 #include <stdint.h>
+#include "directory for students.h"
 
 #define MYFAT_DEBUG 1
 
@@ -177,5 +178,9 @@ struct stream* find_curr_stream(struct stream* fileptr);
 int curr_sector_from_offset(struct stream* userptr);
 
 uint32_t find_free_cluster();
+
+int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
+
+int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len, uint32_t newFile);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

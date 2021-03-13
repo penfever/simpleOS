@@ -20,6 +20,13 @@ int main(void){
     file_descriptor* fileptr;
     file_open(filename, fileptr);
     printf("%p \n", *fileptr);
+    char bufp[512];
+    int read = 0;
+    int* charsreadp = &read;
+    error = file_getbuf(*fileptr, *bufp, 512, charsreadp);
+    bufp[512] = '\0';
+    //printf("%s \n", bufp); //TODO: fix this so it prints?
+    printf("%d \n", read);
     file_close(*fileptr);
     file_structure_umount();
     return 0;

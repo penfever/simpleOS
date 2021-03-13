@@ -35,7 +35,7 @@ struct myfat_mount *MOUNT;
 struct sdhc_card_status card_status;
 struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry of successful search
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
-struct dir_entry_8_3 *lastUnused = NULL;
+struct dir_entry_8_3 *cwd = NULL;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -116,25 +116,31 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	}
 }
 
-int dir_ls(int full){
-    uint8_t data[512];
-    //check if file system is mounted
-    if (0 == MOUNT){
-    	return 0; //TODO: error checking
-    }
-    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+int dir_get_cwd(int* logicalSector, uint8_t data[512]){
+    logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     if(MYFAT_DEBUG){
     	printf("First sector of cluster: %d\n", logicalSector);
     }
-    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
-    if(MYFAT_DEBUG){
-    	printf("Number of entries per sector: %d\n", numDirEntries);
-    }
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-    	__BKPT();
+    	return E_NOINPUT; //TODO: create new error message
+    }
+    return 0;
+}
+
+int dir_ls(int full){
+    uint8_t data[512];
+    int logicalSector;
+    int* lsptr = &logicalSector;
+    //check if file system is mounted
+    if (0 == MOUNT){
+    	return E_NOINPUT; //TODO: create new error message
+    }
+    int err = dir_get_cwd(lsptr, data);
+    if (err != 0){
+    	return err;
     }
     //TODO: verify this is a directory, return error otherwise
-    int err = read_all(data, logicalSector, NULL);
+    err = read_all(data, lsptr, NULL);
     return err;
 }
 
@@ -169,7 +175,6 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
 	    		//we've reached the end of the directory
-	    		lastUnused = dir_entry;
 	    		if(MYFAT_DEBUG){
 	    			printf("Reached end of directory at sector %d, entry %d \n", logicalSector, i);
 	    		}
@@ -195,10 +200,10 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 			//TODO: if FULL is true, print attr
 			printf("Attributes: ");
 			dir_entry_print_attributes(dir_entry);
-			
 			printf("\n");
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 			printf(" First Cluster: %lu\n", firstCluster);
+	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
 	    	if(strncmp(dir_entry->DIR_Name, search, 8)==0){ //TODO: this may have trouble matching because of file extensions
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 	    		if(MYFAT_DEBUG){
@@ -313,7 +318,7 @@ int dir_create_dir_entry(char* filename, int len, uint32_t newFile){
     }
     int err = read_all(data, logicalSector, NULL); //Unless there's a dir_entry for last used sector ...
 	if (unused != NULL){
-		dir_set_attr_newfile(unused, filename, newFile);
+		dir_set_attr_newfile(unused, filename, len, newFile);
 		return 0;
 	}
 }
@@ -354,7 +359,6 @@ int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len, 
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
 	//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
-		
 	unused->DIR_FstClusHI = (newFile & 0xFF00)/1000000000000000;  //TODO: error check this math. mask the 16 low order bits of newFile;
 	unused->DIR_FstClusLO = (newFile & 0xFF);  //mask the 16 high order bits of newFile;
 	//unused->DIR_WrtDate;
@@ -497,20 +501,19 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		return E_NOINPUT;
 	}
 	int i = 0;
-    uint8_t data[bytes_per_sector];
-    int numCluster = userptr->clusterAddr;
-    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    uint32_t numSector = curr_sector_from_offset();
-    while (numSector > sectors_per_cluster){
+    uint8_t data[512];
+    uint32_t numCluster = userptr->clusterAddr;
+    int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
+    uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
+    while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
     	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
     	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector -= bytes_per_sector;
+    	numSector -= sectors_per_cluster;
     }
     logicalSector += numSector;
-	*charsreadp = i;
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-    	__BKPT();
-    }
+    // if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+    	//__BKPT(); TODO: Breakpoint triggers before function?
+    //}
     uint32_t remSize = userptr->fileSize - userptr->cursor;
 	if (buflen > remSize){
 		buflen = remSize;
@@ -525,14 +528,15 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 				sscanf(c, "%s", bufp);
 			}
 			char c = '/0';
-			sscanf(c, "%s", bufp);
-			i = buflen;
+			sscanf(c, "%s", bufp); //TODO: do IO buffers have to be exactly the same size for sscanf to work?
+			userptr->cursor += i;
+			*charsreadp = i;
 		    return 0;
 		}
 		else{
 			sscanf(data, "%s", bufp);
 		}
-		userptr->cursor += bytes_per_sector;
+		i += bytes_per_sector;
 		logicalSector ++;
 		numSector ++;
 	    if (numSector > sectors_per_cluster){
@@ -541,9 +545,10 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
         	numSector = 0;
 	    }
 	}
-	char c = '/0';
-	sscanf(c, "%s", bufp);
-	i = buflen;
+	//char c = '/0'; //TODO: do IO buffers have to be exactly the same size for sscanf to work?
+	//sscanf(c, "%s", bufp);
+	userptr->cursor += i;
+	*charsreadp = i;
     return 0;
 }
 
@@ -566,9 +571,14 @@ int curr_sector_from_offset(struct stream* userptr){
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
-	if (buflen <= 0){
+    uint8_t data[512];
+    int logicalSector;
+    int* lsptr;
+    int err = dir_get_cwd(lsptr, data);
+	if (buflen <= 0 || err != 0){
 		return E_NOINPUT;
 	}
+    struct dir_entry_8_3* cwd = (struct dir_entry_8_3*)data;
 	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
 	// if it is a dir_entry AND the file it points to is filesize 0, then ...
 	uint32_t emptyCluster = find_free_cluster();
@@ -576,6 +586,9 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	return E_FREE; //TODO: check error number
     }
     write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
-    dir_set_attr_firstwrite(buflen, userptr, emptyCluster);
+    err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
+    if (err != 0){
+    	return E_NOINPUT; //file entry not found in directory?
+    }
     return 0;
 }

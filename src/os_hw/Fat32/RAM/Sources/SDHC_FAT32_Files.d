@@ -32,6 +32,7 @@ Sources/SDHC_FAT32_Files.o: ../Sources/SDHC_FAT32_Files.c \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDHC_FAT32_Files.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/directory\ for\ students.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/fsInfo.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDCardReader.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/uartNL.h \
@@ -113,6 +114,8 @@ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring:
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/SDHC_FAT32_Files.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/directory\ for\ students.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/Fat32/Project_Headers/fsInfo.h:
 
