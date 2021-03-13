@@ -33,7 +33,9 @@
  */
 struct myfat_mount *MOUNT;
 struct sdhc_card_status card_status;
-struct dir_entry_8_3 *latest; //records most recent dir_entry of successful search
+struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry of successful search
+struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
+struct dir_entry_8_3 *lastUnused = NULL;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -167,6 +169,7 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
 	    		//we've reached the end of the directory
+	    		lastUnused = dir_entry;
 	    		if(MYFAT_DEBUG){
 	    			printf("Reached end of directory at sector %d, entry %d \n", logicalSector, i);
 	    		}
@@ -174,6 +177,7 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search){/
 	    	}
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 	    		//this directory is unused
+	    		unused = dir_entry;
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d is unused\n", logicalSector, i);
 	    		}
@@ -283,7 +287,87 @@ int dir_set_cwd_to_filename(char *filename){
  * Returns an error code if there is no more space to create the regular file
  */
 int dir_create_file(char *filename){
-    ;
+	if (strlen(filename) > 11){
+		return E_NOINPUT;
+	}
+	uint32_t emptyCluster;
+    dir_create_dir_entry(filename, emptyCluster);
+    return 0;
+}
+
+int dir_create_dir_entry(char* filename, uint32_t newFile){
+	if (unused != NULL){
+		dir_set_attr_newfile(unused, filename, newFile);
+		return 0;
+	}
+    uint8_t data[512];
+    //check if file system is mounted
+    if (0 == MOUNT){
+    	return 0; //TODO: error checking
+    }
+    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+    	__BKPT();
+    }
+    int err = read_all(data, logicalSector, NULL); //Unless there's a dir_entry for last used sector ...
+	if (unused != NULL){
+		dir_set_attr_newfile(unused, filename, newFile);
+		return 0;
+	}
+}
+
+int dir_extend_dir(){
+	//Findeitheranunuseddirectoryentry (designated by DIR_ENTRY_UNUSED) 
+	//or, if no unused entry is found, extend the directory by adding an entry to the end
+	//•Extendingadirectorymaybeassimpleasusingtheentry tagged as DIR_ENTRY_LAST_AND_UNUSED 
+	//for the new entry and tagging the next entry as DIR_ENTRY_LAST_AND_UNUSED
+	//•But,if DIR_ENTRY_LAST_AND_UNUSED tags the last entry in a sector,thenextending 
+	//thedirectorymayrequire writing DIR_ENTRY_LAST_AND_UNUSED into the first directory entry in the next sector
+	//•However, if there are no more sectors in the current cluster, then the FAT needs to be searched to find a 
+	//free cluster and the FAT has to be updated to indicate that the formerly free cluster 
+	//willbelinkedafterthelastclusterinthedirectory•Then, the first directory entry in the first sector of the 
+	//newly allocated cluster would need to be tagged as DIR_ENTRY_LAST_AND_UNUSED
+	;
+	return 0;
+}
+
+int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, uint32_t newFile){
+	for (int i = 0; i < 11; i++){
+		unused->DIR_Name[i] = (uint8_t)filename[i];
+	}
+	unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
+	//unused->DIR_CrtTime;			/* Offset 14 */
+	//unused->DIR_CrtDate;			/* Offset 16 */
+	unused->DIR_FileSize = 0; //TODO: is filesize 0 correct?
+	unused = NULL;
+}
+
+int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
+	//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
+		
+	unused->DIR_FstClusHI = (newFile & 0xFF00)/1000000000000000;  //TODO: error check this math. mask the 16 low order bits of newFile;
+	unused->DIR_FstClusLO = (newFile & 0xFF);  //mask the 16 high order bits of newFile;
+	//unused->DIR_WrtDate;
+	//unused->DIR_WrtTime;
+	unused->DIR_FileSize = writeSize;
+}
+
+uint32_t find_free_cluster(){
+	uint32_t numCluster = 2;
+	uint32_t returnCluster = 0;
+	if (FSI_Nxt_Free != FSI_NXT_FREE_UNKNOWN){
+		numCluster = FSI_Nxt_Free;
+	}
+	while (numCluster < total_data_clusters+1 && returnCluster != FAT_ENTRY_FREE){
+    	 returnCluster = read_FAT_entry(MOUNT->rca, numCluster);
+    	 numCluster ++;
+	}
+	if (numCluster >= total_data_clusters+1){
+		return 0; //free cluster not found
+	}
+	FSI_Nxt_Free = numCluster; //Will this work?
+	return returnCluster;
 }
 
 /**
@@ -293,7 +377,9 @@ int dir_create_file(char *filename){
  * Returns an error code if the file with this name is a directory
  */
 int dir_delete_file(char *filename){
-    ;
+    //find file
+	//if it's 0, return an error
+	//otherwise, change file entry to UNUSED
 }
 
 /**
@@ -397,7 +483,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     uint8_t data[bytes_per_sector];
     int numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    numSector = curr_sector_from_offset();
+    uint32_t numSector = curr_sector_from_offset();
     while (numSector > sectors_per_cluster){
     	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
     	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
@@ -405,7 +491,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     }
     logicalSector += numSector;
 	*charsreadp = i;
-	//TODO: fix reads of < 512 chars
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
@@ -417,9 +502,15 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
 	    	__BKPT();
 	    }
-		if (buflen - i < bytes_per_sector){ 
-			//sscanf a smaller amount somehow
-			break;
+		if (buflen - i < bytes_per_sector){
+			for (int j = 0; j < buflen - i; j++){
+				char c = data[j];
+				sscanf(c, "%s", bufp);
+			}
+			char c = '/0';
+			sscanf(c, "%s", bufp);
+			i = buflen;
+		    return 0;
 		}
 		else{
 			sscanf(data, "%s", bufp);
@@ -433,6 +524,8 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
         	numSector = 0;
 	    }
 	}
+	char c = '/0';
+	sscanf(c, "%s", bufp);
 	i = buflen;
     return 0;
 }
@@ -456,5 +549,16 @@ int curr_sector_from_offset(struct stream* userptr){
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
+	if (buflen <= 0){
+		return E_NOINPUT;
+	}
+	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
+	// if it is a dir_entry AND the file it points to is filesize 0, then ...
+	uint32_t emptyCluster = find_free_cluster();
+    if (emptyCluster == 0){
+    	return E_FREE; //TODO: check error number
+    }
+    write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+    dir_set_attr_firstwrite(buflen, userptr, emptyCluster);
     return 0;
 }
