@@ -443,6 +443,15 @@ struct stream* find_open_stream(){
 	return NULL;
 }
 
+struct stream* find_curr_stream(struct stream* fileptr){
+	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+		if (&(currentPCB->openFiles[i]) == fileptr){
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
 /**
  * Close the file associated with descr and disassociate descr from that file
  * Returns an error code if the file descriptor is not open
@@ -450,18 +459,18 @@ struct stream* find_open_stream(){
  * and indicates that the descriptor is closed
  */
 int file_close(file_descriptor descr){
-    //TODO: If there's no match, return error -- that isn't your file
 	struct stream* userptr = (struct stream*)descr;
-	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
-		if (userptr == &(currentPCB->openFiles[i])){
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
+	}
+	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+		if (userptr == &(currentPCB->openFiles[i])){ //match found, release the file
 			//TODO: write buffer?
 			userptr->deviceType = UNUSED;
 			return 0;
-			//match found, release the file
 		}
 	}
 	return E_FREE;
-    //walk currentPCB and null out descr. 
 }
 
 /**
@@ -474,11 +483,10 @@ int file_close(file_descriptor descr){
  * file (EOF, this is, End Of File)
  */
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
-    //TODO: If there's no match, return error -- that isn't your file
-	if (buflen <= 0){
+	struct stream* userptr = (struct stream*)descr;
+	if (find_curr_stream(userptr) == FALSE || buflen <= 0){
 		return E_NOINPUT;
 	}
-	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
 	int i = 0;
     uint8_t data[bytes_per_sector];
     int numCluster = userptr->clusterAddr;
