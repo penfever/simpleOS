@@ -287,17 +287,18 @@ int dir_set_cwd_to_filename(char *filename){
  * Returns an error code if there is no more space to create the regular file
  */
 int dir_create_file(char *filename){
-	if (strlen(filename) > 11){
+	int len = strlen(filename);
+	if (len > 11 || len < 4){
 		return E_NOINPUT;
 	}
 	uint32_t emptyCluster;
-    dir_create_dir_entry(filename, emptyCluster);
+    dir_create_dir_entry(filename, len, emptyCluster);
     return 0;
 }
 
-int dir_create_dir_entry(char* filename, uint32_t newFile){
+int dir_create_dir_entry(char* filename, int len, uint32_t newFile){
 	if (unused != NULL){
-		dir_set_attr_newfile(unused, filename, newFile);
+		dir_set_attr_newfile(unused, filename, len, newFile);
 		return 0;
 	}
     uint8_t data[512];
@@ -332,9 +333,17 @@ int dir_extend_dir(){
 	return 0;
 }
 
-int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, uint32_t newFile){
-	for (int i = 0; i < 11; i++){
+int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len, uint32_t newFile){
+	int i = 0;
+	for (; i < len-4; i++){ //zero or one indexing?
 		unused->DIR_Name[i] = (uint8_t)filename[i];
+	}
+	unused->DIR_Name[9] = (uint8_t)filename[len-3];
+	unused->DIR_Name[10] = (uint8_t)filename[len-2];
+	unused->DIR_Name[11] = (uint8_t)filename[len-1];
+	char sp = " ";
+	for (; i < 8; i++){
+		unused->DIR_Name[i] = (uint8_t)sp;
 	}
 	unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
 	//unused->DIR_CrtTime;			/* Offset 14 */
