@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "directory for students.h"
 
-#define MYFAT_DEBUG 1
+#define MYFAT_DEBUG 0
 #define FOUND_AND_RETURNING 2
 
 struct myfat_mount{

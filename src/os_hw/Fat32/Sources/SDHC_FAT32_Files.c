@@ -118,11 +118,11 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 }
 
 int dir_get_cwd(int* logicalSector, uint8_t data[512]){
-    logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+	*logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     if(MYFAT_DEBUG){
-    	printf("First sector of cluster: %d\n", logicalSector);
+    	printf("First sector of cluster: %d\n", *logicalSector);
     }
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, *logicalSector, &card_status, data)){
     	return E_NOINPUT; //TODO: create new error message
     }
     return 0;
@@ -130,18 +130,18 @@ int dir_get_cwd(int* logicalSector, uint8_t data[512]){
 
 int dir_ls(int full){
     uint8_t data[512];
-    int logicalSector;
-    int* lsptr = &logicalSector;
+    int err;
     //check if file system is mounted
     if (0 == MOUNT){
     	return E_NOINPUT; //TODO: create new error message
     }
-    int err = dir_get_cwd(lsptr, data);
+    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    err = dir_get_cwd(lsptr, data);
     if (err != 0){
     	return err;
     }
     //TODO: verify this is a directory, return error otherwise
-    err = read_all(data, lsptr, NULL);
+    err = read_all(data, logicalSector, NULL);
     return err;
 }
 
@@ -272,19 +272,22 @@ int dir_ls_next(void *statep, char *filename){
  * Returns an error code if the filename is a directory
  */
 int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
-    uint8_t data[512];
     //if (temp->pid != getCurrentPid()){ //case: PIDs do not match
     //    return E_FREE_PERM;
     //}
     if (0 == MOUNT){
-        	return E_NOINPUT; //TODO: error checking
-        }
-    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-    	__BKPT();
+    	return E_NOINPUT; //TODO: create new error message
     }
-    uint32_t err = read_all(data, logicalSector, filename); //TODO: fix pointer situation
-    return err;
+    uint8_t data[512];
+    int logicalSector = 0;
+    int* lsptr = &logicalSector;
+    int err;
+    err = dir_get_cwd(lsptr, data);
+    if (err != 0){
+    	return err;
+    }
+    err = read_all(data, logicalSector, filename); //TODO: I could just have dir_ls take filename as its argument
+    return err; //TODO: is this the best way to return this information?
 }
 
 /**
@@ -332,19 +335,7 @@ int dir_create_dir_entry(char* filename, int len){
 		return 0;
 	}
 	g_unusedSeek = TRUE;
-    if (0 == MOUNT){     //check if file system is mounted
-    	return E_NOINPUT;
-    }
-    uint8_t data[512];     //scan directory for free entry
-    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-    	__BKPT();
-    }
-    //int err = read_all(data, logicalSector, NULL);
-    //if (err != 0){
-    //	__BKPT(); //TODO: error check
-    //}
-    read_all(data, logicalSector, NULL);
+	dir_ls(0);
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
 		dir_set_attr_newfile(filename, len);

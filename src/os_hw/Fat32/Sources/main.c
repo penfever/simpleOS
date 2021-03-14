@@ -14,7 +14,7 @@ int main(void){
     printf("Card mounted. \n");
     dir_set_cwd_to_root();
     //DIR_LS_TESTING
-    //dir_ls(0);
+    dir_ls(0);
     //printf("Directory listed \n");
     //FILE_OPEN_CLOSE_TESTING
     //file_descriptor* fileptr = NULL;
