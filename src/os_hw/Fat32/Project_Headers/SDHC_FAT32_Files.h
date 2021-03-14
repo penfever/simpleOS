@@ -186,6 +186,8 @@ int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logical
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
 
-int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len);
+int dir_set_attr_newfile(char* filename, int len);
+
+int filename_verify(char* filename, int len);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

@@ -174,7 +174,6 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
 		int i;
 	    struct dir_entry_8_3 *dir_entry;
-	    int numSector = 0;
 	    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
 	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
@@ -281,7 +280,6 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
         	return E_NOINPUT; //TODO: error checking
         }
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	__BKPT();
     }
@@ -311,10 +309,14 @@ int dir_create_file(char *filename){
 	int len = strlen(filename);
 	uint32_t myCluster = 0;
 	uint32_t* myClusterPtr = &myCluster;
-	//if (dir_find_file(filename, myClusterPtr) > 0){ TODO: re-implement this error check (skipped for speed)
+	int err;
+	if ((err = filename_verify(filename, len)) != 0){
+		return err;
+	}
+	//if (dir_find_file(filename, myClusterPtr) > 0){ TODO: re-implement this error check before submitting (skipped for speed)
 	//	return E_NOINPUT;
 	//}
-	if (len > 11 || len < 4 || (dir_create_dir_entry(filename, len) != 0)){
+	if ((dir_create_dir_entry(filename, len) != 0)){
 		return E_NOINPUT;
 	}
     return 0;
@@ -322,7 +324,7 @@ int dir_create_file(char *filename){
 
 int dir_create_dir_entry(char* filename, int len){
 	if (unused != NULL){ //if we already know where an unused dir_entry is, use that
-		dir_set_attr_newfile(unused, filename, len);
+		dir_set_attr_newfile(filename, len);
 		if (MYFAT_DEBUG){
 			printf("File created at %p \n", unused);
 		}
@@ -345,7 +347,7 @@ int dir_create_dir_entry(char* filename, int len){
     read_all(data, logicalSector, NULL);
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
-		dir_set_attr_newfile(unused, filename, len);
+		dir_set_attr_newfile(filename, len);
 		if (MYFAT_DEBUG){
 			printf("File created at %p \n", unused);
 		}
@@ -370,31 +372,62 @@ int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logical
 	return 0;
 }
 
-int dir_set_attr_newfile(struct dir_entry_8_3* unused, char* filename, int len){
+/*•Terminate and fill both the main filename part and the extension name field with spaces (0x20)
+•If the extension field is all spaces, then the period (‘.’) 
+separating the main filename part and the extension is not part of the filename */
+
+int dir_set_attr_newfile(char* filename, int len){
 	int i = 0;
-	for (; i < len-3; i++){ //zero or one indexing?
+	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
-	char sp = ' ';
-	for (; i < 8; i++){ //space padding
-		unused->DIR_Name[i] = (uint8_t)sp;
-	}
-	unused->DIR_Name[8] = (uint8_t)filename[len-3]; //extension
-	unused->DIR_Name[9] = (uint8_t)filename[len-2];
-	unused->DIR_Name[10] = (uint8_t)filename[len-1];
 	//unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
 	//unused->DIR_CrtTime;			/* Offset 14 */
 	//unused->DIR_CrtDate;			/* Offset 16 */
 	unused->DIR_FileSize = 0;
+	return 0;
 }
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
 	//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
-	unused->DIR_FstClusHI = (newFile & 0xFF00)/1000000000000000;  //TODO: error check this math. mask the 16 low order bits of newFile;
-	unused->DIR_FstClusLO = (newFile & 0xFF);  //mask the 16 high order bits of newFile;
+	writeEntry->DIR_FstClusHI = (newFile & 0xFF00)/1000000000000000;  //TODO: error check this math. mask the 16 low order bits of newFile;
+	writeEntry->DIR_FstClusLO = (newFile & 0xFF);  //mask the 16 high order bits of newFile;
 	//unused->DIR_WrtDate;
 	//unused->DIR_WrtTime;
-	unused->DIR_FileSize = writeSize;
+	writeEntry->DIR_FileSize = writeSize;
+}
+
+/* •The first short filename character DIR_Name[0] may not be a space (0x20)
+•There is an implied period (‘.’) between the main part and the extension except then the extension is all spaces
+•No lowercase characters may be in the short filename
+•The following characters may not appear in the short filename: lowercase characters, 0x22, 
+0x2A through 0x2F, 0x3A through 0x3F, 0x5B through 0x5D, and 0x7C
+•For our implementation, we will not allow any character with values less than 0x20
+•Implies: No special characters */
+
+int filename_verify(char* filename, int len){
+	if (len != 11){
+		return E_NOINPUT;
+	}
+	for (int i = 0; i < len; i++){
+		char c = filename[i];
+		if (c < 0x21 || c == 0x22 || c = 0x7C){
+			return E_NOINPUT;
+		}
+		if (c >= 0x2A && c <= 0x2F){
+			return E_NOINPUT;
+		}
+		if (c >= 0x3A && c <= 0x3F){
+			return E_NOINPUT;
+		}
+		if (c >= 0x5B && c <= 0x5D){
+			return E_NOINPUT;
+		}
+		if (c >= 0x61 && c <= 0x7A) {
+			return E_NOINPUT;
+		}
+	}
+	return 0;
 }
 
 uint32_t find_free_cluster(){
