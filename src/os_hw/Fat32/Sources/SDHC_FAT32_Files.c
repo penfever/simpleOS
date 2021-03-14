@@ -411,7 +411,7 @@ int filename_verify(char* filename, int len){
 	}
 	for (int i = 0; i < len; i++){
 		char c = filename[i];
-		if (c < 0x21 || c == 0x22 || c = 0x7C){
+		if (c < 0x20 || c == 0x22 || c == 0x7C){
 			return E_NOINPUT;
 		}
 		if (c >= 0x2A && c <= 0x2F){
