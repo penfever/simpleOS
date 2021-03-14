@@ -79,6 +79,7 @@ int file_structure_umount(void){
         printf("Could not re-enable resistor.\n");
         return 1;
     }
+    return 0;
 }
 
 /**
@@ -136,6 +137,7 @@ int dir_ls(int full){
     	return E_NOINPUT; //TODO: create new error message
     }
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    int* lsptr = &logicalSector;
     err = dir_get_cwd(lsptr, data);
     if (err != 0){
     	return err;

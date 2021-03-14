@@ -14,12 +14,13 @@ int main(void){
     printf("Card mounted. \n");
     dir_set_cwd_to_root();
     //DIR_LS_TESTING
-    dir_ls(0);
+    //dir_ls(0);
     //printf("Directory listed \n");
     //FILE_OPEN_CLOSE_TESTING
     //file_descriptor* fileptr = NULL;
-    //char *filename = "DRUMSE~1";
-    //file_open(filename, fileptr);
+    //char *filename = "HOWMIL~1";
+    //int err = 0;
+    //err = file_open(filename, fileptr);
     //printf("%p \n", *fileptr);
     //FILE_READ TESTING
     //char bufp[512];
