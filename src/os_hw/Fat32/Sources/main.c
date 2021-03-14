@@ -19,8 +19,7 @@ int main(void){
     //FILE_OPEN_CLOSE_TESTING
     //file_descriptor* fileptr = NULL;
     //char *filename = "HOWMIL~1";
-    //int err = 0;
-    //err = file_open(filename, fileptr);
+    //file_open(filename, *fileptr);
     //printf("%p \n", *fileptr);
     //FILE_READ TESTING
     //char bufp[512];
@@ -28,15 +27,15 @@ int main(void){
     //int* charsreadp = &read;
     //error = file_getbuf(*fileptr, *bufp, 512, charsreadp);
     //bufp[512] = '\0';
-    //printf("%s \n", bufp); //TODO: fix this so it prints?
+    //printf("%.100s \n", bufp); //TODO: fix this so it prints?
     //printf("%d \n", read);
     //file_close(*fileptr);
     //CREATE_FILE TESTING
-    file_descriptor* fileptrTwo = NULL;
-    char *filenameTwo = "TESTA   TXT";
-    dir_create_file(filenameTwo);
-    file_open(filenameTwo, fileptrTwo);
-    printf("%p \n", *fileptrTwo);
+    //file_descriptor* fileptrTwo = NULL;
+    //char *filenameTwo = "TESTA   TXT";
+    //dir_create_file(filenameTwo);
+    //file_open(filenameTwo, fileptrTwo);
+    //printf("%p \n", *fileptrTwo);
     file_structure_umount();
     return 0;
 }

@@ -172,6 +172,9 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 	        	totalSector ++;
 	        }
 	    	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
+	    	if (g_unusedSeek == FOUND_AND_RETURNING){
+	    		return 0;
+	    	}
 	    }
 		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
@@ -208,7 +211,7 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, u
 	    		unused = dir_entry;
 	    		if (g_unusedSeek == TRUE){
 	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, *unused);
+		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
@@ -367,7 +370,7 @@ int dir_create_dir_entry(char* filename, int len){
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
 		dir_set_attr_newfile(filename, len);
-		if (MYFAT_DEBUG){
+		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			printf("File created at %p \n", unused);
 		}
 		unused = NULL;
