@@ -150,6 +150,7 @@ int dir_ls(int full){
 int read_all(uint8_t data[512], int logicalSector, char* search){
 	int finished = 1;
 	int numSector = 0;
+	int totalSector = 0;
 	uint32_t currCluster = MOUNT->cwd_cluster;
 	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
 	if (g_unusedSeek == FOUND_AND_RETURNING){
@@ -157,6 +158,7 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 	}
 	    while (finished == 1){
 	        if (numSector < sectors_per_cluster){
+	        	totalSector ++;
 	        	numSector ++;
 	        	logicalSector ++; //advance logicalsector pointer
 	            if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
@@ -167,9 +169,14 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 		    	currCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
 		    	logicalSector = first_sector_of_cluster(currCluster); //takes a cluster as an argument
 	        	numSector = 0;
+	        	totalSector ++;
 	        }
 	    	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
 	    }
+		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
+			printf("Total entries in other sectors = %d. \n", entries);
+		}
 	    return finished;
 }
 
@@ -188,8 +195,11 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, u
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
-	    		if(MYFAT_DEBUG){
-	    			printf("Reached end of directory at sector %d, entry %d \n", logicalSector, i);
+	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+	    			printf("Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
+	    			//int entr = i*-1;
+	    			//return entr;
 	    		}
 	    	return 0;
 	    	}
@@ -197,40 +207,56 @@ int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, u
 	    		//this directory is unused
 	    		unused = dir_entry;
 	    		if (g_unusedSeek == TRUE){
+	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, *unused);
+	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d is unused\n", logicalSector, i);
 	    		}
-	    	continue;
+	    		continue;
 	    	}
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
 	    		if(MYFAT_DEBUG){
 	    			printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
 	    		}
-	    	continue;
-	    	}    
+	    		continue;
+	    	}
+	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
+	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    			printf("Sector %d, entry %d is a directory\n", logicalSector, i);
+	    		}
+	    		continue;
+	    	}
+	    	if(MYFAT_DEBUG){
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 			printf("%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[0]);
 			//TODO: if FULL is true, print attr
 			printf("Attributes: ");
 			dir_entry_print_attributes(dir_entry);
 			printf("\n");
+	    	}
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
+			if(MYFAT_DEBUG){
 			printf(" First Cluster: %lu\n", firstCluster);
 	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
-	    	if(strncmp(dir_entry->DIR_Name, search, 8) == 0){ //TODO: this may have trouble matching because of file extensions
+			}
+			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 8)); //TODO: this only compares filenames, not extensions
+	    	if(!noMatch){ //TODO: this may have trouble matching because of file extensions
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
-	    		if(MYFAT_DEBUG){
+	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
 	    		latest = dir_entry;
 	    		return (int)clusterAddr;//TODO: risk of truncation?
 	    	}
+	    	if(MYFAT_DEBUG){
 			printf(" Size: %lu\n", dir_entry->DIR_FileSize);
 			printf("\n\n");
+	    	}
 	    }
 	    return 1; //return 1 if end of sector reached without end of directory being reached
 }
@@ -374,7 +400,7 @@ int dir_set_attr_newfile(char* filename, int len){
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
-	//unused->DIR_Attr = 0; //TODO: might need to do some bitwise shit here
+	unused->DIR_Attr = 0x00;
 	//unused->DIR_CrtTime;			/* Offset 14 */
 	//unused->DIR_CrtDate;			/* Offset 16 */
 	unused->DIR_FileSize = 0;
@@ -482,8 +508,7 @@ int dir_delete_dir(char *filename){
 int file_open(char *filename, file_descriptor *descrp){
 	uint32_t fileCluster = dir_find_file(filename, MOUNT->cwd_cluster);
 		if (fileCluster <= 2){
-			//TODO: error handling
-			__BKPT();
+			return E_NOINPUT; //TODO: error handling
 		}
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){

@@ -33,7 +33,7 @@ int main(void){
     //file_close(*fileptr);
     //CREATE_FILE TESTING
     file_descriptor* fileptrTwo = NULL;
-    char *filenameTwo = "TEST    TXT";
+    char *filenameTwo = "TESTA   TXT";
     dir_create_file(filenameTwo);
     file_open(filenameTwo, fileptrTwo);
     printf("%p \n", *fileptrTwo);
