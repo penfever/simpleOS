@@ -653,8 +653,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		return E_NOINPUT;
 	}
     uint32_t numCluster = userptr->clusterAddr;
-	int i = 0;
-    uint8_t data[BLOCK];
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
     while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
@@ -666,34 +664,55 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     // if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	//__BKPT(); TODO: Breakpoint triggers before function?
     //}
-    uint32_t remSize = userptr->fileSize - userptr->cursor;
-	if (buflen > remSize){
-		buflen = remSize;
+	if (buflen > userptr->fileSize - userptr->cursor){ //Prevent attempts to read past EOF
+		return E_NOINPUT;
 	}
-	while (i < buflen){
-	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-	    	__BKPT();
-	    }
-		if (buflen - i < bytes_per_sector){
-			memcpy(bufp, data, buflen-i); //TODO: testing
-			userptr->cursor += i;
-			*charsreadp = i;
-		    return 0;
-		}
-		else{
-			memcpy(bufp, data, BLOCK);
-		}
-		i += bytes_per_sector;
-		logicalSector ++;
-		numSector ++;
+	int pos = userptr->cursor;
+	int end = buflen + userptr->cursor;
+    uint8_t data[BLOCK];
+	while (pos < end){
 	    if (numSector > sectors_per_cluster){
 	    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
 	    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
         	numSector = 0;
 	    }
+		int diff = end - pos;
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+	    	__BKPT(); //TODO: error check
+	    }
+		if (diff < bytes_per_sector && (diff + pos) < (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, all in one sector
+			memcpy(bufp, data, diff);
+			userptr->cursor += diff;
+			*charsreadp += diff;
+		    return 0;
+		}
+		else if (diff < bytes_per_sector && (diff + pos) > (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, divided between two sectors
+			int smlDif = bytes_per_sector-pos;
+			memcpy(bufp, &data[pos], smlDif);
+			pos += smlDif;
+			userptr->cursor += smlDif;
+			*charsreadp += smlDif;
+			logicalSector ++;
+			numSector ++;
+		}
+		else if (diff > bytes_per_sector && diff % 512 != 0) { //case: more than 512 bytes remain, sector boundaries not aligned
+			int smlDif = 512 - diff;
+			memcpy(bufp, &data[pos], smlDif);
+			pos += smlDif;
+			userptr->cursor += smlDif;
+			*charsreadp += smlDif;
+			logicalSector ++;
+			numSector ++;			
+		}
+		else{ //case: more than 512 bytes remain, sector boundaries aligned
+			memcpy(bufp, data, BLOCK);
+			pos += BLOCK;
+			userptr->cursor += BLOCK;
+			*charsreadp += BLOCK;
+			logicalSector ++;
+			numSector ++;
+		}
 	}
-	userptr->cursor += i;
-	*charsreadp = i;
     return 0;
 }
 
