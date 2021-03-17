@@ -575,7 +575,7 @@ struct stream* find_open_stream(){
 	return NULL;
 }
 
-struct stream* find_curr_stream(struct stream* fileptr){
+int find_curr_stream(struct stream* fileptr){
 	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
 		if (&(currentPCB->openFiles[i]) == fileptr){
 			return TRUE;

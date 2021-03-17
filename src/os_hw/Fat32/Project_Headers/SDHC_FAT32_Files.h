@@ -180,7 +180,7 @@ int read_all(uint8_t data[512], int logicalSector, char* search);
 
 struct stream* find_open_stream();
 
-struct stream* find_curr_stream(struct stream* fileptr);
+int find_curr_stream(struct stream* fileptr);
 
 int curr_sector_from_offset(struct stream* userptr);
 
