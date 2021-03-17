@@ -14,7 +14,7 @@ struct myfat_mount{
    uint32_t rca;
    uint32_t cwd_cluster;
    uint32_t writeSector;
-   uint8_t data[512];
+   uint8_t data[BLOCK];
    uint8_t dirty;
 };
 
@@ -174,9 +174,9 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp);
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen);
 
-int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, uint32_t currCluster);
+int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search, uint32_t currCluster);
 
-int read_all(uint8_t data[512], int logicalSector, char* search);
+int read_all(uint8_t data[BLOCK], int logicalSector, char* search);
 
 struct stream* find_open_stream();
 
@@ -195,5 +195,7 @@ int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry,
 int dir_set_attr_newfile(char* filename, int len);
 
 int filename_verify(char* filename, int len);
+
+int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

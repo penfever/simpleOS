@@ -33,10 +33,12 @@
  */
 struct myfat_mount *MOUNT;
 struct sdhc_card_status card_status;
-struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry of successful search
+uint32_t latestSector; //records sector number of most recent dir_entry
+struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cwd = NULL;
 static int g_unusedSeek = FALSE;
+static int g_deleteFlag = FALSE;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -102,6 +104,7 @@ int write_cache(){
 	    }
 		MOUNT->dirty = FALSE;
 	}
+	//MOUNT->data = {0};
 	return 0;
 }
 
@@ -184,6 +187,7 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	    	if (g_unusedSeek == FOUND_AND_RETURNING){
 	    		return 0;
 	    	}
+			latestSector = logicalSector;
 	    }
 		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
@@ -207,7 +211,13 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if (err != 0){
 	    				__BKPT();//TODO: error check
 	    			}
-	    			MOUNT->writeSector = logicalSector;
+	    			err = load_cache(dir_entry, logicalSector);
+	    			if (err != 0){
+	    				__BKPT();
+	    			}
+	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		    			printf("Sector %d, entry %d goes to write cache, address %p\n", logicalSector, i, unused);
+	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
@@ -221,12 +231,20 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 	    		//this directory is unused
-	    		unused = dir_entry;
-	    		if (g_unusedSeek == TRUE){
+	    		if (unused == NULL){
+	    			int err = load_cache(dir_entry, logicalSector);
+	    			if (err != 0){
+	    				__BKPT();
+	    			}
 	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
 	    			}
-	    			MOUNT->writeSector = logicalSector;
+	    		}
+	    		if (g_unusedSeek == TRUE){
+	    			int err = load_cache(dir_entry, logicalSector);
+	    			if (err != 0){
+	    				__BKPT();
+	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
@@ -238,9 +256,8 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
 	    		if(MYFAT_DEBUG){
-	    			//printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
+	    			printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
 	    		}
-	    		continue;
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
 	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
@@ -263,6 +280,14 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 			}
 			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 	    	if(!noMatch){
+	    		if (g_deleteFlag == TRUE){
+	    			MOUNT->writeSector = logicalSector; //updates writeSector
+	    		    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
+	    		    	return E_NOINPUT; //TODO: error checking
+	    		    }
+	    			dir_entry->DIR_Name[0] = DIR_ENTRY_UNUSED;
+	    			memcpy(MOUNT->data, data, BLOCK);
+	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
@@ -278,6 +303,14 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    return 1; //return 1 if end of sector reached without end of directory being reached
 }
 
+int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
+	MOUNT->writeSector = logicalSector; //updates writeSector
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
+    	return E_NOINPUT; //TODO: error checking
+    }
+	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
+    return 0;
+}
 /**
  * Start an iterator at the beginning of the cwd's filenames
  * Returns in *statepp a pointer to a malloc'ed struct that contains necessary
@@ -365,42 +398,29 @@ int dir_create_file(char *filename){
 	if (dir_find_file(filename, &myCluster) == 0){
 		return E_NOINPUT; //if file is found to exist, return error -- cannot create
 	}
-	MOUNT->dirty = TRUE;
-	if ((dir_create_dir_entry(filename, len) != 0)){
-		return E_NOINPUT;
+	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
+		g_unusedSeek = TRUE;
+		dir_ls(0); //fills unused slot
+		if (unused == NULL){
+			return E_NOINPUT; //no free dir_entry could be created (out of space)
+		}
+		g_unusedSeek = FALSE;
 	}
-	write_cache();
+	MOUNT->dirty = TRUE;
+	dir_set_attr_newfile(filename, len);
+	if ((err = write_cache()) != 0){
+		return err;
+	}
+	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		printf("File created. \n");
+	}
+	unused = NULL;
     return 0;
 }
 
 int dir_create_dir_entry(char* filename, int len){
-	if (unused != NULL){ //if we already know where an unused dir_entry is, use that
-		//dir_set_attr_newfile(filename, len);
-		int i = 0;
-		for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
-			unused->DIR_Name[i] = (uint8_t)filename[i];
-		}
-		unused->DIR_Attr = DIR_ENTRY_ATTR_ARCHIVE;
-		unused->DIR_FileSize = (uint32_t)0;
-		if (MYFAT_DEBUG){
-			printf("File created at %p \n", unused);
-		}
-		unused = NULL;
-		return 0;
-	}
-	g_unusedSeek = TRUE;
-	dir_ls(0);
-	g_unusedSeek = FALSE;
-	if (unused != NULL){
-		int i = 0;
-		dir_set_attr_newfile(filename, len);
-		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-			printf("File created at %p \n", unused);
-		}
-		unused = NULL;
-		return 0;
-	}
-	return E_NOINPUT; //free spot could not be created and was not found
+
+	return 0;
 }
 
 int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logicalSector, uint32_t currCluster){
@@ -507,13 +527,26 @@ uint32_t find_free_cluster(){
  * Returns an error code if the file with this name is a directory
  */
 int dir_delete_file(char *filename){
+	//For current PCB only
+	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+		if (strncmp(&currentPCB->openFiles[i].fileName, filename, 11) == 0){
+			return E_NOINPUT; //TODO: error, file already open
+		}
+	}
 	uint32_t myCluster = 0;
-	if ((myCluster = dir_find_file(filename, &myCluster)) <= 2){ //if file is not found
+	g_deleteFlag = TRUE;
+	if ((myCluster = dir_find_file(filename, &myCluster)) != 0){ //if file is not found
+		g_deleteFlag = FALSE;
 		return E_NOINPUT;
 	}
-    //find file
-	//if it's 0, return an error
-	//otherwise, change file entry to UNUSED
+	int err;
+	MOUNT->dirty = TRUE;
+	if ((err = write_cache()) != 0){
+		g_deleteFlag = FALSE;
+		return err;
+	}
+	g_deleteFlag = FALSE;
+	return 0;
 }
 
 /**
