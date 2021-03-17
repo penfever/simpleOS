@@ -9,6 +9,8 @@
  * Written by James L. Frankel (frankel@seas.harvard.edu)
  *
  * Copyright (c) 2021 James L. Frankel.  All rights reserved.
+ *
+ * Last updated: 3:35 PM 16-Mar-2021
  */
 
 #include <stdio.h>
@@ -25,12 +27,13 @@ uint16_t FSInfo_sector_number;
 uint32_t sectors_per_cluster;
 uint32_t first_FAT_sector;
 uint32_t sectors_per_FAT;
+uint8_t number_of_FATs;
 uint32_t root_directory_cluster;
 uint32_t total_data_clusters;
 uint8_t BPB_Media;
+uint16_t BackupBootSector;
 
 uint32_t first_data_sector;
-uint16_t BackupBootSector;
 
 static int chs_to_cylinder(struct chs_field *CHS_field_p);
 static int chs_to_head(struct chs_field *CHS_field_p);
@@ -52,7 +55,7 @@ void boot_sector_read(uint32_t rca) {
   sector_address = 0;
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Reading absolute sector %lu...\n", sector_address);
     CONSOLE_PUTS(output_buffer);
   }
@@ -74,7 +77,7 @@ void boot_sector_read(uint32_t rca) {
       CONSOLE_PUTS("The Signature_word[0] field is 0x55 as required\n");
   } else {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Signature_word[0]: 0x%02X\n", boot_sector_p->Signature_word[0]);
       CONSOLE_PUTS(output_buffer);
       CONSOLE_PUTS("*****The Signature_word[0] field is not 0x55, this is incorrect*****\n");
@@ -87,7 +90,7 @@ void boot_sector_read(uint32_t rca) {
       CONSOLE_PUTS("The Signature_word[1] field is 0xAA as required\n");
   } else {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Signature_word[1]: 0x%02X\n", boot_sector_p->Signature_word[1]);
       CONSOLE_PUTS(output_buffer);
       CONSOLE_PUTS("*****The Signature_word[1] field is not 0xAA, this is incorrect*****\n");
@@ -127,7 +130,7 @@ void boot_sector_read(uint32_t rca) {
     /* this is probably an MBR (Master Boot Record) that contains
        partition information */
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "All four partition entry status bytes in sector 0 are either 0x%02X or 0x%02X;\n\tthis is probably a valid MBR\n",
 	       PARTITION_STATUS_NOTBOOTABLE, PARTITION_STATUS_BOOTABLE);
       CONSOLE_PUTS(output_buffer);
@@ -154,7 +157,7 @@ void boot_sector_read(uint32_t rca) {
 	CONSOLE_PUTS("The MBR_Signature_word[0] field is 0x55 as required\n");
     } else {
       if(BS_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "MBR_Signature_word[0]: 0x%02X\n",
 		 MBR_p->MBR_Signature_word[0]);
 	CONSOLE_PUTS(output_buffer);
@@ -168,7 +171,7 @@ void boot_sector_read(uint32_t rca) {
 	CONSOLE_PUTS("The MBR_Signature_word[1] field is 0xAA as required\n");
     } else {
       if(BS_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "MBR_Signature_word[1]: 0x%02X\n",
 		 MBR_p->MBR_Signature_word[1]);
 	CONSOLE_PUTS(output_buffer);
@@ -189,12 +192,12 @@ void boot_sector_read(uint32_t rca) {
     if(BS_DEBUG) {
       Disk_signature =
 	LITTLE_ENDIAN_4_BYTES_TO_UINT32(MBR_p->MBR_Disk_signature);
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Disk signature: 0x%08lX\n", Disk_signature);
       CONSOLE_PUTS(output_buffer);
       Copy_protect =
 	LITTLE_ENDIAN_2_BYTES_TO_UINT16(MBR_p->MBR_Copy_protect);
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Copy protect: 0x%04X (%scopy protected)\n",
 	       Copy_protect, Copy_protect == MBR_COPY_PROTECTED ? "" : "not ");
       CONSOLE_PUTS(output_buffer);
@@ -214,24 +217,27 @@ void boot_sector_read(uint32_t rca) {
 	LITTLE_ENDIAN_4_BYTES_TO_UINT32(part_entry_p->sectors_in_partition);
 
       if(BS_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "Partition %d: Type: 0x%02X%s,\n", part_num,
 		 part_type,
 		 part_type == PARTITION_TYPE_EMPTY ? " (Empty)" :
 		 part_type ==
-		 PARTITION_TYPE_FAT32_LBA ? " (DOS 7.1+ FAT32 with LBA)" : "");
+		 PARTITION_TYPE_FAT32_CHS ? " (DOS 7.1+ FAT32 with CHS Addressing)" :
+		 part_type ==
+		 PARTITION_TYPE_FAT32_LBA ? " (DOS 7.1+ FAT32 with LBA)" :
+		 "");
 	CONSOLE_PUTS(output_buffer);
       }
       if(part_status & PARTITION_STATUS_BOOTABLE)
 	number_of_bootable_partitions++;
       if(BS_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "\tStatus: 0x%02X (%s), First LBA: %lu,\n",
 		 part_status,
 		 (part_status & PARTITION_STATUS_BOOTABLE) ? "Bootable/Active" : "Not Bootable/Inactive",
 		 first_sector_LBA);
 	CONSOLE_PUTS(output_buffer);
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "\tSectors in partition: %lu, First sector CHS: %d:%d:%d, Last sector CHS: %d:%d:%d\n",
 		 sectors_in_partition,
 		 chs_to_cylinder(&part_entry_p->first_sector_CHS_address),
@@ -249,7 +255,11 @@ void boot_sector_read(uint32_t rca) {
 	  CONSOLE_PUTS("*****Status byte in partition entry is invalid\n");
       }
       part_entry_p++;
-      if((part_type == PARTITION_TYPE_FAT32_LBA) && (first_sector_LBA != 0)) {
+      if((part_type == PARTITION_TYPE_FAT32_CHS) &&
+	 (first_sector_LBA != 0)) {
+	file_structure_first_sector = first_sector_LBA;
+      } else if((part_type == PARTITION_TYPE_FAT32_LBA) &&
+		(first_sector_LBA != 0)) {
 	file_structure_first_sector = first_sector_LBA;
       }
     }
@@ -257,14 +267,14 @@ void boot_sector_read(uint32_t rca) {
     if(BS_DEBUG && (number_of_bootable_partitions > 1))
       CONSOLE_PUTS("Warning: Partition table contains more than one bootable/active partition\n");
     if(BS_DEBUG) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Reading sector %lu of FAT32 partition...\n", 0L);
       CONSOLE_PUTS(output_buffer);
     }
 
     if(file_structure_first_sector == 0)
       if(BS_DEBUG)
-	CONSOLE_PUTS("*****No FAT32_LBA partition found; assume there are no partitions*****\n");
+	CONSOLE_PUTS("*****No FAT32_CHS or FAT32_LBA partition found; assume there are no partitions*****\n");
 
     /* now read the boot sector of the FAT32_LBA partition */
 
@@ -275,7 +285,7 @@ void boot_sector_read(uint32_t rca) {
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Jump instruction to boot code (BS_jmpBoot): 0x%02X 0x%02X 0x%02X\n",
 	     boot_sector_p->BS_jmpBoot[0],
 	     boot_sector_p->BS_jmpBoot[1],
@@ -295,7 +305,7 @@ void boot_sector_read(uint32_t rca) {
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "OEM Name Identifier (BS_OEMName): %.8s\n",
 	     boot_sector_p->BS_OEMName);
     CONSOLE_PUTS(output_buffer);
@@ -304,7 +314,7 @@ void boot_sector_read(uint32_t rca) {
   bytes_per_sector =
     LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_BytsPerSec);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Count of bytes per sector (BPB_BytsPerSec): %u\n",
 	     bytes_per_sector);
     CONSOLE_PUTS(output_buffer);
@@ -317,7 +327,7 @@ void boot_sector_read(uint32_t rca) {
 
   sectors_per_cluster = boot_sector_p->BPB_SecPerClus;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Number of sectors per allocation unit/cluster (BPB_SecPerClus): %lu\n",
 	     sectors_per_cluster);
     CONSOLE_PUTS(output_buffer);
@@ -325,7 +335,7 @@ void boot_sector_read(uint32_t rca) {
   if(sectors_per_cluster == 0) {
     if(BS_INFORMATIVE_PRINTF) {
       CONSOLE_PUTS("*****Number of sectors per allocation unit/cluster (BPB_SecPerClus) is\n");
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "\t%lu, but cannot be zero*****\n", sectors_per_cluster);
       CONSOLE_PUTS(output_buffer);
     }
@@ -340,7 +350,7 @@ void boot_sector_read(uint32_t rca) {
 	    (sectors_per_cluster != 128)) {
     if(BS_INFORMATIVE_PRINTF) {
       CONSOLE_PUTS("*****Number of sectors per allocation unit/cluster (BPB_SecPerClus) is\n");
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "\t%lu, but must be a power of two*****\n", sectors_per_cluster);
       CONSOLE_PUTS(output_buffer);
     }
@@ -348,7 +358,7 @@ void boot_sector_read(uint32_t rca) {
   } else if(bytes_per_sector*sectors_per_cluster > BS_MAX_BYTES_PER_CLUSTER) {
     if(BS_INFORMATIVE_PRINTF) {
       CONSOLE_PUTS("*****Total number of bytes per cluster is\n");
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "\t%lu, but must not be greater than %u*****\n",
 	       bytes_per_sector*sectors_per_cluster, BS_MAX_BYTES_PER_CLUSTER);
       CONSOLE_PUTS(output_buffer);
@@ -358,18 +368,19 @@ void boot_sector_read(uint32_t rca) {
 
   RsvdSecCnt = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_RsvdSecCnt);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Number of reserved sectors in the reserved region (BPB_RsvdSecCnt): %u\n", RsvdSecCnt);
     CONSOLE_PUTS(output_buffer);
   }
 
+  number_of_FATs = boot_sector_p->BPB_NumFATs;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "The count of file allocation tables (FATs) on the volume (BPB_NumFATs): %u\n",
-	     boot_sector_p->BPB_NumFATs);
+	     number_of_FATs);
     CONSOLE_PUTS(output_buffer);
   }
-  if(boot_sector_p->BPB_NumFATs != 2) {
+  if(number_of_FATs != 2) {
     if(BS_INFORMATIVE_PRINTF)
       CONSOLE_PUTS("*****BPB_NumFATs is not 2; unsupported format*****\n");
     acceptableFormat = 0;
@@ -377,13 +388,13 @@ void boot_sector_read(uint32_t rca) {
 
   uint16 = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_RootEntCnt);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "BPB_RootEntCnt: For FAT32, must be zero: %u\n", uint16);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint16 != 0) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****BPB_RootEntCnt is %u, but must be zero*****\n", uint16);
       CONSOLE_PUTS(output_buffer);
     }
@@ -392,13 +403,13 @@ void boot_sector_read(uint32_t rca) {
 
   uint16 = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_TotSec16);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "BPB_TotSec16: For FAT32, must be zero: %u\n", uint16);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint16 != 0) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****BPB_TotSec16 is %u, but must be zero*****\n", uint16);
       CONSOLE_PUTS(output_buffer);
     }
@@ -407,7 +418,7 @@ void boot_sector_read(uint32_t rca) {
 
   BPB_Media = boot_sector_p->BPB_Media;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "BPB_Media: 0x%02X\n", BPB_Media);
     CONSOLE_PUTS(output_buffer);
   }
@@ -421,7 +432,7 @@ void boot_sector_read(uint32_t rca) {
      (BPB_Media != 0xFE) &&
      (BPB_Media != 0xFF)) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****BPB_Media has an invalid value: 0x%02X*****\n",
 	       BPB_Media);
       CONSOLE_PUTS(output_buffer);
@@ -431,13 +442,13 @@ void boot_sector_read(uint32_t rca) {
 
   uint16 = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_FATSz16);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "BPB_FATSz16: For FAT32, must be zero: %u\n", uint16);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint16 != 0) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****BPB_FATSz16 is %u, but must be zero*****\n", uint16);
       CONSOLE_PUTS(output_buffer);
     }
@@ -446,7 +457,7 @@ void boot_sector_read(uint32_t rca) {
 
   uint16 = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_SecPerTrk);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Sectors per track for interrupt 0x13 (BPB_SecPerTrk): %u\n",
 	     uint16);
     CONSOLE_PUTS(output_buffer);
@@ -454,21 +465,21 @@ void boot_sector_read(uint32_t rca) {
 
   uint16 = LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_NumHeads);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Number of heads for interrupt 0x13 (BPB_NumHeads): %u\n", uint16);
     CONSOLE_PUTS(output_buffer);
   }
 
   uint32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(boot_sector_p->BPB_HiddSec);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Count of hidden sectors (BPB_HiddSec): %lu\n", uint32);
     CONSOLE_PUTS(output_buffer);
   }
 
   TotSec32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(boot_sector_p->BPB_TotSec32);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Total count of sectors on the volume (BPB_TotSec32): %lu\n",
 	     TotSec32);
     CONSOLE_PUTS(output_buffer);
@@ -476,7 +487,7 @@ void boot_sector_read(uint32_t rca) {
   if(TotSec32 == 0) {
     if(BS_INFORMATIVE_PRINTF) {
       CONSOLE_PUTS("*****Total count of sectors on the volume (BPB_TotSec32) is\n");
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "\t%lu, but must be non-zero*****\n",
 	       TotSec32);
       CONSOLE_PUTS(output_buffer);
@@ -486,7 +497,7 @@ void boot_sector_read(uint32_t rca) {
 
   sectors_per_FAT = LITTLE_ENDIAN_4_BYTES_TO_UINT32(boot_sector_p->BPB_FATSz32);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Count of sectors occupied by one FAT (BPB_FATSz32): %lu\n",
 	     sectors_per_FAT);
     CONSOLE_PUTS(output_buffer);
@@ -495,7 +506,7 @@ void boot_sector_read(uint32_t rca) {
   uint16 =
     LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_ExtFlags);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Zero-based number of active FAT (BPB_ExtFlags): %u\n",
 	     uint16 & 0xf);
     CONSOLE_PUTS(output_buffer);
@@ -507,18 +518,18 @@ void boot_sector_read(uint32_t rca) {
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Major version number (BPB_FSVer[1]): %u\n",
 	     boot_sector_p->BPB_FSVer[1]);	/* high byte */
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Minor version number (BPB_FSVer[0]): %u\n",
 	     boot_sector_p->BPB_FSVer[0]);	/* low byte */
     CONSOLE_PUTS(output_buffer);
   }
   if(boot_sector_p->BPB_FSVer[1] != BPB_REQUIRED_MAJOR_VERSION) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****Major version number (BPB_FSVer[1]) is %u, but must be %u*****\n",
 	       boot_sector_p->BPB_FSVer[1], BPB_REQUIRED_MAJOR_VERSION);
       CONSOLE_PUTS(output_buffer);
@@ -527,7 +538,7 @@ void boot_sector_read(uint32_t rca) {
   }
   if(boot_sector_p->BPB_FSVer[0] != BPB_REQUIRED_MINOR_VERSION) {
     if(BS_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****Minor version number (BPB_FSVer[0]) is %u, but must be %u*****\n",
 	       boot_sector_p->BPB_FSVer[0], BPB_REQUIRED_MINOR_VERSION);
       CONSOLE_PUTS(output_buffer);
@@ -537,7 +548,7 @@ void boot_sector_read(uint32_t rca) {
 
   BPB_RootClus = LITTLE_ENDIAN_4_BYTES_TO_UINT32(boot_sector_p->BPB_RootClus);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Cluster number of the first cluster of the root directory (BPB_RootClus): %lu\n",
 	     BPB_RootClus);
     CONSOLE_PUTS(output_buffer);
@@ -545,7 +556,7 @@ void boot_sector_read(uint32_t rca) {
   if(BPB_RootClus < 2) {
     if(BS_INFORMATIVE_PRINTF) {
       CONSOLE_PUTS("*****Cluster number of the first cluster of the root directory (BPB_RootClus) is\n");
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "\t%lu, must be equal to or greater than 2*****\n",
 	       BPB_RootClus);
       CONSOLE_PUTS(output_buffer);
@@ -556,7 +567,7 @@ void boot_sector_read(uint32_t rca) {
   FSInfo_sector_number =
     LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_FSInfo);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Sector number of FSINFO structure in the reserved area of the FAT32 volume (BPB_FSInfo): %u\n", FSInfo_sector_number);
     CONSOLE_PUTS(output_buffer);
   }
@@ -565,14 +576,14 @@ void boot_sector_read(uint32_t rca) {
     LITTLE_ENDIAN_2_BYTES_TO_UINT16(boot_sector_p->BPB_BkBootSec);
   if(BackupBootSector) {
     if(BS_DEBUG) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Sector number of a copy of the boot record in the reserved area of the FAT32 volume (BPB_BkBootSec): %u\n", BackupBootSector);
       CONSOLE_PUTS(output_buffer);
     }
     if(BackupBootSector != BPB_BKBOOTSEC_RECOMMENDED)
       if(BS_INFORMATIVE_PRINTF) {
 	CONSOLE_PUTS("Sector number of a copy of the boot record in the reserved area of the FAT32 volume (BPB_BkBootSec)\n");
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "\tis %u which is not the recommended value of %u\n", BackupBootSector, BPB_BKBOOTSEC_RECOMMENDED);
 	CONSOLE_PUTS(output_buffer);
       }
@@ -598,7 +609,7 @@ void boot_sector_read(uint32_t rca) {
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Interrupt 0x13 drive number (BS_DrvNum): 0x%02X\n",
 	     boot_sector_p->BS_DrvNum);
     CONSOLE_PUTS(output_buffer);
@@ -609,12 +620,11 @@ void boot_sector_read(uint32_t rca) {
       CONSOLE_PUTS("The BS_Reserved1 field is zero as required\n");
   } else {
     if(BS_INFORMATIVE_PRINTF)
-      CONSOLE_PUTS("*****The BS_Reserved1 field is not zero, this is incorrect*****\n");
-    acceptableFormat = 0;
+      CONSOLE_PUTS("The BS_Reserved1 field is not zero, this is incorrect\n");
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Extended boot signature (BS_BootSig): 0x%02X\n",
 	     boot_sector_p->BS_BootSig);
     CONSOLE_PUTS(output_buffer);
@@ -622,11 +632,11 @@ void boot_sector_read(uint32_t rca) {
   if(boot_sector_p->BS_BootSig == 0x29) {
     uint32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(boot_sector_p->BS_VolID);
     if(BS_DEBUG) {
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Volume serial number (BS_VolID): %lu (0x%08lX)\n", uint32,
 	       uint32);
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Volume label (BS_VolLab): %.11s\n", boot_sector_p->BS_VolLab);
       CONSOLE_PUTS(output_buffer);
     }
@@ -665,7 +675,7 @@ void boot_sector_read(uint32_t rca) {
   }
 
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "File system type (BS_FilSysType): %.8s\n",
 	     boot_sector_p->BS_FilSysType);
     CONSOLE_PUTS(output_buffer);
@@ -688,7 +698,7 @@ void boot_sector_read(uint32_t rca) {
 
   DiskSize = (uint64_t)TotSec32 * (uint64_t)bytes_per_sector;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Disk size (in bytes) computed from TotSec32*BytsPerSec: 0x%08lX%08lX\n",
 	     (uint32_t)(DiskSize>>32), (uint32_t)(DiskSize&0xffffffff));
     CONSOLE_PUTS(output_buffer);
@@ -712,9 +722,9 @@ void boot_sector_read(uint32_t rca) {
   
   /* The first data sector (that is, the first sector in which
      directories and files may be stored): */
-  first_data_sector = RsvdSecCnt + (boot_sector_p->BPB_NumFATs * sectors_per_FAT);
+  first_data_sector = RsvdSecCnt + (number_of_FATs * sectors_per_FAT);
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "First data sector: %lu\n", first_data_sector);
     CONSOLE_PUTS(output_buffer);
   }
@@ -722,15 +732,15 @@ void boot_sector_read(uint32_t rca) {
   /* The first sector in the File Allocation Table: */
   first_FAT_sector = RsvdSecCnt;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "First fat sector: %lu\n", first_FAT_sector);
     CONSOLE_PUTS(output_buffer);
   }
 
   /* The total number of data sectors: */
-  total_data_sectors = TotSec32 - (RsvdSecCnt + (boot_sector_p->BPB_NumFATs * sectors_per_FAT));
+  total_data_sectors = TotSec32 - (RsvdSecCnt + (number_of_FATs * sectors_per_FAT));
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Total number of data sectors: %lu\n", total_data_sectors);
     CONSOLE_PUTS(output_buffer);
   }
@@ -738,7 +748,7 @@ void boot_sector_read(uint32_t rca) {
   /* The total number of clusters: */
   total_data_clusters = total_data_sectors / sectors_per_cluster;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Total number of data clusters: %lu\n", total_data_clusters);
     CONSOLE_PUTS(output_buffer);
   }
@@ -753,7 +763,7 @@ void boot_sector_read(uint32_t rca) {
   else
     fat_type = ExFAT;
   if(BS_DEBUG) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "FAT type: %s\n", FAT_name[fat_type]);
     CONSOLE_PUTS(output_buffer);
   }
@@ -762,7 +772,7 @@ void boot_sector_read(uint32_t rca) {
      and can be a cluster chain: */
   root_directory_cluster = BPB_RootClus;
   if(BS_INFORMATIVE_PRINTF) {
-    snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Cluster of root directory: %lu\n", root_directory_cluster);
     CONSOLE_PUTS(output_buffer);
   }
@@ -794,8 +804,7 @@ void boot_sector_read(uint32_t rca) {
 
     if(!exactCopy) {
       if(BS_INFORMATIVE_PRINTF)
-	CONSOLE_PUTS("*****The backup boot sector is *not* the same as the primary boot sector*****\n");
-      acceptableFormat = 0;
+	CONSOLE_PUTS("The backup boot sector is *not* the same as the primary boot sector\n");
     }
   }
   
@@ -841,7 +850,7 @@ int boot_record_copy_verify(uint32_t rca) {
        != 0) {
       compare_equal = 0;
       if(BS_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, BS_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "Sector #%lu of main boot record and sector #%lu of copy boot_record are not the same\n", main_boot_record_sector_number, copy_boot_record_sector_number);
 	CONSOLE_PUTS(output_buffer);
       }

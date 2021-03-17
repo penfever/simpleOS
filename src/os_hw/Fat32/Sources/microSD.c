@@ -9,6 +9,8 @@
  * Written by James L. Frankel (frankel@seas.harvard.edu) & Daniel Willenson
  *
  * Copyright (c) 2021 James L. Frankel.  All rights reserved.
+ *
+ * Last updated: 9:29 PM 8-Mar-2021
  */
 
 #include <stdio.h>
@@ -75,9 +77,10 @@ static enum sdhc_status sdhc_command_send_status(uint32_t rca,
 						 uint32_t *card_status);
 
 /**
- * Routine to configure the microSD Card Detect switch & resistor;
+ * Routine to configure the microSD Card Detect switch & pull-down resistor in
+ * the ARM.
  * This must be called before calling microSDCardDetectedUsingSwitch
- * or microSDCardDetectedUsingResistor
+ * or microSDCardDetectedUsingResistor.
  * 
  */
 void microSDCardDetectConfig(void) {
@@ -131,6 +134,11 @@ void microSDCardDetectConfig(void) {
  * Routine to disable the micro SD Card Detect ARM pull-down resistor
  *
  */
+/* Routine to disable the microSD Card Detect ARM internal pull-down
+   resistor */
+/* This must be called after conducting SD card detection
+   using the SD card internal resistor and before initializing the SD
+   card interface */
 void microSDCardDisableCardDetectARMPullDownResistor(void) {
   /* Configure bit MICRO_SD_CARD_DETECT_RESISTOR_PORTE_BIT of PORTE
    * using the Pin Control Register (PORTE_PCR) to be a GPIO pin.  This
@@ -185,6 +193,9 @@ int microSDCardDetectedUsingSwitch(void) {
    regular data transmission with SET_CLR_CARD_DETECT (ACMD42)
    command.  It is recommended that pull-down resistor is >270k Ohm to
    fulfill the logic voltage level requirements. */
+/* The internal resistor is enabled when a card is inserted into the microSD
+   slot, when new code is loaded into the K70, and when explicitly enabled by
+   calling sdhc_command_send_set_clr_card_detect_connect */
 /* Return true if the card is detected and false otherwise */
 int microSDCardDetectedUsingResistor(void) {
   /* Returns 1 when a micro SD card is detected and 0 otherwise */
@@ -197,6 +208,18 @@ int microSDCardDetectedUsingResistor(void) {
   return !!microSDCardDetectState;
 }
 
+/* Initializes the SDHC interface */
+/* A microSDHC card must be present in the TWR-K70F120M microSD card slot
+   before calling this function */
+/* This must be called before calling any of the supplied functions except for
+   microSDCardDetectConfig, microSDCardDetectedUsingSwitch,
+   microSDCardDetectedUsingResistor, and
+   microSDCardDisableCardDetectARMPullDownResistor */
+/* This function also disconnects the 50k Ohm pull-up resistor inside the SD
+   card */
+/* Returns the rca (Relative Card Address) */
+/* After calling sdhc_initialize, all variables declared in the furnished
+   header files are appropriately initialized */
 uint32_t sdhc_initialize(void) {
   enum sdhc_status status;
   struct sdhc_card_specific_data csd;
@@ -232,23 +255,23 @@ uint32_t sdhc_initialize(void) {
   /* SD Memory Card State: Identification State */
 
   if(MICRO_SD_DEBUG) {
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "OEM ID: %c%c\n", cid.oem_id[1], cid.oem_id[0]);
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Product Name: %c%c%c%c%c\n", cid.product_name[4],
 	     cid.product_name[3], cid.product_name[2], cid.product_name[1],
 	     cid.product_name[0]);
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Product Revision: %d.%d\n", cid.product_revision_major,
 	     cid.product_revision_minor);
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Product Serial Number: 0x%04X%04X\n", cid.product_serial_high,
 	     cid.product_serial_low);
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Manufacturing Date: %04d-%02d\n", 2000 + cid.manufacture_year,
 	     cid.manufacture_month);
     CONSOLE_PUTS(output_buffer);
@@ -261,7 +284,7 @@ uint32_t sdhc_initialize(void) {
   /* SD Memory Card State: Stand-by State */
 
   if(MICRO_SD_DEBUG) {
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Relative Card Address (rca): 0x%08lX\n", rca);
     CONSOLE_PUTS(output_buffer);
   }
@@ -271,7 +294,7 @@ uint32_t sdhc_initialize(void) {
   }
 
   if(MICRO_SD_DEBUG) {
-    snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "CSD Version: %u.0\n", csd.csd_structure+1);
     CONSOLE_PUTS(output_buffer);
   }
@@ -279,34 +302,34 @@ uint32_t sdhc_initialize(void) {
     /* This is CSD (Card-Specific Data) Version 2.0 */
     /* Version 2.0 supports High Capacity (SDHC) and Extended Capacity (SDXC) */
     if(MICRO_SD_DEBUG) {
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Erasable block enable: %s\n", csd.v2_0.erase_blk_en ? "true" :
 	       "false");
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Number of erasable write blocks: %u blocks\n",
 	       ((csd.v2_0.sector_size_high << 1) | csd.sector_size_low) + 1);
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Maximum write block length: %u bytes\n",
 	       1 << csd.write_bl_len);
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Maximum read block length: %u bytes\n",
 	       1 << csd.v2_0.read_bl_len);
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Card size: %uKi (512 byte) blocks = %uKiB\n", csd.v2_0.c_size+1,
 	       (csd.v2_0.c_size+1) << 9);
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Card contents copied: %s\n", csd.copy ? "true" : "false");
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Permanent write protect: %s\n", csd.perm_write_protect ?
 	       "true" : "false");
       CONSOLE_PUTS(output_buffer);
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "Temporary write protect: %s\n", csd.tmp_write_protect ?
 	       "true" : "false");
       CONSOLE_PUTS(output_buffer);
@@ -338,7 +361,7 @@ uint32_t sdhc_initialize(void) {
      boot sector */
   if((read_FAT_entry(rca, 0) & LSBbyteMask) != BPB_Media) {
     if(MICRO_SD_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****The LSB of FAT[0] is not equal to BPB_Media from the boot sector*****\n");
       CONSOLE_PUTS(output_buffer);
     }
@@ -346,7 +369,7 @@ uint32_t sdhc_initialize(void) {
   /* the high-order three bytes of FAT[0] must be 0xfffff */
   if(((read_FAT_entry(rca, 0) & ~LSBbyteMask) >> 8) != 0xfffff) {
     if(MICRO_SD_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****The high-order three bytes of FAT[0] are not equal to 0xFFFFF*****\n");
       CONSOLE_PUTS(output_buffer);
     }
@@ -357,7 +380,7 @@ uint32_t sdhc_initialize(void) {
      FAT_ENTRY_RESERVED_TO_END) */
   if(read_FAT_entry(rca, 1) < FAT_ENTRY_RESERVED_TO_END) {
     if(MICRO_SD_INFORMATIVE_PRINTF) {
-      snprintf(output_buffer, MICRO_SD_OUTPUT_BUFFER_SIZE,
+      snprintf(output_buffer, sizeof(output_buffer),
 	       "*****The low-order 28 bits of FAT[1] are not equal to the EOC*****\n");
       CONSOLE_PUTS(output_buffer);
     }

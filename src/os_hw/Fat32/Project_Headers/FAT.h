@@ -9,6 +9,8 @@
  * Written by James L. Frankel (frankel@seas.harvard.edu)
  *
  * Copyright (c) 2021 James L. Frankel.  All rights reserved.
+ *
+ * Last updated: 10:17 PM 10-Mar-2021
  */
 
 #ifndef _FAT_H
@@ -37,6 +39,8 @@
 /* When writing a FAT entry, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE should be used
    for the last allocated cluster in a directory or file */
 #define FAT_ENTRY_ALLOCATED_AND_END_OF_FILE 0x0fffffff
+
+/* This module implements a single sector write-through FAT cache */
 
 /* Returns the FAT entry for cluster "cluster" */
 /*   rca is the Relative Card Address returned from sdhc_initialize */

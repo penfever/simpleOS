@@ -104,9 +104,9 @@ uint8_t getCurrentPid(){
 /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
 address of the next struct in memory. */
 struct mem_region* walk_struct(struct mem_region* this_region){
-    int incr_size = this_region->size;
-    this_region = &this_region->data[0];
-    this_region += incr_size/sizeof(this_region);
+    //int incr_size = this_region->size;
+    //this_region += incr_size/sizeof(this_region);
+    this_region = this_region->data + this_region->size;
     return this_region;
 }
 

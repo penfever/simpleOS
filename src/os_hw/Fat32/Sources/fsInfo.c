@@ -9,6 +9,8 @@
  * Written by James L. Frankel (frankel@seas.harvard.edu)
  *
  * Copyright (c) 2021 James L. Frankel.  All rights reserved.
+ *
+ * Last updated: 9:32 PM 8-Mar-2021
  */
 
 #include <stdio.h>
@@ -41,12 +43,12 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
 
   uint32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(FSInfo_sector_p->FSI_LeadSig);
   if(FSI_DEBUG) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Lead Signature (FSI_LeadSig): 0x%08lX\n", uint32);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint32 != FSI_LEADSIG_REQDVAL) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "*****The Lead Signature is not valid, should be 0x%08X*****\n",
 	     FSI_LEADSIG_REQDVAL);
     CONSOLE_PUTS(output_buffer);
@@ -69,12 +71,12 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
 
   uint32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(FSInfo_sector_p->FSI_StrucSig);
   if(FSI_DEBUG) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Struc Signature (FSI_StrucSig): 0x%08lX\n", uint32);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint32 != FSI_STRUCSIG_REQDVAL) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "*****The Struc Signature is not valid, should be 0x%08X*****\n",
 	     FSI_STRUCSIG_REQDVAL);
     CONSOLE_PUTS(output_buffer);
@@ -83,7 +85,7 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
   FSI_Free_Count =
     LITTLE_ENDIAN_4_BYTES_TO_UINT32(FSInfo_sector_p->FSI_Free_Count);
   if(FSI_DEBUG) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Last known free cluster count on the volume (FSI_Free_Count): %lu (0x%08lX)\n",
 	     FSI_Free_Count, FSI_Free_Count);
     CONSOLE_PUTS(output_buffer);
@@ -92,11 +94,11 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
     if(FSI_DEBUG)
       CONSOLE_PUTS("The Last known free cluster count on the volume is unknown\n");
   } else if(FSI_Free_Count > total_data_clusters) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "*****Last known free cluster count on the volume (FSI_Free_Count): %lu (0x%08lX)\n",
 	     total_data_clusters, total_data_clusters);
     CONSOLE_PUTS(output_buffer);
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "\texceeds the total number of data clusters on the volume: %lu (0x%08lX)*****\n",
 	     total_data_clusters, total_data_clusters);
     CONSOLE_PUTS(output_buffer);
@@ -104,7 +106,7 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
 
   FSI_Nxt_Free = LITTLE_ENDIAN_4_BYTES_TO_UINT32(FSInfo_sector_p->FSI_Nxt_Free);
   if(FSI_DEBUG) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Next free cluster on the volume (FSI_Nxt_Free): %lu (0x%08lX)\n",
 	     FSI_Nxt_Free, FSI_Nxt_Free);
     CONSOLE_PUTS(output_buffer);
@@ -130,12 +132,12 @@ void FSInfo_sector_read(uint32_t rca, uint32_t block_address) {
 
   uint32 = LITTLE_ENDIAN_4_BYTES_TO_UINT32(FSInfo_sector_p->FSI_TrailSig);
   if(FSI_DEBUG) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Trail Signature (FSI_TrailSig): 0x%08lX\n", uint32);
     CONSOLE_PUTS(output_buffer);
   }
   if(uint32 != FSI_TRAILSIG_REQDVAL) {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "*****The Trail Signature is not valid, should be 0x%08X*****\n",
 	     FSI_TRAILSIG_REQDVAL);
     CONSOLE_PUTS(output_buffer);
@@ -163,13 +165,13 @@ void FSInfo_validate(uint32_t rca) {
   if(FSI_Free_Count == FSI_FREE_COUNT_UNKNOWN)
     CONSOLE_PUTS("Count of free clusters from the FSInfo sector: [Unknown]\n");
   else {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Count of free clusters from the FSInfo sector: %lu\n",
 	     FSI_Free_Count);
     CONSOLE_PUTS(output_buffer);
   }
 
-  snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+  snprintf(output_buffer, sizeof(output_buffer),
 	   "Count of free clusters from examining the entire FAT: %lu\n",
 	   countOfFreeClusters);
   CONSOLE_PUTS(output_buffer);
@@ -177,7 +179,7 @@ void FSInfo_validate(uint32_t rca) {
   if(FSI_Nxt_Free == FSI_NXT_FREE_UNKNOWN)
     CONSOLE_PUTS("Hint from FSInfo sector of first cluster for free cluster search: [Unknown]\n");
   else {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Hint from FSInfo sector of first cluster for free cluster search: %lu\n",
 	     FSI_Nxt_Free);
     CONSOLE_PUTS(output_buffer);
@@ -186,7 +188,7 @@ void FSInfo_validate(uint32_t rca) {
   if(lowestFreeCluster == 0xffffffff)
     CONSOLE_PUTS("No free clusters as determined by examining the FAT\n");
   else {
-    snprintf(output_buffer, FSI_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Lowest number free cluster from examining the FAT: %lu\n",
 	     lowestFreeCluster);
     CONSOLE_PUTS(output_buffer);

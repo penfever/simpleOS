@@ -31,7 +31,14 @@ void microSDCardDetectConfig(void);
 /* Routine to read the state of the microSD Card Detect switch */
 /* Returns true if the card is detected and false otherwise */
 int microSDCardDetectedUsingSwitch(void);
-/* Routine to read the state of the microSD Card internal resistor */
+/* Routine to read the state of the micro SD Card Detect using the 50k
+   Ohm (nominal value, specified range is 10k Ohm to 90k Ohm) pull-up
+   resistor inside the card.  The 50k Ohm resistor is connected
+   between the DAT3/CD pin and the Vcc/Vsd pin on power-up.  The
+   card's internal pull-up resistor should be disconnected during
+   regular data transmission with SET_CLR_CARD_DETECT (ACMD42)
+   command.  It is recommended that pull-down resistor is >270k Ohm to
+   fulfill the logic voltage level requirements. */
 /* The internal resistor is enabled when a card is inserted into the microSD
    slot, when new code is loaded into the K70, and when explicitly enabled by
    calling sdhc_command_send_set_clr_card_detect_connect */
@@ -46,6 +53,8 @@ int microSDCardDetectedUsingResistor(void);
 void microSDCardDisableCardDetectARMPullDownResistor(void);
 
 /* Initializes the SDHC interface */
+/* A microSDHC card must be present in the TWR-K70F120M microSD card slot
+   before calling this function */
 /* This must be called before calling any of the supplied functions except for
    microSDCardDetectConfig, microSDCardDetectedUsingSwitch,
    microSDCardDetectedUsingResistor, and
@@ -53,6 +62,8 @@ void microSDCardDisableCardDetectARMPullDownResistor(void);
 /* This function also disconnects the 50k Ohm pull-up resistor inside the SD
    card */
 /* Returns the rca (Relative Card Address) */
+/* After calling sdhc_initialize, all variables declared in the furnished
+   header files are appropriately initialized */
 uint32_t sdhc_initialize(void);
 
 enum sdhc_status {

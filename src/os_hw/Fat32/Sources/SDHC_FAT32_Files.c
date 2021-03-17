@@ -118,7 +118,7 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	}
 }
 
-int dir_get_cwd(int* logicalSector, uint8_t data[512]){
+int dir_get_cwd(int* logicalSector, uint8_t data[BLOCK]){
 	*logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     if(MYFAT_DEBUG){
     	printf("First sector of cluster: %d\n", *logicalSector);
@@ -130,7 +130,6 @@ int dir_get_cwd(int* logicalSector, uint8_t data[512]){
 }
 
 int dir_ls(int full){
-    uint8_t data[512];
     int err;
     //check if file system is mounted
     if (0 == MOUNT){
@@ -138,16 +137,16 @@ int dir_ls(int full){
     }
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     int* lsptr = &logicalSector;
-    err = dir_get_cwd(lsptr, data);
+    err = dir_get_cwd(lsptr, MOUNT->data);
     if (err != 0){
     	return err;
     }
     //TODO: verify this is a directory, return error otherwise
-    err = read_all(data, logicalSector, NULL);
+    err = read_all(MOUNT->data, logicalSector, NULL);
     return err;
 }
 
-int read_all(uint8_t data[512], int logicalSector, char* search){
+int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	int finished = 1;
 	int numSector = 0;
 	int totalSector = 0;
@@ -183,7 +182,7 @@ int read_all(uint8_t data[512], int logicalSector, char* search){
 	    return finished;
 }
 
-int dir_read_sector_search(uint8_t data[512], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
+int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
 		int i;
 	    struct dir_entry_8_3 *dir_entry;
 	    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
@@ -309,7 +308,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
     if (0 == MOUNT){
     	return E_NOINPUT; //TODO: create new error message
     }
-    uint8_t data[512];
+    uint8_t data[BLOCK];
     int logicalSector = 0;
     int* lsptr = &logicalSector;
     int err;
@@ -358,7 +357,13 @@ int dir_create_file(char *filename){
 
 int dir_create_dir_entry(char* filename, int len){
 	if (unused != NULL){ //if we already know where an unused dir_entry is, use that
-		dir_set_attr_newfile(filename, len);
+		//dir_set_attr_newfile(filename, len);
+		int i = 0;
+		for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
+			unused->DIR_Name[i] = (uint8_t)filename[i];
+		}
+		unused->DIR_Attr = DIR_ENTRY_ATTR_ARCHIVE;
+		unused->DIR_FileSize = (uint32_t)0;
 		if (MYFAT_DEBUG){
 			printf("File created at %p \n", unused);
 		}
@@ -369,7 +374,13 @@ int dir_create_dir_entry(char* filename, int len){
 	dir_ls(0);
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
-		dir_set_attr_newfile(filename, len);
+		int i = 0;
+		for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
+			unused->DIR_Name[i] = (uint8_t)filename[i];
+		}
+		unused->DIR_Attr = DIR_ENTRY_ATTR_ARCHIVE;
+		unused->DIR_FileSize = (uint32_t)0;
+		//dir_set_attr_newfile(filename, len);
 		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			printf("File created at %p \n", unused);
 		}
@@ -403,10 +414,10 @@ int dir_set_attr_newfile(char* filename, int len){
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
-	unused->DIR_Attr = 0x00;
+	unused->DIR_Attr = (uint8_t)0x00;
 	//unused->DIR_CrtTime;			/* Offset 14 */
 	//unused->DIR_CrtDate;			/* Offset 16 */
-	unused->DIR_FileSize = 0;
+	unused->DIR_FileSize = (uint32_t)0;
 	return 0;
 }
 
@@ -585,7 +596,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		return E_NOINPUT;
 	}
 	int i = 0;
-    uint8_t data[512];
+    uint8_t data[BLOCK];
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
@@ -655,7 +666,7 @@ int curr_sector_from_offset(struct stream* userptr){
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
-    uint8_t data[512];
+    uint8_t data[BLOCK];
     int logicalSector = 0;
     int* lsptr = &logicalSector;
     int err = dir_get_cwd(lsptr, data);

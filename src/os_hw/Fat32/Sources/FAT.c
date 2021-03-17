@@ -9,6 +9,8 @@
  * Written by James L. Frankel (frankel@seas.harvard.edu)
  *
  * Copyright (c) 2021 James L. Frankel.  All rights reserved.
+ *
+ * Last updated: 2:14 PM 16-Mar-2021
  */
 
 #include <stdlib.h>
@@ -31,6 +33,8 @@ static enum endianness {
   endian_little,
   endian_big
 } FAT_endian;
+
+/* This module implements a single sector write-through FAT cache */
 
 static void determineEndianness(void);
 
@@ -58,7 +62,7 @@ static void determineEndianness(void) {
   }
 
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Computer is %s endian\n",
 	     (FAT_endian == endian_little) ? "little" : "big");
     CONSOLE_PUTS(output_buffer);
@@ -74,7 +78,7 @@ uint32_t read_FAT_entry(uint32_t rca, uint32_t cluster) {
     FAT_0_origin_sector_for_cluster_num+first_FAT_sector;
   
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Reading FAT entry for cluster %lu\n", cluster);
     CONSOLE_PUTS(output_buffer);
   }
@@ -99,7 +103,7 @@ uint32_t read_FAT_entry(uint32_t rca, uint32_t cluster) {
   }
 
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "The FAT entry for cluster %lu is %lu (0x%08lX)\n", cluster,
 	     FAT_sector[FAT_entry_offset_in_sector],
 	     FAT_sector[FAT_entry_offset_in_sector]);
@@ -117,7 +121,7 @@ void write_FAT_entry(uint32_t rca, uint32_t cluster, uint32_t nextCluster) {
     FAT_0_origin_sector_for_cluster_num+first_FAT_sector;
   
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Writing FAT entry for cluster %lu to be %lu\n",
 	     cluster, nextCluster);
     CONSOLE_PUTS(output_buffer);
@@ -143,8 +147,9 @@ void write_FAT_entry(uint32_t rca, uint32_t cluster, uint32_t nextCluster) {
   }
 
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
-	     "The previous FAT entry for cluster %lu is %lu (0x%08lX)\n", cluster,
+    snprintf(output_buffer, sizeof(output_buffer),
+	     "The previous FAT entry for cluster %lu is %lu (0x%08lX)\n",
+	     cluster,
 	     FAT_sector[FAT_entry_offset_in_sector],
 	     FAT_sector[FAT_entry_offset_in_sector]);
     CONSOLE_PUTS(output_buffer);
@@ -159,7 +164,7 @@ void write_FAT_entry(uint32_t rca, uint32_t cluster, uint32_t nextCluster) {
   /* write the modified FAT sector to the main FAT in the file system */
   write_FAT(rca, (uint8_t *)FAT_sector, FAT_sector_to_access);
   /* write the modified FAT sector to the copy FAT in the file system */
-  write_FAT(rca, (uint8_t *)FAT_sector+sectors_per_FAT, FAT_sector_to_access);
+  write_FAT(rca, (uint8_t *)FAT_sector, FAT_sector_to_access+sectors_per_FAT);
   return;
 }
 
@@ -175,7 +180,7 @@ static void read_FAT(uint32_t rca, uint8_t *data, uint32_t sector) {
   struct sdhc_card_status card_status;
 
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Reading FAT sector %lu\n", sector);
     CONSOLE_PUTS(output_buffer);
   }
@@ -213,7 +218,7 @@ static void write_FAT(uint32_t rca, uint8_t *data, uint32_t sector) {
   struct sdhc_card_status card_status;
 
   if(FAT_DEBUG) {
-    snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+    snprintf(output_buffer, sizeof(output_buffer),
 	     "Writing FAT sector %lu\n", sector);
     CONSOLE_PUTS(output_buffer);
   }
@@ -292,7 +297,7 @@ int FAT_copy_verify(uint32_t rca) {
     if(memcmp(main_FAT_data, copy_FAT_data, bytes_per_sector) != 0) {
       compare_equal = 0;
       if(FAT_INFORMATIVE_PRINTF) {
-	snprintf(output_buffer, FAT_OUTPUT_BUFFER_SIZE,
+	snprintf(output_buffer, sizeof(output_buffer),
 		 "Sector #%lu of main FAT and sector #%lu of copy FAT are not the same\n", main_FAT_sector_number, copy_FAT_sector_number);
 	CONSOLE_PUTS(output_buffer);
       }

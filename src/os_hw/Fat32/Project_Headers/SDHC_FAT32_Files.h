@@ -8,10 +8,13 @@
 #define MYFAT_DEBUG_LITE 1
 #define DEBUG_CODE 3
 #define FOUND_AND_RETURNING 2
+#define BLOCK 512
 
 struct myfat_mount{
    uint32_t rca;
    uint32_t cwd_cluster;
+   uint8_t data[512];
+   uint8_t dirty;
 };
 
 extern struct myfat_mount *MOUNT;
