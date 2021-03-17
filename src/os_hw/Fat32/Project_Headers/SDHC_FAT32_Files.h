@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "directory for students.h"
 
-#define MYFAT_DEBUG 1
+#define MYFAT_DEBUG 0
 #define MYFAT_DEBUG_LITE 1
 #define DEBUG_CODE 3
 #define FOUND_AND_RETURNING 2

@@ -258,8 +258,8 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 			printf(" First Cluster: %lu\n", firstCluster);
 	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
 			}
-			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 8)); //TODO: this only compares filenames, not extensions
-	    	if(!noMatch){ //TODO: this may have trouble matching because of file extensions
+			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
+	    	if(!noMatch){
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
 	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
