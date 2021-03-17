@@ -235,7 +235,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
 	    		if(MYFAT_DEBUG){
-	    			printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
+	    			//printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
 	    		}
 	    		continue;
 	    	}
@@ -247,7 +247,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 	    	if(MYFAT_DEBUG){
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
-			printf("%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[0]);
+			printf("%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
 			//TODO: if FULL is true, print attr
 			printf("Attributes: ");
 			dir_entry_print_attributes(dir_entry);
@@ -646,7 +646,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		}
 		else{
 			memcpy(bufp, data, BLOCK); //TODO: Should I be copying this much memory? Not always
-			//sscanf(data, "%s", bufp);
 		}
 		i += bytes_per_sector;
 		logicalSector ++;

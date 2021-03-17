@@ -14,23 +14,23 @@ int main(void){
     printf("Card mounted. \n");
     dir_set_cwd_to_root();
     //DIR_LS_TESTING
-    //dir_ls(0);
-    //printf("Directory listed \n");
+    dir_ls(0);
+    printf("Directory listed \n");
     //FILE_OPEN_CLOSE_TESTING
-    file_descriptor myFile = 0;
+    //file_descriptor myFile = 0;
     ///file_descriptor* fileptr = myFile;
-    char *filename = "MARS    ";
-    file_open(filename, &myFile);
-    printf("%p \n", myFile);
+    //char *filename = "MARS    ";
+    //file_open(filename, &myFile);
+    //printf("%p \n", myFile);
     //FILE_READ TESTING
-    char bufp[512];
-    int read = 0;
-    int* charsreadp = &read;
-    error = file_getbuf(myFile, bufp, 512, charsreadp);
-    bufp[512] = '\0';
-    printf("%s \n", bufp); //TODO: fix this so it prints?
-    printf("%d \n", read);
-    file_close(myFile);
+    //char bufp[512];
+    //int read = 0;
+    //int* charsreadp = &read;
+    //error = file_getbuf(myFile, bufp, 512, charsreadp);
+    //bufp[512] = '\0';
+    //printf("%s \n", bufp); //TODO: fix this so it prints?
+    //printf("%d \n", read);
+    //file_close(myFile);
     //CREATE_FILE TESTING
     //file_descriptor* fileptrTwo = NULL;
     //char *filenameTwo = "TESTB   TXT";
