@@ -14,11 +14,10 @@ int main(void){
     printf("Card mounted. \n");
     dir_set_cwd_to_root();
     //DIR_LS_TESTING
-    //dir_ls(0);
-    //printf("Directory listed \n");
+//    dir_ls(0);
+//    printf("Directory listed \n");
     //FILE_OPEN_CLOSE_TESTING
     file_descriptor myFile = 0;
-    //file_descriptor* fileptr = myFile;
     char *filename = "MARS    TXT";
     file_open(filename, &myFile);
     printf("%p \n", myFile);
@@ -32,12 +31,12 @@ int main(void){
     printf("%d \n", read);
     file_close(myFile);
     //CREATE_FILE TESTING
-    //file_descriptor* fileptrTwo = NULL;
-    //char *filenameTwo = "TESTB   TXT";
-    //dir_create_file(filenameTwo);
-    //char *filenameS = "TESTB   ";
-    //file_open(filenameS, fileptrTwo);
-    //printf("%p \n", *fileptrTwo); //TODO: the search is failing, it's getting last entry in directory
+    file_descriptor fileptrTwo = 0;
+//    char *filenameTwo = "TESTC   TXT";
+//    dir_create_file(filenameTwo);
+//    char *filenameS = "TESTC   TXT";
+//    file_open(filenameS, &fileptrTwo);
+//    printf("%p \n", fileptrTwo); //TODO: the search is failing, it's getting last entry in directory
     file_structure_umount();
     return 0;
 }

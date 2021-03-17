@@ -199,6 +199,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
 	    		//we've reached the end of the directory
+	    		if (search != NULL){
+	    			return E_NOINPUT; //TODO: file not found error
+	    		}
 	    		if (g_unusedSeek == TRUE){
 	    			int err = dir_extend_dir(dir_entry, i, logicalSector, currCluster);//TODO: implement directory extending function
 	    			if (err != 0){
@@ -265,7 +268,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
 	    		latest = dir_entry;
-	    		return (int)clusterAddr;//TODO: risk of truncation?
+	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
 	    	if(MYFAT_DEBUG){
 			printf(" Size: %lu\n", dir_entry->DIR_FileSize);
@@ -313,7 +316,7 @@ int dir_ls_next(void *statep, char *filename){
  * Returns an error code if filename is not in the cwd
  * Returns an error code if the filename is a directory
  */
-int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
+int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: this function should return error codes, it doesn't. It should be taking a cluster as an arg, it doesn't.
     //if (temp->pid != getCurrentPid()){ //case: PIDs do not match
     //    return E_FREE_PERM;
     //}
@@ -322,14 +325,16 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: error check
     }
     uint8_t data[BLOCK];
     int logicalSector = 0;
-    int* lsptr = &logicalSector;
     int err;
-    err = dir_get_cwd(lsptr, data);
+    err = dir_get_cwd(&logicalSector, data);
     if (err != 0){
     	return err;
     }
-    err = read_all(data, logicalSector, filename); //TODO: I could just have dir_ls take filename as its argument
-    return err; //TODO: is this the best way to return this information?
+    if ((err = read_all(data, logicalSector, filename)) != 0){
+    	return err; //TODO: I could just have dir_ls take filename as its argument
+    }
+    *firstCluster = (latest->DIR_FstClusLO | latest->DIR_FstClusHI << 0);
+    return 0;
 }
 
 /**
@@ -352,15 +357,14 @@ int dir_set_cwd_to_filename(char *filename){
  */
 int dir_create_file(char *filename){
 	int len = strlen(filename);
-	//uint32_t myCluster = 0;
-	//uint32_t* myClusterPtr = &myCluster;
 	int err;
 	if ((err = filename_verify(filename, len)) != 0){
 		return err;
 	}
-	//if (dir_find_file(filename, myClusterPtr) > 0){ TODO: re-implement this error check before submitting (skipped for speed)
-	//	return E_NOINPUT;
-	//}
+	uint32_t myCluster;
+	if (dir_find_file(filename, &myCluster) == 0){
+		return E_NOINPUT; //if file is found to exist, return error -- cannot create
+	}
 	MOUNT->dirty = TRUE;
 	if ((dir_create_dir_entry(filename, len) != 0)){
 		return E_NOINPUT;
@@ -503,6 +507,10 @@ uint32_t find_free_cluster(){
  * Returns an error code if the file with this name is a directory
  */
 int dir_delete_file(char *filename){
+	uint32_t myCluster = 0;
+	if ((myCluster = dir_find_file(filename, &myCluster)) <= 2){ //if file is not found
+		return E_NOINPUT;
+	}
     //find file
 	//if it's 0, return an error
 	//otherwise, change file entry to UNUSED
@@ -536,10 +544,10 @@ int dir_delete_dir(char *filename){
  * This should only be receiving FAT32 files and directories
  */
 int file_open(char *filename, file_descriptor *descrp){
-	uint32_t fileCluster = dir_find_file(filename, MOUNT->cwd_cluster);
-		if (fileCluster <= 2){
-			return E_NOINPUT; //TODO: error handling
-		}
+	uint32_t fileCluster;
+	if ((dir_find_file(filename, &fileCluster)) != 0){
+		return E_NOINPUT;
+	}
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		return E_UNFREE;
@@ -608,12 +616,12 @@ int file_close(file_descriptor descr){
  */
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE || buflen <= 0){
+	if (find_curr_stream(userptr) == FALSE || buflen <= 0 || userptr->clusterAddr == 0){
 		return E_NOINPUT;
 	}
+    uint32_t numCluster = userptr->clusterAddr;
 	int i = 0;
     uint8_t data[BLOCK];
-    uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
     while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
@@ -634,18 +642,13 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	    	__BKPT();
 	    }
 		if (buflen - i < bytes_per_sector){
-			for (int j = 0; j < buflen - i; j++){
-				char c = data[j];
-				sscanf(c, "%s", bufp);
-			}
-			char c = '\0';
-			sscanf(c, "%s", bufp); //TODO: do IO buffers have to be exactly the same size for sscanf to work?
+			memcpy(bufp, data, buflen-i); //TODO: testing
 			userptr->cursor += i;
 			*charsreadp = i;
 		    return 0;
 		}
 		else{
-			memcpy(bufp, data, BLOCK); //TODO: Should I be copying this much memory? Not always
+			memcpy(bufp, data, BLOCK);
 		}
 		i += bytes_per_sector;
 		logicalSector ++;
@@ -656,8 +659,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
         	numSector = 0;
 	    }
 	}
-	//char c = '/0'; //TODO: do IO buffers have to be exactly the same size for sscanf to work?
-	//sscanf(c, "%s", bufp);
 	userptr->cursor += i;
 	*charsreadp = i;
     return 0;
@@ -684,22 +685,26 @@ int curr_sector_from_offset(struct stream* userptr){
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     uint8_t data[BLOCK];
     int logicalSector = 0;
-    int* lsptr = &logicalSector;
-    int err = dir_get_cwd(lsptr, data);
+    int err = dir_get_cwd(&logicalSector, data);
 	if (buflen <= 0 || err != 0){
 		return E_NOINPUT;
 	}
     struct dir_entry_8_3* cwd = (struct dir_entry_8_3*)data;
 	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
 	// if it is a dir_entry AND the file it points to is filesize 0, then ...
-	uint32_t emptyCluster = find_free_cluster();
-    if (emptyCluster == 0){
-    	return E_FREE; //TODO: check error number
-    }
-    write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+	uint32_t emptyCluster;
+	if (userptr->clusterAddr == 0){
+		emptyCluster = find_free_cluster();
+	    if (emptyCluster == 0){
+	    	return E_FREE; //TODO: check error number
+	    }
+	    write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+	}
+	//TODO: write the data from bufp to the file
     err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
     if (err != 0){
     	return E_NOINPUT; //file entry not found in directory?
+    	//TODO: undo all the writing?
     }
     return 0;
 }
