@@ -13,6 +13,7 @@
 struct myfat_mount{
    uint32_t rca;
    uint32_t cwd_cluster;
+   uint32_t writeSector;
    uint8_t data[512];
    uint8_t dirty;
 };

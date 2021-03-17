@@ -36,7 +36,7 @@ struct sdhc_card_status card_status;
 struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry of successful search
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cwd = NULL;
-int g_unusedSeek = FALSE;
+static int g_unusedSeek = FALSE;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -94,6 +94,16 @@ int dir_set_cwd_to_root(void){
     }
     printf("Card not mounted\n");
     return 0;}
+
+int write_cache(){
+	if (MOUNT->dirty == TRUE){
+	    if(SDHC_SUCCESS != sdhc_write_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){
+	    	return E_NOINPUT; //TODO: create new error message
+	    }
+		MOUNT->dirty = FALSE;
+	}
+	return 0;
+}
 
 /**
  * Display on stdout the cwd's filenames (full == 0) or all directory
@@ -194,6 +204,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if (err != 0){
 	    				__BKPT();//TODO: error check
 	    			}
+	    			MOUNT->writeSector = logicalSector;
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
@@ -212,6 +223,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
 	    			}
+	    			MOUNT->writeSector = logicalSector;
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
@@ -340,8 +352,8 @@ int dir_set_cwd_to_filename(char *filename){
  */
 int dir_create_file(char *filename){
 	int len = strlen(filename);
-	uint32_t myCluster = 0;
-	uint32_t* myClusterPtr = &myCluster;
+	//uint32_t myCluster = 0;
+	//uint32_t* myClusterPtr = &myCluster;
 	int err;
 	if ((err = filename_verify(filename, len)) != 0){
 		return err;
@@ -349,9 +361,11 @@ int dir_create_file(char *filename){
 	//if (dir_find_file(filename, myClusterPtr) > 0){ TODO: re-implement this error check before submitting (skipped for speed)
 	//	return E_NOINPUT;
 	//}
+	MOUNT->dirty = TRUE;
 	if ((dir_create_dir_entry(filename, len) != 0)){
 		return E_NOINPUT;
 	}
+	write_cache();
     return 0;
 }
 
@@ -375,12 +389,7 @@ int dir_create_dir_entry(char* filename, int len){
 	g_unusedSeek = FALSE;
 	if (unused != NULL){
 		int i = 0;
-		for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
-			unused->DIR_Name[i] = (uint8_t)filename[i];
-		}
-		unused->DIR_Attr = DIR_ENTRY_ATTR_ARCHIVE;
-		unused->DIR_FileSize = (uint32_t)0;
-		//dir_set_attr_newfile(filename, len);
+		dir_set_attr_newfile(filename, len);
 		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			printf("File created at %p \n", unused);
 		}
@@ -415,9 +424,16 @@ int dir_set_attr_newfile(char* filename, int len){
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
 	unused->DIR_Attr = (uint8_t)0x00;
-	//unused->DIR_CrtTime;			/* Offset 14 */
-	//unused->DIR_CrtDate;			/* Offset 16 */
-	unused->DIR_FileSize = (uint32_t)0;
+	unused->DIR_NTRes = 0;		/* Offset 12 */
+	unused->DIR_CrtTimeHundth = 0;		/* Offset 13 */
+	unused->DIR_CrtTime = 0;			/* Offset 14 */
+	unused->DIR_CrtDate = 0;			/* Offset 16 */
+	unused->DIR_LstAccDate = 0;		/* Offset 18 */
+	unused->DIR_FstClusHI = 0;		/* Offset 20 */
+	unused->DIR_WrtTime = 0;			/* Offset 22 */
+	unused->DIR_WrtDate = 0;			/* Offset 24 */
+	unused->DIR_FstClusLO = 0;		/* Offset 26 */
+	unused->DIR_FileSize = 0;
 	return 0;
 }
 
@@ -629,7 +645,8 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		    return 0;
 		}
 		else{
-			sscanf(data, "%s", bufp);
+			memcpy(bufp, data, BLOCK); //TODO: Should I be copying this much memory? Not always
+			//sscanf(data, "%s", bufp);
 		}
 		i += bytes_per_sector;
 		logicalSector ++;
