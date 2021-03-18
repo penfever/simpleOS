@@ -697,13 +697,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	}
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
-    uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
-    while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
-    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector -= sectors_per_cluster;
-    }
-    logicalSector += numSector;
+    uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset
     // if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
     	//__BKPT(); TODO: Breakpoint triggers before function?
     //}
@@ -751,13 +745,19 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	return 0;
 }
 
-int curr_sector_from_offset(struct stream* userptr){
+int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t numCluster){
 	int numSector = 0;
 	int cursor = userptr->cursor;
 	while (cursor > bytes_per_sector){
 		numSector ++;
 		cursor -= bytes_per_sector;
 	}
+    while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
+    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+    	*logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+    	numSector -= sectors_per_cluster;
+    }
+    *logicalSector += numSector;
 	return numSector;
 }
 
@@ -770,6 +770,8 @@ int curr_sector_from_offset(struct stream* userptr){
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
+	int charsread = 0;
+	int *charsreadp = &charsread;
     uint8_t data[BLOCK];
     int logicalSector = 0;
     int err = dir_get_cwd(&logicalSector, data);
@@ -787,8 +789,10 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	    }
 	    write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
 	}
+	
 	//TODO: write the data from bufp to the file
-    err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
+    
+	err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
     if (err != 0){
     	return E_NOINPUT; //file entry not found in directory?
     	//TODO: undo all the writing?

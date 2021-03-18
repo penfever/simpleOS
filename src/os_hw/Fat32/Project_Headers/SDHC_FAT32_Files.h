@@ -182,7 +182,7 @@ struct stream* find_open_stream();
 
 int find_curr_stream(struct stream* fileptr);
 
-int curr_sector_from_offset(struct stream* userptr);
+int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t numCluster);
 
 uint32_t find_free_cluster();
 
