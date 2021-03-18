@@ -209,7 +209,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			return E_NOINPUT; //TODO: file not found error
 	    		}
 	    		if (g_unusedSeek == TRUE){
-	    			MOUNT->data = data;
+	    			*MOUNT->data = *data;
 	    			MOUNT->writeSector = logicalSector;
 	    			int err = dir_extend_dir(i, currCluster);//TODO: implement directory extending function
 	    			if (err != 0){
@@ -294,6 +294,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
 	    		latest = dir_entry;
+	    		if (dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY){
+	    			return -20; //TODO: label this as E_DIRENTRY
+	    		}
 	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
 	    	if(MYFAT_DEBUG){
@@ -441,7 +444,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)nextData[512];
 	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
 	    MOUNT->writeSector += 1;
-	    MOUNT->data = nextData;
+	    *MOUNT->data = *nextData;
 	}
 	//CASE 3, new cluster reqd
 	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector == sectors_per_cluster){
@@ -449,7 +452,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 		MOUNT->dirty = TRUE;
 	    write_cache();
 	    uint32_t nextCluster;
-		write_FAT_entry(MOUNT->rca, curr_cluster, nextCluster);
+		write_FAT_entry(MOUNT->rca, currCluster, nextCluster);
 		if(nextCluster == 0){ //TODO: check slides. Is this correct error checking?
 			if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 				printf("No free cluster found. The disk may be full \n");
@@ -614,14 +617,17 @@ int dir_delete_dir(char *filename){
  */
 int file_open(char *filename, file_descriptor *descrp){
 	uint32_t fileCluster;
-	if ((dir_find_file(filename, &fileCluster)) != 0){
-		return E_NOINPUT;
+	int err;
+	if (((err = dir_find_file(filename, &fileCluster))) != 0){
+		if (err == -20 && MYFAT_DEBUG){
+			printf("Opening directories has not yet been implemented. \n");
+		}
+		return err;
 	}
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		return E_UNFREE;
 	}
-	//if it is a directory, return error. TODO: figure out how to open directories
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
 	userptr->deviceType = FAT32;
@@ -630,7 +636,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
 	userptr->cursor = 0;
-    *descrp = userptr;
+    *descrp = (file_descriptor*)userptr;
 	return 0;
 }
 
@@ -685,6 +691,7 @@ int file_close(file_descriptor descr){
  */
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	struct stream* userptr = (struct stream*)descr;
+	*charsreadp = 0;
 	if (find_curr_stream(userptr) == FALSE || buflen <= 0 || userptr->clusterAddr == 0){
 		return E_NOINPUT;
 	}
@@ -704,83 +711,44 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 		return E_NOINPUT;
 	}
 	int pos = userptr->cursor;
-	int end = buflen + userptr->cursor;
+	const int end = buflen + userptr->cursor;
     uint8_t data[BLOCK];
+    int offBlock = userptr->cursor - BLOCK*numSector; //offset of data block and cursor mod 512
+    //offset of bufp will be tracked by charsreadp
 	while (pos < end){
-	    if (numSector > sectors_per_cluster){
+		uint32_t diff = end - pos;
+		uint32_t blockDiff = BLOCK - offBlock;
+	    if (numSector > sectors_per_cluster){ //jump to next cluster, if needed
 	    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
 	    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
         	numSector = 0;
 	    }
-		int diff = end - pos;
-	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-	    	__BKPT(); //TODO: error check
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //read next block into memory
+	    	return E_NOINPUT;
 	    }
-		if (diff < bytes_per_sector && (diff + pos) < (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, all in one sector
-			memcpy(&bufp[*charsreadp], data, diff);
-			userptr->cursor += diff;
-			*charsreadp += diff;
-		    return 0;
-		}
-		else if (diff < bytes_per_sector && (diff + pos) > (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, divided between two sectors
-			int smlDif = bytes_per_sector-pos;
-			memcpy(&bufp[*charsreadp], &data[pos], smlDif);
-			pos += smlDif;
-			userptr->cursor += smlDif;
-			*charsreadp += smlDif;
-			logicalSector ++;
-			numSector ++;
-		    if (numSector > sectors_per_cluster){
-		    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-		    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-	        	numSector = 0;
-		    }
-		    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-		    	return E_NOINPUT; //TODO: error check
-		    }
-			diff = end - pos;
-		    memcpy(&bufp[*charsreadp], data, diff);
-			userptr->cursor += diff;
-			*charsreadp += diff;
-		    return 0;
-		}
-		else if (diff > bytes_per_sector && ((diff + pos) % BLOCK) != 0) { //case: more than 512 bytes remain, sector boundaries not aligned
-			int smlPos = (numSector+1)*bytes_per_sector-pos;
-			int smlDif = (diff + pos) % BLOCK;
-			memcpy(bufp, &data[smlDif], smlPos);
-			pos += smlPos;
-			userptr->cursor += smlPos;
-			*charsreadp += smlPos;
-			logicalSector ++;
-			numSector ++;
-			while (diff > bytes_per_sector){
-			    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-			    	return E_NOINPUT; //TODO: error check
-			    }
-				memcpy(&bufp[*charsreadp], data, BLOCK);
-				pos += BLOCK;
-				diff = end - pos;
-				userptr->cursor += BLOCK;
-				*charsreadp += BLOCK;
-				logicalSector ++;
-				numSector ++;
-			    if (numSector > sectors_per_cluster){
-			    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-			    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-		        	numSector = 0;
-			    }
-			}
-		}
-		else{ //case: exact mults of 512 bytes remain, sector boundaries aligned
-			memcpy(&bufp[*charsreadp], data, BLOCK);
-			pos += BLOCK;
-			userptr->cursor += BLOCK;
-			*charsreadp += BLOCK;
-			logicalSector ++;
-			numSector ++;
-		}
+	    if (diff <= blockDiff){ //if fewer than 512 chars remain and last sector has been read
+	    	memcpy(&bufp[*charsreadp], &data[offBlock], diff);
+	    	*charsreadp += diff;
+			pos  += diff;
+	    	break;
+	    }
+	    else if (diff < BLOCK && diff > blockDiff){ //if fewer than 512 chars remain and last sector has NOT been read
+			memcpy(&bufp[*charsreadp], &data[offBlock], blockDiff); //read remaining chars from block into buffer
+			pos  += blockDiff;
+			*charsreadp += blockDiff;
+			offBlock = 0;
+	    }
+	    else{ //>512 chars remain
+	    	memcpy(&bufp[*charsreadp], &data[offBlock], blockDiff);
+			pos  += blockDiff;
+			*charsreadp += blockDiff;
+			offBlock = 0;
+	    }
+		logicalSector ++;
+		numSector ++;
 	}
-    return 0;
+	userptr->cursor = pos;
+	return 0;
 }
 
 int curr_sector_from_offset(struct stream* userptr){

@@ -186,7 +186,7 @@ int curr_sector_from_offset(struct stream* userptr);
 
 uint32_t find_free_cluster();
 
-int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logicalSector, uint32_t currCluster);
+int dir_extend_dir(int dirPos, uint32_t currCluster);
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
 
