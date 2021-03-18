@@ -681,31 +681,62 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	    	__BKPT(); //TODO: error check
 	    }
 		if (diff < bytes_per_sector && (diff + pos) < (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, all in one sector
-			memcpy(bufp, data, diff);
+			memcpy(&bufp[*charsreadp], data, diff);
 			userptr->cursor += diff;
 			*charsreadp += diff;
 		    return 0;
 		}
 		else if (diff < bytes_per_sector && (diff + pos) > (numSector+1)*bytes_per_sector){ //case: less than 512 bytes remain, divided between two sectors
 			int smlDif = bytes_per_sector-pos;
-			memcpy(bufp, &data[pos], smlDif);
+			memcpy(&bufp[*charsreadp], &data[pos], smlDif);
 			pos += smlDif;
 			userptr->cursor += smlDif;
 			*charsreadp += smlDif;
 			logicalSector ++;
 			numSector ++;
+		    if (numSector > sectors_per_cluster){
+		    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+		    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+	        	numSector = 0;
+		    }
+		    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+		    	return E_NOINPUT; //TODO: error check
+		    }
+			diff = end - pos;
+		    memcpy(&bufp[*charsreadp], data, diff);
+			userptr->cursor += diff;
+			*charsreadp += diff;
+		    return 0;
 		}
-		else if (diff > bytes_per_sector && diff % 512 != 0) { //case: more than 512 bytes remain, sector boundaries not aligned
-			int smlDif = 512 - diff;
-			memcpy(bufp, &data[pos], smlDif);
-			pos += smlDif;
-			userptr->cursor += smlDif;
-			*charsreadp += smlDif;
+		else if (diff > bytes_per_sector && ((diff + pos) % BLOCK) != 0) { //case: more than 512 bytes remain, sector boundaries not aligned
+			int smlPos = (numSector+1)*bytes_per_sector-pos;
+			int smlDif = (diff + pos) % BLOCK;
+			memcpy(bufp, &data[smlDif], smlPos);
+			pos += smlPos;
+			userptr->cursor += smlPos;
+			*charsreadp += smlPos;
 			logicalSector ++;
-			numSector ++;			
+			numSector ++;
+			while (diff > bytes_per_sector){
+			    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
+			    	return E_NOINPUT; //TODO: error check
+			    }
+				memcpy(&bufp[*charsreadp], data, BLOCK);
+				pos += BLOCK;
+				diff = end - pos;
+				userptr->cursor += BLOCK;
+				*charsreadp += BLOCK;
+				logicalSector ++;
+				numSector ++;
+			    if (numSector > sectors_per_cluster){
+			    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+			    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+		        	numSector = 0;
+			    }
+			}
 		}
-		else{ //case: more than 512 bytes remain, sector boundaries aligned
-			memcpy(bufp, data, BLOCK);
+		else{ //case: exact mults of 512 bytes remain, sector boundaries aligned
+			memcpy(&bufp[*charsreadp], data, BLOCK);
 			pos += BLOCK;
 			userptr->cursor += BLOCK;
 			*charsreadp += BLOCK;
