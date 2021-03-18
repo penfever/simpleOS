@@ -39,6 +39,7 @@ struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cwd = NULL;
 static int g_unusedSeek = FALSE;
 static int g_deleteFlag = FALSE;
+static int* g_numSector = 0;
 struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
 
 int file_structure_mount(void){ //TODO: integrate with myerror
@@ -162,6 +163,7 @@ int dir_ls(int full){
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	int finished = 1;
 	int numSector = 0;
+	g_numSector = &numSector;
 	int totalSector = 0;
 	uint32_t currCluster = MOUNT->cwd_cluster;
 	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
@@ -207,16 +209,15 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			return E_NOINPUT; //TODO: file not found error
 	    		}
 	    		if (g_unusedSeek == TRUE){
-	    			int err = dir_extend_dir(dir_entry, i, logicalSector, currCluster);//TODO: implement directory extending function
+	    			MOUNT->data = data;
+	    			MOUNT->writeSector = logicalSector;
+	    			int err = dir_extend_dir(i, currCluster);//TODO: implement directory extending function
 	    			if (err != 0){
 	    				__BKPT();//TODO: error check
 	    			}
 	    			err = load_cache(dir_entry, logicalSector);
 	    			if (err != 0){
 	    				__BKPT();
-	    			}
-	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-		    			printf("Sector %d, entry %d goes to write cache, address %p\n", logicalSector, i, unused);
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
@@ -418,23 +419,58 @@ int dir_create_file(char *filename){
     return 0;
 }
 
-int dir_create_dir_entry(char* filename, int len){
-
-	return 0;
-}
-
-int dir_extend_dir(struct dir_entry_8_3* dir_entry, int dirPos, uint32_t logicalSector, uint32_t currCluster){
-	//Findeitheranunuseddirectoryentry (designated by DIR_ENTRY_UNUSED) 
-	//or, if no unused entry is found, extend the directory by adding an entry to the end
-	//•Extendingadirectorymaybeassimpleasusingtheentry tagged as DIR_ENTRY_LAST_AND_UNUSED 
-	//for the new entry and tagging the next entry as DIR_ENTRY_LAST_AND_UNUSED
-	//•But,if DIR_ENTRY_LAST_AND_UNUSED tags the last entry in a sector,thenextending 
-	//thedirectorymayrequire writing DIR_ENTRY_LAST_AND_UNUSED into the first directory entry in the next sector
-	//•However, if there are no more sectors in the current cluster, then the FAT needs to be searched to find a 
-	//free cluster and the FAT has to be updated to indicate that the formerly free cluster 
-	//willbelinkedafterthelastclusterinthedirectory•Then, the first directory entry in the first sector of the 
-	//newly allocated cluster would need to be tagged as DIR_ENTRY_LAST_AND_UNUSED
-	;
+int dir_extend_dir(int dirPos, uint32_t currCluster){
+	unused = (struct dir_entry_8_3*)MOUNT->data;
+	//CASE 1: more entries exist in sector
+	if (dirPos < bytes_per_sector/sizeof(struct dir_entry_8_3)){
+		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
+		unused ++;
+		unused->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
+		unused --;
+	}
+	//CASE 2: more sectors exist in cluster
+	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector < sectors_per_cluster){
+		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
+		MOUNT->dirty = TRUE;
+	    write_cache();
+	    
+		uint8_t nextData[512]; //load next sector in cluster
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector + 1, &card_status, nextData)){
+	    	return E_NOINPUT;
+	    }
+	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)nextData[512];
+	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
+	    MOUNT->writeSector += 1;
+	    MOUNT->data = nextData;
+	}
+	//CASE 3, new cluster reqd
+	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector == sectors_per_cluster){
+		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
+		MOUNT->dirty = TRUE;
+	    write_cache();
+	    uint32_t nextCluster;
+		write_FAT_entry(MOUNT->rca, curr_cluster, nextCluster);
+		if(nextCluster == 0){ //TODO: check slides. Is this correct error checking?
+			if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+				printf("No free cluster found. The disk may be full \n");
+			}
+			return E_NOINPUT; //disk is probably full
+		}
+		MOUNT->writeSector = first_sector_of_cluster(nextCluster);
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){
+	    	return E_NOINPUT;
+	    }
+	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)MOUNT->data;
+	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
+	}
+	else{
+		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+			printf("An error occurred when attempting to extend the directory \n");
+		}
+		return E_NOINPUT; //some unexpected case came up
+	}
+	MOUNT->dirty = TRUE;
+	write_cache();
 	return 0;
 }
 
