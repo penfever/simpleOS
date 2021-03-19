@@ -790,14 +790,18 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read next block into memory
     	return E_NOINPUT;
     }
-    if (userptr->clusterAddr == 0){
+    if (userptr->clusterAddr == 0){ //Assign first cluster
+    	uint32_t numCluster = find_free_cluster();
+    	if (numCluster == 0){
+    	 	return E_FREE; //TODO: check error number
+    	}
     	int err;
     	if ((err == dir_set_attr_firstwrite((uint8_t)buflen, dir_entry, numCluster))==0){
     	    return err; //file entry not found in directory?
     	    //TODO: undo all the writing?
     	}
-    	*MOUNT->data = (uint8_t)*dir_entry;
-    	MOUNT->writeSector = fileLogicalSector;
+    	*MOUNT->data = *dirData;
+    	MOUNT->writeSector = dirLogicalSector;
     	MOUNT->dirty = TRUE;
     	if ((err = write_cache()) != 0){
     		return err;
@@ -826,10 +830,9 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	}
 		travelCluster = read_FAT_entry(MOUNT->rca, travelCluster); //returns a FAT entry
     }
-    
     //uint8_t fileData[BLOCK];
 	uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
-    uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset (also changes logicalSector)
+    uint32_t numSector = curr_sector_from_offset(userptr, &fileLogicalSector, numCluster); //how many sectors to offset (also changes logicalSector)
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, MOUNT->data)){ //read next block into memory
     	return E_NOINPUT;
     }
@@ -883,8 +886,6 @@ find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluste
     	 	return E_FREE; //TODO: check error number
     	}
     	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //TODO: I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
-    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector = 0;
 		clusReq --;
 	}
 }
