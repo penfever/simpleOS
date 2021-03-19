@@ -188,7 +188,7 @@ uint32_t find_free_cluster();
 
 int dir_extend_dir(int dirPos, uint32_t currCluster);
 
-int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
+int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile);
 
 int dir_set_attr_newfile(char* filename, int len);
 

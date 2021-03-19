@@ -70,7 +70,7 @@ int main(void){
     error = file_getbuf(myOutFile, myBufpOut, 4096, &read);
     myBufpOut[4096] = '\0';
     file_descriptor myInFile = 0;
-    char *myInFileName = "TESTD   TXT";
+    char *myInFileName = "TESTG   TXT";
     error = dir_create_file(myInFileName);
     error = file_open(myInFileName, &myInFile);
     file_putbuf(myInFile, myBufpOut, 125);
@@ -80,6 +80,7 @@ int main(void){
     char* myBufpIn[762];
     error = file_getbuf(myInFile, myBufpIn, 762, &readTwo);
     printf("Result of getbuf was %d, read %d chars \n", error, read);
+    myBufpOut[762] = '\0';
     printf("%s \n", myBufpIn);
     file_close(myInFile);
     file_close(myOutFile);

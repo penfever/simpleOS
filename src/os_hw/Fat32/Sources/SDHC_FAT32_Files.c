@@ -499,11 +499,9 @@ int dir_set_attr_newfile(char* filename, int len){
 	return 0;
 }
 
-int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
-	uint16_t hiClus = (newFile & 0xFF00)/1000000000000000;
-	uint16_t loClus = (newFile & 0xFF);
-	writeEntry->DIR_FstClusHI =   //TODO: error check this math. mask the 16 low order bits of newFile;
-	writeEntry->DIR_FstClusLO =   //mask the 16 high order bits of newFile;
+int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
+	writeEntry->DIR_FstClusHI = newFile >> 16;  //TODO: error check this math. mask the 16 low order bits of newFile;
+	writeEntry->DIR_FstClusLO = newFile & 0x0000FFFF;  //mask the 16 high order bits of newFile;
 	//unused->DIR_WrtDate;
 	//unused->DIR_WrtTime;
 	writeEntry->DIR_FileSize = writeSize;
@@ -555,6 +553,7 @@ uint32_t find_free_cluster(){
 	    		if (MYFAT_DEBUG){
 	    			printf("FSI_Nxt_Free updated. \n");
 	    		}
+	        	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); 
 	    		return numCluster;
 	    	 }
 		}
@@ -570,7 +569,8 @@ uint32_t find_free_cluster(){
 	if (numCluster >= total_data_clusters+1){
 		return 0; //free cluster not found
 	}
-	FSI_Nxt_Free = numCluster; //Will this work?
+	FSI_Nxt_Free = FSI_NXT_FREE_UNKNOWN; //TODO: fix this so it updates to next free cluster
+	write_FAT_entry(MOUNT->rca, returnCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //TODO: I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
 	return returnCluster;
 }
 
@@ -812,7 +812,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	 	return E_FREE; //TODO: check error number
     	}
     	int err;
-    	if ((err == dir_set_attr_firstwrite((uint8_t)buflen, dir_entry, numCluster))==0){
+    	if ((err == dir_set_attr_firstwrite(buflen, dir_entry, numCluster)) != 0){
     	    return err; //file entry not found in directory?
     	    //TODO: undo all the writing?
     	}
@@ -822,8 +822,8 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	if ((err = write_cache()) != 0){
     		return err;
     	}
+    	userptr->clusterAddr = numCluster;
     }
-	uint32_t numCluster;
 	uint32_t travelCluster;
 	int pos = userptr->cursor;
 	const int end = buflen + userptr->cursor; //TODO: errcheck on end? Too large?
@@ -832,7 +832,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     if (end % 512 != 0){
     	clusReq += 1;
     }
-    numCluster = travelCluster = userptr->clusterAddr;
+    uint32_t numCluster = travelCluster = userptr->clusterAddr;
     for (int i = 0; i < clusReq; i ++){
     	if (i == clusJump){
     		numCluster = travelCluster; //Cluster where cursor should start
@@ -866,6 +866,11 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	    	memcpy(&MOUNT->data[offBlock], &bufp[*charsreadp], diff);
 	    	*charsreadp += diff;
 			pos  += diff;
+	    	MOUNT->writeSector = fileLogicalSector;
+	    	MOUNT->dirty = TRUE;
+	    	if ((err = write_cache()) != 0){
+	    		return err;
+	    	}
 	    	break;
 	    }
 	    else if (diff < BLOCK && diff > blockDiff){ //if fewer than 512 chars remain and last sector to be written is NOT in memory
