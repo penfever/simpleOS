@@ -546,6 +546,21 @@ uint32_t find_free_cluster(){
 	uint32_t returnCluster = 0;
 	if (FSI_Nxt_Free != FSI_NXT_FREE_UNKNOWN){
 		numCluster = FSI_Nxt_Free;
+		FSI_Nxt_Free = FSI_NXT_FREE_UNKNOWN;
+		while (returnCluster < total_data_clusters+1){
+	    	 returnCluster = read_FAT_entry(MOUNT->rca, numCluster);
+	    	 if (returnCluster == FAT_ENTRY_FREE){
+	    		FSI_Nxt_Free = returnCluster;
+	    		if (MYFAT_DEBUG){
+	    			printf("FSI_Nxt_Free updated. \n");
+	    		}
+	    		return numCluster;
+	    	 }
+		}
+		if (MYFAT_DEBUG){
+			printf("Drive is probably full. \n");
+		}
+		return numCluster;
 	}
 	while (numCluster < total_data_clusters+1 && returnCluster != FAT_ENTRY_FREE){
     	 returnCluster = read_FAT_entry(MOUNT->rca, numCluster);
@@ -631,7 +646,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	//populate struct in PCB with file data
 	userptr->deviceType = FAT32;
 	userptr->minorId = sdhc;
-	userptr->fileName = latest->DIR_Name;
+	userptr->fileName = filename;
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
 	userptr->cursor = 0;
