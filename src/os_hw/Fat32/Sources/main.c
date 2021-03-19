@@ -23,7 +23,7 @@ int main(void){
 //    printf("%p \n", myFile);
     //FILE_READ TESTING
 //    char bufp1[512];
-    int read = 0;
+//    int read = 0;
 //    error = file_getbuf(myFile, bufp1, 512, charsreadp);
 //    bufp1[512] = '\0';
 //    printf("%s \n", bufp1);
