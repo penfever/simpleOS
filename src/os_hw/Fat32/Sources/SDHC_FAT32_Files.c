@@ -273,7 +273,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 			dir_entry_print_attributes(dir_entry);
 			printf("\n");
 	    	}
-			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
+			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 			if(MYFAT_DEBUG){
 			printf(" First Cluster: %lu\n", firstCluster);
 	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
@@ -288,7 +288,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			dir_entry->DIR_Name[0] = DIR_ENTRY_UNUSED;
 	    			memcpy(MOUNT->data, data, BLOCK);
 	    		}
-	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
+	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
@@ -369,7 +369,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: this function
     if ((err = read_all(data, logicalSector, filename)) != 0){
     	return err; //TODO: I could just have dir_ls take filename as its argument
     }
-    *firstCluster = (latest->DIR_FstClusLO | latest->DIR_FstClusHI << 0);
+    *firstCluster = latest->DIR_FstClusLO | (latest->DIR_FstClusHI << 16);
     return 0;
 }
 
@@ -500,9 +500,10 @@ int dir_set_attr_newfile(char* filename, int len){
 }
 
 int dir_set_attr_firstwrite(uint8_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
-	//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 0);
-	writeEntry->DIR_FstClusHI = (newFile & 0xFF00)/1000000000000000;  //TODO: error check this math. mask the 16 low order bits of newFile;
-	writeEntry->DIR_FstClusLO = (newFile & 0xFF);  //mask the 16 high order bits of newFile;
+	uint16_t hiClus = (newFile & 0xFF00)/1000000000000000;
+	uint16_t loClus = (newFile & 0xFF);
+	writeEntry->DIR_FstClusHI =   //TODO: error check this math. mask the 16 low order bits of newFile;
+	writeEntry->DIR_FstClusLO =   //mask the 16 high order bits of newFile;
 	//unused->DIR_WrtDate;
 	//unused->DIR_WrtTime;
 	writeEntry->DIR_FileSize = writeSize;
