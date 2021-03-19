@@ -410,8 +410,8 @@ int dir_create_file(char *filename){
 		}
 		g_unusedSeek = FALSE;
 	}
-	MOUNT->dirty = TRUE;
 	dir_set_attr_newfile(filename, len);
+	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
 		return err;
 	}
@@ -698,9 +698,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset
-    // if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){
-    	//__BKPT(); TODO: Breakpoint triggers before function?
-    //}
 	if (buflen > userptr->fileSize - userptr->cursor){ //Prevent attempts to read past EOF
 		return E_NOINPUT;
 	}
@@ -770,32 +767,109 @@ int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t
  * Returns an error code if there is no more space to write the character
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
-	int charsread = 0;
-	int *charsreadp = &charsread;
-    uint8_t data[BLOCK];
-    int logicalSector = 0;
-    int err = dir_get_cwd(&logicalSector, data);
-	if (buflen <= 0 || err != 0){
+	if (buflen <= 0){ //Negative or zero chars entered
 		return E_NOINPUT;
 	}
-    struct dir_entry_8_3* cwd = (struct dir_entry_8_3*)data;
-	struct stream* userptr = (struct stream*)descr; //TODO: errcheck
-	// if it is a dir_entry AND the file it points to is filesize 0, then ...
-	uint32_t emptyCluster;
-	if (userptr->clusterAddr == 0){
-		emptyCluster = find_free_cluster();
-	    if (emptyCluster == 0){
+	struct stream* userptr = (struct stream*)descr;
+    int dirLogicalSector = 0;
+    int dirLogSecPtr = &dirLogicalSector;
+    int err = 0;
+    uint8_t dirData[BLOCK];
+	int charsread = 0;
+	int *charsreadp = &charsread;
+	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){ //TODO: Should this function only be for FAT32?
+		return E_NOINPUT; //File is not open, or wrong type, or does not belong to this PID
+	}
+    if ((err = read_all(data, *dirLogSecPtr, userptr->fileName)) != 0){ //get logicalSector for dir of current file
+    	return err;
+    }
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read next block into memory
+    	return E_NOINPUT;
+    }
+	uint32_t numCluster;
+    uint8_t fileData[BLOCK];
+	if (userptr->clusterAddr == 0){ 	// if no Cluster assigned to file
+		numCluster = find_free_cluster();
+	    if (numCluster == 0){
 	    	return E_FREE; //TODO: check error number
 	    }
-	    write_FAT_entry(MOUNT->rca, emptyCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+	    write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+		err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
+	    if (err != 0){
+	    	return E_NOINPUT; //file entry not found in directory?
+	    	//TODO: undo all the writing?
+	    }
+	    *MOUNT->data = *data;
+	    MOUNT->writeSector = dirLogicalSector;
+		MOUNT->dirty = TRUE;
+		if ((err = write_cache()) != 0){
+			return err;
+		}
 	}
-	
-	//TODO: write the data from bufp to the file
-    
-	err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
-    if (err != 0){
-    	return E_NOINPUT; //file entry not found in directory?
-    	//TODO: undo all the writing?
-    }
+	else {
+		numCluster = cwd->DIR_FstClusLO | (cwd->DIR_FstClusHI << 0);
+		uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
+	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, fileData)){ //read next block into memory
+	    	return E_NOINPUT;
+	    }
+	}
+    uint32_t numSector = curr_sector_from_offset(userptr, &fileLogicalSector, numCluster); //how many sectors to offset
+    //TODO: Defaults to overwrite. Is this OK?
+	int pos = userptr->cursor;
+	const int end = buflen + userptr->cursor;
+    uint8_t data[BLOCK];
+    int offBlock = userptr->cursor - BLOCK*numSector; //offset of data block and cursor mod 512
+    //offset of bufp will be tracked by charsreadp
+	while (pos < end){
+		uint32_t diff = end - pos;
+		uint32_t blockDiff = BLOCK - offBlock;
+	    if (numSector > sectors_per_cluster){ //jump to next cluster, if needed
+	    	uint32_t numCluster = find_free_cluster();
+	    	if (numCluster == 0){
+	    	 	return E_FREE; //TODO: check error number
+	    	}
+	    	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+	    	err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
+	    	if (err != 0){
+	    	    return E_NOINPUT; //file entry not found in directory?
+	    	    //TODO: undo all the writing?
+	    	}
+	    	*MOUNT->data = *fileData;
+	    	MOUNT->writeSector = fileLogicalSector;
+	    	MOUNT->dirty = TRUE;
+	    	if ((err = write_cache()) != 0){
+	    		return err;
+	    	}
+	    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+        	numSector = 0;
+	    }
+	    if (diff <= blockDiff){ //if fewer than 512 chars remain and last sector to be written is in memory
+	    	memcpy(&MOUNT->data[offBlock], &bufp[*charsreadp], diff);
+	    	*charsreadp += diff;
+			pos  += diff;
+	    	break;
+	    }
+	    else if (diff < BLOCK && diff > blockDiff){ //if fewer than 512 chars remain and last sector to be written is NOT in memory
+			memcpy(&MOUNT->data[offBlock], &bufp[*charsreadp], blockDiff); //read remaining chars from block into buffer
+			pos  += blockDiff;
+			*charsreadp += blockDiff;
+			offBlock = 0;
+	    }
+	    else{ //>512 chars remain
+	    	memcpy(&MOUNT->data[offBlock], &bufp[*charsreadp], blockDiff);
+			pos  += blockDiff;
+			*charsreadp += blockDiff;
+			offBlock = 0;
+	    }
+	    //TODO: what if amt to write is larger or smaller than 512 bytes
+    	MOUNT->writeSector = fileLogicalSector;
+    	MOUNT->dirty = TRUE;
+    	if ((err = write_cache()) != 0){
+    		return err;
+    	}
+    	fileLogicalSector ++;
+		numSector ++;
+	}
+	userptr->cursor = pos;
     return 0;
 }
