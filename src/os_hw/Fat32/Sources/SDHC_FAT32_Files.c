@@ -76,8 +76,7 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  * Returns an error code if the file structure is not mounted
  */
 int file_structure_umount(void){
-	//TODO: check if buffer is clean, if dirty, call putbuf or write?
-	//if any files aren't closed, close them
+	//TODO: if any files aren't closed, close them
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
@@ -771,75 +770,76 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		return E_NOINPUT;
 	}
 	struct stream* userptr = (struct stream*)descr;
-    int dirLogicalSector = 0;
-    int dirLogSecPtr = &dirLogicalSector;
+    uint32_t dirLogicalSector = 0;
+    uint32_t* dirLogSecPtr = &dirLogicalSector;
     int err = 0;
     uint8_t dirData[BLOCK];
+    struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
 	int charsread = 0;
 	int *charsreadp = &charsread;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){ //TODO: Should this function only be for FAT32?
 		return E_NOINPUT; //File is not open, or wrong type, or does not belong to this PID
 	}
-    if ((err = read_all(data, *dirLogSecPtr, userptr->fileName)) != 0){ //get logicalSector for dir of current file
+    err = dir_get_cwd(&dirLogicalSector, dirData);
+    if (err != 0){
+    	return err;
+    }
+    if ((err = read_all(dirData, *dirLogSecPtr, userptr->fileName)) != 0){ //get logicalSector for dir of current file
     	return err;
     }
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read next block into memory
     	return E_NOINPUT;
     }
+    if (userptr->clusterAddr == 0){
+    	int err;
+    	if ((err == dir_set_attr_firstwrite((uint8_t)buflen, dir_entry, numCluster))==0){
+    	    return err; //file entry not found in directory?
+    	    //TODO: undo all the writing?
+    	}
+    	*MOUNT->data = (uint8_t)*dir_entry;
+    	MOUNT->writeSector = fileLogicalSector;
+    	MOUNT->dirty = TRUE;
+    	if ((err = write_cache()) != 0){
+    		return err;
+    	}
+    }
 	uint32_t numCluster;
-    uint8_t fileData[BLOCK];
-	if (userptr->clusterAddr == 0){ 	// if no Cluster assigned to file
-		numCluster = find_free_cluster();
-	    if (numCluster == 0){
-	    	return E_FREE; //TODO: check error number
-	    }
-	    write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
-		err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
-	    if (err != 0){
-	    	return E_NOINPUT; //file entry not found in directory?
-	    	//TODO: undo all the writing?
-	    }
-	    *MOUNT->data = *data;
-	    MOUNT->writeSector = dirLogicalSector;
-		MOUNT->dirty = TRUE;
-		if ((err = write_cache()) != 0){
-			return err;
-		}
-	}
-	else {
-		numCluster = cwd->DIR_FstClusLO | (cwd->DIR_FstClusHI << 0);
-		uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
-	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, fileData)){ //read next block into memory
-	    	return E_NOINPUT;
-	    }
-	}
-    uint32_t numSector = curr_sector_from_offset(userptr, &fileLogicalSector, numCluster); //how many sectors to offset
-    //TODO: Defaults to overwrite. Is this OK?
+	uint32_t travelCluster;
 	int pos = userptr->cursor;
-	const int end = buflen + userptr->cursor;
-    uint8_t data[BLOCK];
-    int offBlock = userptr->cursor - BLOCK*numSector; //offset of data block and cursor mod 512
+	const int end = buflen + userptr->cursor; //TODO: errcheck on end? Too large?
+    uint32_t clusJump = pos / 512; //Skip ahead this many clusters
+    uint32_t clusReq = end / 512; //TODO: note that the read_cursor and write_cursor are shared
+    if (end % 512 != 0){
+    	clusReq += 1;
+    }
+    numCluster = travelCluster = userptr->clusterAddr;
+    for (int i = 0; i < clusReq; i ++){
+    	if (i == clusJump){
+    		numCluster = travelCluster; //Cluster where cursor should start
+    	}
+    	if (travelCluster == 0){ //TODO: make sure clusterAddr is always zeroed out in dir_file_attr
+    		int err = find_and_assign_clusters(clusReq - i, userptr, travelCluster, dir_entry);
+    		if (err != 0){
+    			return E_NOINPUT; //TODO: errcheck
+    		}
+    		break;
+    	}
+		travelCluster = read_FAT_entry(MOUNT->rca, travelCluster); //returns a FAT entry
+    }
+    
+    //uint8_t fileData[BLOCK];
+	uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
+    uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset (also changes logicalSector)
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, MOUNT->data)){ //read next block into memory
+    	return E_NOINPUT;
+    }
     //offset of bufp will be tracked by charsreadp
 	while (pos < end){
+	    int offBlock = userptr->cursor - BLOCK*numSector; //offset of data block and cursor mod 512
 		uint32_t diff = end - pos;
 		uint32_t blockDiff = BLOCK - offBlock;
 	    if (numSector > sectors_per_cluster){ //jump to next cluster, if needed
-	    	uint32_t numCluster = find_free_cluster();
-	    	if (numCluster == 0){
-	    	 	return E_FREE; //TODO: check error number
-	    	}
-	    	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
-	    	err = dir_set_attr_firstwrite((uint8_t)buflen, cwd, emptyCluster);
-	    	if (err != 0){
-	    	    return E_NOINPUT; //file entry not found in directory?
-	    	    //TODO: undo all the writing?
-	    	}
-	    	*MOUNT->data = *fileData;
-	    	MOUNT->writeSector = fileLogicalSector;
-	    	MOUNT->dirty = TRUE;
-	    	if ((err = write_cache()) != 0){
-	    		return err;
-	    	}
+	    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
 	    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
         	numSector = 0;
 	    }
@@ -861,7 +861,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 			*charsreadp += blockDiff;
 			offBlock = 0;
 	    }
-	    //TODO: what if amt to write is larger or smaller than 512 bytes
+	    //TODO: what if amt to write is larger or smaller than 512 bytes? This shouldn't matter, I think?
     	MOUNT->writeSector = fileLogicalSector;
     	MOUNT->dirty = TRUE;
     	if ((err = write_cache()) != 0){
@@ -870,6 +870,21 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	fileLogicalSector ++;
 		numSector ++;
 	}
-	userptr->cursor = pos;
+	userptr->fileSize = userptr->cursor = pos; //update filesize and cursor
     return 0;
+}
+
+/*Gets clusReq new clusters from the FAT and assigns them to the file pointed to at userptr.*/
+find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry){
+	while (clusReq > 0){
+		//TODO: read_FAT_entry on numCluster
+    	uint32_t numCluster = find_free_cluster();
+    	if (numCluster == 0){
+    	 	return E_FREE; //TODO: check error number
+    	}
+    	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //TODO: I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+    	numSector = 0;
+		clusReq --;
+	}
 }
