@@ -502,9 +502,13 @@ int dir_set_attr_newfile(char* filename, int len){
 int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
 	writeEntry->DIR_FstClusHI = newFile >> 16;  //TODO: error check this math. mask the 16 low order bits of newFile;
 	writeEntry->DIR_FstClusLO = newFile & 0x0000FFFF;  //mask the 16 high order bits of newFile;
-	//unused->DIR_WrtDate;
-	//unused->DIR_WrtTime;
 	writeEntry->DIR_FileSize = writeSize;
+	return 0;
+}
+
+int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry){
+	writeEntry->DIR_FileSize = writeSize;
+	return 0;
 }
 
 /* •The first short filename character DIR_Name[0] may not be a space (0x20)
@@ -882,27 +886,36 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	fileLogicalSector ++;
 		numSector ++;
 	}
-	userptr->fileSize = userptr->cursor = pos; //update filesize and cursor
+	userptr->fileSize = userptr->cursor = pos; //update filesize and cursor in PCB struct and dir_entry
+	if ((err == dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
+	    return err; //file entry not found in directory?
+	}
+	*MOUNT->data = *dirData;
+	MOUNT->writeSector = dirLogicalSector;
+	MOUNT->dirty = TRUE;
+	if ((err = write_cache()) != 0){
+		return err;
+	}
     return 0;
 }
 
 /*Gets clusReq new clusters from the FAT and assigns them to the file pointed to at userptr.*/
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry){
 	while (clusReq > 0){
-		//TODO: read_FAT_entry on numCluster
-    	uint32_t numCluster = find_free_cluster();
+    	uint32_t numCluster = find_free_cluster(); 	//TODO: read_FAT_entry on numCluster
     	if (numCluster == 0){
     	 	return E_FREE; //TODO: check error number
     	}
-    	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //TODO: I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
+    	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE);
 		clusReq --;
 	}
+	return E_NOINPUT;
 }
 
 /*Sets cursor to position pos in file descr*/
 int file_set_cursor(file_descriptor descr, uint32_t pos){
 	struct stream* userptr = (struct stream*) descr;
-	if (find_curr_stream(userptr) != 0){
+	if (find_curr_stream(userptr) != TRUE){
 		return E_NOINPUT;
 		if(MYFAT_DEBUG){
 			printf("This user does not have this file open. \n");

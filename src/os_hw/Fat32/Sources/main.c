@@ -70,7 +70,7 @@ int main(void){
     error = file_getbuf(myOutFile, myBufpOut, 4096, &read);
     myBufpOut[4096] = '\0';
     file_descriptor myInFile = 0;
-    char *myInFileName = "TESTJ   TXT";
+    char *myInFileName = "TESTL   TXT";
     error = dir_create_file(myInFileName);
     error = file_open(myInFileName, &myInFile);
     file_putbuf(myInFile, myBufpOut, 125);
@@ -86,6 +86,7 @@ int main(void){
     file_close(myInFile);
     file_close(myOutFile);
     error = dir_delete_file(myInFile);
+    printf("Result of file delete was %d \n", error);
     file_structure_umount();
     return 0;
 }

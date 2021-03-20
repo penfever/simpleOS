@@ -192,6 +192,8 @@ int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry
 
 int dir_set_attr_newfile(char* filename, int len);
 
+int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry);
+
 int filename_verify(char* filename, int len);
 
 int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
