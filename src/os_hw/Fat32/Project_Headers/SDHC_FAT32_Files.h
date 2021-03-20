@@ -196,4 +196,6 @@ int filename_verify(char* filename, int len);
 
 int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
 
+int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry);
+
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

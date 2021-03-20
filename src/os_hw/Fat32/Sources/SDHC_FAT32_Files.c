@@ -542,36 +542,24 @@ int filename_verify(char* filename, int len){
 
 uint32_t find_free_cluster(){
 	uint32_t numCluster = 2;
-	uint32_t returnCluster = 0;
-	if (FSI_Nxt_Free != FSI_NXT_FREE_UNKNOWN){
+	uint32_t returnCluster = 1;
+	if (FSI_Nxt_Free != FSI_NXT_FREE_UNKNOWN){ //numCluster starts at next free, if it exists
 		numCluster = FSI_Nxt_Free;
-		FSI_Nxt_Free = FSI_NXT_FREE_UNKNOWN;
-		while (returnCluster < total_data_clusters+1){
-	    	 returnCluster = read_FAT_entry(MOUNT->rca, numCluster);
-	    	 if (returnCluster == FAT_ENTRY_FREE){
-	    		FSI_Nxt_Free = returnCluster;
-	    		if (MYFAT_DEBUG){
-	    			printf("FSI_Nxt_Free updated. \n");
-	    		}
-	        	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); 
-	    		return numCluster;
-	    	 }
-		}
-		if (MYFAT_DEBUG){
-			printf("Drive is probably full. \n");
-		}
-		return numCluster;
 	}
 	while (numCluster < total_data_clusters+1 && returnCluster != FAT_ENTRY_FREE){
     	 returnCluster = read_FAT_entry(MOUNT->rca, numCluster);
+    	 if (returnCluster == FAT_ENTRY_FREE){
+        	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); 
+    		return numCluster;
+    	 }
     	 numCluster ++;
 	}
 	if (numCluster >= total_data_clusters+1){
+		if (MYFAT_DEBUG){
+			printf("Drive is probably full. \n");
+		}
 		return 0; //free cluster not found
 	}
-	FSI_Nxt_Free = FSI_NXT_FREE_UNKNOWN; //TODO: fix this so it updates to next free cluster
-	write_FAT_entry(MOUNT->rca, returnCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE); //TODO: I think this creates a FAT entry for emptyCluster with no pointer to next cluster?
-	return returnCluster;
 }
 
 /**
@@ -713,7 +701,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset
-	if (buflen > userptr->fileSize - userptr->cursor){ //Prevent attempts to read past EOF
+	if (buflen > (userptr->fileSize - userptr->cursor)){ //Prevent attempts to read past EOF
 		return E_NOINPUT;
 	}
 	int pos = userptr->cursor;
@@ -899,7 +887,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 }
 
 /*Gets clusReq new clusters from the FAT and assigns them to the file pointed to at userptr.*/
-find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry){
+int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry){
 	while (clusReq > 0){
 		//TODO: read_FAT_entry on numCluster
     	uint32_t numCluster = find_free_cluster();
@@ -910,3 +898,29 @@ find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluste
 		clusReq --;
 	}
 }
+
+/*Sets cursor to position pos in file descr*/
+int file_set_cursor(file_descriptor descr, uint32_t pos){
+	struct stream* userptr = (struct stream*) descr;
+	if (find_curr_stream(userptr) != 0){
+		return E_NOINPUT;
+		if(MYFAT_DEBUG){
+			printf("This user does not have this file open. \n");
+		}
+	}
+	if (userptr->deviceType != FAT32){
+		return E_NOINPUT;
+		if(MYFAT_DEBUG){
+			printf("This is not a FAT32 device. \n");
+		}
+	}
+	if (pos >= userptr->fileSize){
+		if(MYFAT_DEBUG){
+			printf("Requested position is larger than file size. \n");
+		}
+		return E_NOINPUT;
+	}
+	userptr->cursor = pos;
+	return 0;
+}
+
