@@ -18,6 +18,17 @@ struct pcb op_sys =
 				{0},
 				{0},
 				{0},
+				{0},
 				{0}
 		}
+};
+
+char* devTable = {
+	"dev_null",
+	"dev_sw1",
+	"dev_sw2",
+	"dev_E1",
+	"dev_E2",
+	"dev_E3",
+	"dev_E4"
 };

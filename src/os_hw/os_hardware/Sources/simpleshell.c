@@ -392,6 +392,8 @@ int cmd_memchk(int argc, char *argv[]){
 
 //command line shell accepts user input and executes basic commands
 int shell(void){
+    setvbuf(stdin, NULL, _IONBF, 0); //attempts to fix stdin and stdout
+    setvbuf(stdout, NULL, _IONBF, 0);
     while(TRUE){
         printf("$ \r\n");
         int arg_len[MAXARGS+2] = {0};

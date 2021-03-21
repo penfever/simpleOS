@@ -778,6 +778,15 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		return E_NOINPUT;
 	}
 	struct stream* userptr = (struct stream*)descr;
+	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
+		return E_NOINPUT; //File is not open, or wrong type, or does not belong to this PID
+	}
+	if (userptr->mode == 'r' || userptr->mode == 'R'){
+		return E_NOINPUT; //TODO: error handling
+	}
+	if (userptr->mode == 'a' || userptr->mode == 'A'){
+		userptr->cursor = userptr->fileSize; //append mode -- move cursor to EOF before writing
+	}
     uint32_t dirLogicalSector = 0;
     uint32_t* dirLogSecPtr = &dirLogicalSector;
     int err = 0;
@@ -785,9 +794,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
 	int charsread = 0;
 	int *charsreadp = &charsread;
-	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){ //TODO: Should this function only be for FAT32?
-		return E_NOINPUT; //File is not open, or wrong type, or does not belong to this PID
-	}
+
     err = dir_get_cwd(&dirLogicalSector, dirData);
     if (err != 0){
     	return err;
