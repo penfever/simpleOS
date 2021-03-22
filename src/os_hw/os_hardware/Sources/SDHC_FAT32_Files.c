@@ -274,7 +274,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		continue;
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
-	    	if(UARTIO){ //TODO: enable for console IO
+	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){ //TODO: enable for console IO
     			char* output = myMalloc(256);
     			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
     			uartPutsNL(UART2_BASE_PTR, output);
@@ -383,6 +383,12 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: this function
     err = dir_get_cwd(&logicalSector, data);
     if (err != 0){
     	return err;
+    }
+    if (UARTIO){
+    	uartPutsNL(UART2_BASE_PTR, "Beginning file search. \n");
+    }
+    else if (CONSOLEIO){
+    	printf("Beginning file search. \n");
     }
     if ((err = read_all(data, logicalSector, filename)) != 0){
     	return err; //TODO: I could just have dir_ls take filename as its argument

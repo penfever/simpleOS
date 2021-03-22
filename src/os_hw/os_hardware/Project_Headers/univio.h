@@ -35,4 +35,6 @@ int remove_device_from_PCB(file_descriptor fd);
 
 int close_all_devices(void);
 
+char mytoupper(char c);
+
 #endif /* UNIVIO_H_ */

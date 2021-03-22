@@ -12,6 +12,7 @@
 #include "univio.h"
 #include "devices.h"
 #include "myerror.h"
+#include "mymalloc.h"
 #include "simpleshell.h"
 #include "SDHC_FAT32_Files.h"
 #include "uart.h"
@@ -26,6 +27,7 @@ static int pid = 0; //temporarily set everything to OS
 /*fopen returns 0 in case of error. Enable MYFAT_DEBUG for more information. */
 
 int myfopen (file_descriptor descr, char* filename, char mode){
+	int len = strlen(filename);
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -47,10 +49,32 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
-	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+	if (g_noFS || len > 12){
+		return E_NOINPUT; //TODO: errcheck E_NOFS and too-long file names
 	}
-	err = file_open(filename, &descr);
+	//string processing to ensure FAT32 compliance
+	char fileProc[12] = {' '};
+	if (len == 12){
+		for (int i = 0; i < len; ++i){
+			fileProc[i] = filename[i];
+			fileProc[i] = mytoupper(fileProc[i]);
+		}
+	}
+	else{
+		fileProc[11] = filename[len-1];
+		fileProc[11] = mytoupper(fileProc[11]);
+		fileProc[10] = filename[len-2];
+		fileProc[10] = mytoupper(fileProc[10]);
+		fileProc[9] = filename[len-3];
+		fileProc[9] = mytoupper(fileProc[9]);
+		fileProc[8] = '.';
+		for (int i = 0; i < len-4; ++i){
+			fileProc[i] = filename[i];
+			fileProc[i] = mytoupper(fileProc[i]);
+		}
+	}
+	err = file_open(fileProc, &descr);
+	myFree(fileProc);
 	if (err != 0){
 		return err;
 	}
@@ -60,6 +84,12 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	}
 	userptr->mode = mode;
 	return 0;
+}
+
+char mytoupper(char c){
+	if ((c >= 'a') && (c <= 'z')){
+		return c - 32;
+	}
 }
 
 int add_device_to_PCB(file_descriptor fd){
