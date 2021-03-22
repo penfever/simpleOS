@@ -384,12 +384,12 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = NULL;
-	err = myfopen(myfile, filename, m);
+	err = myfopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
 	}
 	char* output = myMalloc(256);
-	sprintf(output, "fopen success \n FILE* is %p \n", (void*)myfile);
+	sprintf(output, "fopen success \n FILE* is %x \n", myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
 	myFree(output);
 	return 0;

@@ -3,7 +3,7 @@
 #ifndef UNIVIO_H_
 #define UNIVIO_H_
 
-int myfopen (file_descriptor descr, char* filename, char mode);
+int myfopen (file_descriptor* descr, char* filename, char mode);
 
 int myfclose (file_descriptor descr);
 

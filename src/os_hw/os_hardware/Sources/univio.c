@@ -26,7 +26,7 @@ static int pid = 0; //temporarily set everything to OS
 
 /*fopen returns 0 in case of error. Enable MYFAT_DEBUG for more information. */
 
-int myfopen (file_descriptor descr, char* filename, char mode){
+int myfopen (file_descriptor* descr, char* filename, char mode){
 	int len = strlen(filename);
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
@@ -76,7 +76,7 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 			fileProc[i] = mytoupper(fileProc[i]);
 		}
 	}
-	err = file_open(fileProc, &descr);
+	err = file_open(fileProc, descr);
 	if (err != 0){
 		return err;
 	}
