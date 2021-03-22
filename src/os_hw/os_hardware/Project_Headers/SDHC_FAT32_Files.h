@@ -174,6 +174,12 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp);
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen);
 
+
+/**
+	Sets cursor position of FILE* descr to the position specified in pos.
+ */
+int file_set_cursor(file_descriptor descr, uint32_t pos);
+
 int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search, uint32_t currCluster);
 
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search);

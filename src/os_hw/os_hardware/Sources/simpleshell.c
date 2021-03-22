@@ -25,6 +25,8 @@ struct escape_chars escapechars[] = {
     {'"', 34}
 };
 
+int g_noFS = TRUE;
+
 struct months months[] = {{"January", 0, 31}, 
               {"February", 1, 28}, 
               {"March", 2, 31},  
@@ -379,7 +381,7 @@ int cmd_fopen(int argc, char *argv[]){
 	int err = 0;
 	char* filename = argv[1];
 	char m = argv[2][0];
-	file_descriptor myfile;
+	file_descriptor myfile = NULL;
 	err = myfopen(myfile, filename, m);
 	if (err != 0){
 		return err;
@@ -425,7 +427,7 @@ int cmd_fgetc(int argc, char *argv[]){
 		return E_NUMARGS;
 	}
 	int err;
-	char bufp;
+	char bufp = '\0';
 	unsigned long descr = strtoul(argv[1], NULL, 10);
 	err = myfgetc(descr, bufp);
 	if (err < 0){
@@ -439,7 +441,7 @@ int cmd_fgetc(int argc, char *argv[]){
 
 /*shell interface for fgets*/
 int cmd_fgets(int argc, char *argv[]){
-	;
+	return 0;
 }
 
 /*shell interface for fputc (file_descriptor descr, char bufp)*/
@@ -460,7 +462,7 @@ int cmd_fputc(int argc, char *argv[]){
 
 /*shell interface for fputs*/
 int cmd_fputs(int argc, char *argv[]){
-	;
+	return 0;
 }
 
 /*shell interface for seek (file_descriptor, position)*/
@@ -483,8 +485,19 @@ int cmd_seek(int argc, char *argv[]){
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
 	uart_init(115200);
-    //setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
-    //setvbuf(stdout, NULL, _IONBF, 0);
+    int error = file_structure_mount();
+    if (0 != error) { //TODO: error check
+    	uartPutsNL(UART2_BASE_PTR, "SDHC card could not be mounted. File commands unavailable. \n");
+    }
+    else{
+    	uartPutsNL(UART2_BASE_PTR, "SDHC card mounted. \n");
+        dir_set_cwd_to_root();
+        g_noFS = FALSE;
+    }
+    if (CONSOLEIO){
+        setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
+        setvbuf(stdout, NULL, _IONBF, 0);	
+    }
     while(TRUE){
     	uartPutsNL(UART2_BASE_PTR, "$ ");
         int arg_len[MAXARGS+2] = {0};

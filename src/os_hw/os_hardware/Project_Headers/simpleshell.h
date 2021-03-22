@@ -40,6 +40,9 @@
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
 #define BACKSLASH 92
+#define CONSOLEIO 0
+
+extern int g_noFS;
 
 struct date_time {
   char* month;

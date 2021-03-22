@@ -16,6 +16,8 @@
 #include "SDHC_FAT32_Files.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "led.h"
+#include "pushbutton.h"
 
 
 static int pid = 0; //temporarily set everything to OS
@@ -28,9 +30,7 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
-	int isDevice = FALSE;
 	int err;
-	char* device = "_";
 	/*CASE: device*/
 	if (strncmp("dev_", filename, 4) != 0){
 		;
@@ -48,7 +48,10 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
-	err = file_open(filename, descr);
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
+	err = file_open(filename, &descr);
 	if (err != 0){
 		return err;
 	}
@@ -90,7 +93,7 @@ int add_device_to_PCB(file_descriptor fd){
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		if (strncmp(devTable[i], filename, strlen(filename)) != 0){
+		if (strncmp(&devTable[i], filename, strlen(filename)) != 0){
 			continue;
 		}
 		else{
@@ -128,6 +131,9 @@ int myfclose (file_descriptor descr){
 	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == LED){
 		return remove_device_from_PCB(descr);
 	}
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
 	//treat as FAT32	
 	return file_close(descr);
 }
@@ -162,7 +168,11 @@ int myfgetc (file_descriptor descr, char bufp){
 	if (userptr->deviceType == LED){
 		err = led_fgetc(descr);
 	}
+	//CASE: FAT32
 	else{
+		if (g_noFS){
+			return E_NOINPUT; //TODO: errcheck E_NOFS
+		}
 		err = file_getbuf(descr, &bufp, 1, &charsreadp);
 	}
 	return err;
@@ -207,6 +217,9 @@ int led_fgetc(file_descriptor descr){
  * A terminating null byte (\0) is stored after the last character in the buffer. */
 
 char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
 	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
@@ -220,7 +233,7 @@ char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return int
 	}
 	int charsreadp;
 	char bufp[buflen];
-	err = file_getbuf(descr, &bufp, buflen, &charsreadp);
+	err = file_getbuf(descr, bufp, buflen, &charsreadp);
 	bufp[buflen] = '\0';
 	return bufp;
 }
@@ -240,7 +253,11 @@ int myfputc (file_descriptor descr, char bufp){
 	if (userptr->deviceType == LED){
 		err = led_fputc(descr);
 	}
+	//CASE: FAT32
 	else{
+		if (g_noFS){
+			return E_NOINPUT; //TODO: errcheck E_NOFS
+		}
 		err = file_putbuf(descr, &bufp, 1);
 	}
 	return err;
@@ -263,7 +280,10 @@ int led_fputc(file_descriptor descr){
 	return 0;
 }
 
-int myfputs (char* bufp, file_descriptor descr, int buflen){
+int myfputs (char* bufp, file_descriptor descr, int buflen){ //TODO: fix this
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -272,7 +292,7 @@ int myfputs (char* bufp, file_descriptor descr, int buflen){
 		return E_NOINPUT;
 	}
 	int err;
-	err = file_putbuf(descr, &bufp, buflen);
+	err = file_putbuf(descr, &bufp[0], buflen);
 	return err;
 }
 
@@ -280,32 +300,32 @@ int mycreate(char* filename){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
-	int isDevice = FALSE;
-	int err;
-	char* device = "_";
-	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_
+	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
 	else{
 		return E_NOINPUT;
 	}
-	return dir_create_file(*filename);
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
+	return dir_create_file(filename);
 }
 
 int mydelete(char* filename){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
-	int isDevice = FALSE;
-	int err;
-	char* device = "_";
-	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_
+	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
 	else{
 		return E_NOINPUT;
 	}
-	return dir_delete_file(*filename);
+	if (g_noFS){
+		return E_NOINPUT; //TODO: errcheck E_NOFS
+	}
+	return dir_delete_file(filename);
 }
 
 int myseek(file_descriptor descr, uint32_t pos){
