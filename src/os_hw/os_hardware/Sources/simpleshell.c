@@ -162,21 +162,26 @@ int get_string(char* user_cmd, int arg_len[]){
     }
     if (c == '\r'){
       c = uartGetchar(UART2_BASE_PTR);
-    }
-    if (c == '\n'){
-      break;
+      if (c == '\n'){
+        break;
+      }
+      else{
+    	  continue;
+      }
     }
     user_cmd_ptr = user_cmd + str_len;
     sprintf(user_cmd_ptr, &c);
     str_len++;
   }
-  if (user_cmd == NULL || *user_cmd == '\r'){
+  if (user_cmd == NULL){
     return E_NOINPUT;
   }
   if (str_len == MAXLEN - 1){
     return E_TOO_LONG;
   }
   else{
+	uartPutchar(UART2_BASE_PTR, c);
+	uartPutchar(UART2_BASE_PTR, '\r');
     int right_pos = str_len;
     arg_len[argc] = right_pos - left_pos;
     argc ++;
