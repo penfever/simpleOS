@@ -390,7 +390,8 @@ int cmd_fopen(int argc, char *argv[]){
 	}
 	char* output = myMalloc(256);
 	sprintf(output, "fopen success \n FILE* is %p \n", (void*)myfile);
-	free(output);
+	uartPutsNL(UART2_BASE_PTR, output);
+	myFree(output);
 	return 0;
 }
 
