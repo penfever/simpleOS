@@ -222,7 +222,7 @@ int cmd_echo(int argc, char *argv[]){
 
 int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
-    return -4;
+    return E_NUMARGS;
   }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
@@ -232,6 +232,7 @@ int cmd_exit(int argc, char *argv[]){
   myFree(argv);
   free(first);
   first = NULL;
+  file_structure_umount();
   exit(0);
 }
 
