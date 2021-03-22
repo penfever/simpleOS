@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include "breakpoint.h"
 #include "mymalloc.h"
 #include "myerror.h"
+#include "devices.h"
+#include "uart.h"
+#include "uartNL.h"
 
 static int node_count = 0;
-
-struct pcb op_sys = {"OS", 0};
-
-struct pcb* currentPCB = &op_sys;
 
 struct mem_region* first = NULL;
 
@@ -28,7 +28,8 @@ init_struct then fills in the correct values for 'free', 'size' and 'pid' for th
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
     if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-    	printf("K70 malloc fail ... \n");
+    	char* output = "K70 malloc fail ... \n";
+    	uartPutsNL(UART2_BASE_PTR, output);
         return NULL;
     }
     else{
@@ -113,9 +114,12 @@ struct mem_region* walk_struct(struct mem_region* this_region){
 
 /*memoryMap prints the contents of memory in their entirety. If memory is empty, it prints NULL.*/
 void memoryMap(void){
-    printf("-------------MEMORYMAP--------- \n\n");
-    printf("| ENTRY # | FREE | SIZE | PID | \n");
-    printf("------------------------------- \n");
+	char* output = "-------------MEMORYMAP--------- \n\n";
+	uartPutsNL(UART2_BASE_PTR, output);
+    output = "| ENTRY # | FREE | SIZE | PID | \n";
+	uartPutsNL(UART2_BASE_PTR, output);
+	output = "------------------------------- \n";
+	uartPutsNL(UART2_BASE_PTR, output);
     struct mem_region* temp = first;
     int total_size = 0;
     for (int i = 0; i < node_count; i++){
@@ -128,12 +132,18 @@ void memoryMap(void){
         else{
             bool_str = "True ";
         }
-        printf("|   %d   |  %s  |  %d  | %d |\n", i+1, bool_str, temp->size, temp->pid);
-        printf("------------------------------- \n");
+        char* memDisplay = myMalloc(256); //uart gets a map of all used and free regions in the 128M byte region of memory.
+        sprintf(memDisplay, "|   %d   |  %s  |  %d  | %d |\n", i+1, bool_str, temp->size, temp->pid);
+    	uartPutsNL(UART2_BASE_PTR, memDisplay);
+    	char* output2 = "------------------------------- \n";
+    	uartPutsNL(UART2_BASE_PTR, output2);
+        myFree(memDisplay);
         temp = walk_struct(temp);
     }
-    printf("TOTAL MEMORY SIZE = %d \n", total_size);
-    //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
+    char* memDisplay2 = myMalloc(256);
+    sprintf(memDisplay2, "TOTAL MEMORY SIZE = %d \n", total_size);
+	uartPutsNL(UART2_BASE_PTR, memDisplay2);
+    myFree(memDisplay2); 
 }
 
 /*bounds accepts as a parameter a void* ptr. It then finds the appropriate
@@ -151,7 +161,7 @@ uint32_t bounds(void* ptr){
         if ((mem_ptr - MEMSTRUCT/sizeof(struct mem_region)) > temp){ 
             prev = temp;
             if (i < node_count - 1){
-            	temp = walk_struct(temp);
+                temp = walk_struct(temp);
             }
             else if (i == node_count - 1){ // mem_ptr points either into or past the last region
                 long bounds = (unsigned char*)mem_ptr - &temp->data[0];
@@ -195,8 +205,8 @@ int free_match(struct mem_region* temp, void* ptr){
             }
         }
         else {
-            prev = temp; //previous gets current
-            temp = walk_struct(temp);
+        prev = temp; //previous gets current
+        temp = walk_struct(temp);  //current gets next.
         }
     }
     return E_FREE;

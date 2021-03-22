@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include "myerror.h"
+#include "uart.h"
+#include "uartNL.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
@@ -16,7 +18,9 @@ struct _errordesc errordesc[] = {
     { E_FREE, "Free: Invalid pointer \n" },
     { E_EMPTYMEM, "There is no memory allocated. Freeing block. \n"},
     { E_FREE_PERM, "Your PID does not have permission to free this block \n"},
-    { E_MEMCHK, "memchk failed \n"}
+    { E_MEMCHK, "memchk failed \n"},
+    { E_UNFREE, "There is no free slot for this request \n"},
+    { E_EOF, "End of file reached \n"}
 };
 
 #ifndef BUFFER_SIZE
@@ -31,20 +35,22 @@ int error_checker(int return_value){
     if (length >= BUFFER_SIZE) {
       return E_TOO_LONG;
     }
-    printf("error %d: %s", return_value, buffer);
+    char* output = myMalloc(64);
+    sprintf(output, "error %d: %s \n", return_value, buffer);
+	uartPutsNL(UART2_BASE_PTR, output);
+	myFree(output);
     if (return_value == E_NUMARGS){
       return E_NUMARGS;
-    }
-    if (return_value == E_TOO_LONG){
-      int c;
-      while ((c = fgetc(stdin) != '\n') && (c != EOF));
     }
   }
   else if (return_value == 0){
     return 0;
   }
   else{
-    printf("Unknown error %d: \n", return_value);
+	char* output = myMalloc(64);
+	sprintf(output, "Unknown error %d: \n", return_value);
+	uartPutsNL(UART2_BASE_PTR, output);
+	myFree(output);
   }
   return 0;
 }

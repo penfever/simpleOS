@@ -9,12 +9,7 @@
 
 extern struct mem_region* first;
 
-struct pcb {
-    char* proc_name;
-    uint8_t pid;
-};
-
-struct mem_region { //size 8 bytes?
+struct mem_region {
     int free : 1;
     unsigned int size : 31;
     unsigned int pid;

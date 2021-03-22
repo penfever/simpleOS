@@ -30,7 +30,11 @@ Sources/myerror.o: ../Sources/myerror.c \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string.h \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring \
  C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h \
- C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/myerror.h
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/myerror.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uart.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/derivative.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/MK70F12.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uartNL.h
 
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/lib_ewl.prefix:
 
@@ -95,3 +99,11 @@ C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/cstring:
 C:/Freescale/CW\ MCU\ v10.6/MCU/ARM_GCC_Support/ewl/EWL_C/include/string_api.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/myerror.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uart.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/derivative.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/MK70F12.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uartNL.h:

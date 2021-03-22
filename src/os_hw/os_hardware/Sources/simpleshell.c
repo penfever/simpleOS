@@ -6,6 +6,9 @@
 #include "myerror.h"
 #include "mymalloc.h"
 #include "delay.h"
+#include "devices.h"
+#include "uart.h"
+#include "uartNL.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -48,14 +51,14 @@ struct commandEntry commands[] = {{"date", cmd_date},
 /*Takes as arguments a user command and the length of that command.
 It then compares the next character to a list of escape characters and processes it accordingly.*/
 char escape_char(char* user_cmd, int* str_len){
-  char c = fgetc(stdin);
+  char c = uartGetchar(UART2_BASE_PTR);
   for (int i = 0; i < NUMESCAPES; i++){
     if (c == escapechars[i].c){
       char* user_cmd_ptr = user_cmd + *str_len;
       char escape = escapechars[i].ascii;
       sprintf(user_cmd_ptr, &escape);
       *str_len = *str_len + 1;
-      return fgetc(stdin);
+      return uartGetchar(UART2_BASE_PTR);
     }
   }
   return c;
@@ -71,10 +74,10 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   char c = '"';
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  c = fgetc(stdin);
-  while (c != '"') {
+  c = uartGetchar(UART2_BASE_PTR);
+  while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
     if (c == '\r'){
-      c = fgetc(stdin);
+      c = uartGetchar(UART2_BASE_PTR);
       if (c == '\n'){
         return E_NOINPUT;
       }
@@ -82,7 +85,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     user_cmd_ptr = user_cmd + *str_len;
     sprintf(user_cmd_ptr, &c);
     *str_len = *str_len + 1;
-    c = fgetc(stdin);
+    c = uartGetchar(UART2_BASE_PTR);
   }
   *this_len = right_pos - left_pos;
   left_pos = right_pos;
@@ -90,7 +93,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   user_cmd_ptr = user_cmd + *str_len;
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  return fgetc(stdin);
+  return uartGetchar(UART2_BASE_PTR);
 }
 
 /*Takes user input from stdin and sends it to a char* array representing the user's command, also 
@@ -99,9 +102,9 @@ parses user arguments to create argc and argv. */
 int get_string(char* user_cmd, int arg_len[]){
   char c;
   char* user_cmd_ptr = NULL;
-  int left_pos = 0;
-  int str_len = 0;
-  int argc = 0;
+  uint32_t left_pos = 0;
+  uint32_t str_len = 0;
+  uint32_t argc = 0;
   char buffer[2];
   buffer[0] = buffer[1] = NULLCHAR;
   while (str_len < MAXLEN - 1){
@@ -109,17 +112,25 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[1] = NULLCHAR;
     }
     else{
-      c = fgetc(stdin);
+      c = uartGetchar(UART2_BASE_PTR);
+    }
+    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
+      if (str_len == 0){
+          c = uartGetchar(UART2_BASE_PTR);
+      }
+      else{
+    	  str_len --;
+      }
     }
     if (c == '\r'){
-      c = fgetc(stdin);
+      c = uartGetchar(UART2_BASE_PTR);
     }
     if (c == '\n'){
       break;
     }
     if (c == '\033'){
       //attempt to handle special shell escape char
-      c = fgetc(stdin);
+      c = uartGetchar(UART2_BASE_PTR);
     }
     //if it finds a backslash, assumes the use of escape character
     if (c == BACKSLASH){
@@ -138,7 +149,7 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[0] = c;
       while( buffer[0] == ' ' || buffer[0] == '\t' ){
         buffer[1] = buffer[0];
-        buffer[0] = fgetc(stdin);
+        buffer[0] = uartGetchar(UART2_BASE_PTR);
       }
       c = buffer[0];
       arg_len[argc] = right_pos - left_pos;
@@ -150,7 +161,7 @@ int get_string(char* user_cmd, int arg_len[]){
       continue;
     }
     if (c == '\r'){
-      c = fgetc(stdin);
+      c = uartGetchar(UART2_BASE_PTR);
     }
     if (c == '\n'){
       break;
@@ -181,9 +192,11 @@ int cmd_echo(int argc, char *argv[]){
     return 0;
   }
   for (int i = 1; i < argc - 1; i++){
-    printf("%s ", argv[i]);
+	uartPutsNL(UART2_BASE_PTR, argv[i]);
+	uartPutchar(UART2_BASE_PTR, '\n');
   }
-  printf("%s\r\n", argv[argc - 1]);
+  uartPutsNL(UART2_BASE_PTR, argv[argc - 1]);
+  uartPutchar(UART2_BASE_PTR, '\n');
   return 0;
 }
 
@@ -206,7 +219,7 @@ int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
   }
-  printf(HELPBLOCK);
+  uartPutsNL(UART2_BASE_PTR, HELPBLOCK);
   return 0;
 }
 
@@ -295,7 +308,10 @@ int cmd_malloc(int argc, char *argv[]){
     return E_MALLOC;
   }
   else{
-    printf("%p \r\n", mal_val);
+	char* output = myMalloc(32);
+	sprintf(output, "%p \n", mal_val);
+	uartPutsNL(UART2_BASE_PTR, output);
+	myFree(output);
     return 0;
   }
 }
@@ -310,7 +326,7 @@ int cmd_free(int argc, char *argv[]){
   check_overflow(ptr_val);
   err_val = myFreeErrorCode((void *)ptr_val);
   if (err_val == 0){
-    printf("Free successful \r\n");
+	uartPutsNL(UART2_BASE_PTR, "Free successful \n");
   }
   return err_val;
 }
@@ -374,8 +390,7 @@ int cmd_memchk(int argc, char *argv[]){
   set_val = (char)argv[2][0];
   reg_len = hex_dec_oct(argv[3]);
   check_overflow(reg_len);
-  // unsigned long* my_offset = malloc(sizeof(long*));
-  unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
+  unsigned int my_bound = bounds((void *)ptr_val);
   if (my_bound == 0 || my_bound < reg_len){
     return E_NOINPUT;
   }
@@ -385,20 +400,23 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-  printf("memchk successful \r\n");
-  // free(my_offset);
+  uartPutsNL(UART2_BASE_PTR, "memchk successful \n");
   return 0;
 }
 
 //command line shell accepts user input and executes basic commands
 int shell(void){
-    setvbuf(stdin, NULL, _IONBF, 0); //attempts to fix stdin and stdout
-    setvbuf(stdout, NULL, _IONBF, 0);
+	const unsigned long int delayCount = 0x7ffff;
+	uart_init(115200);
+    //setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
+    //setvbuf(stdout, NULL, _IONBF, 0);
     while(TRUE){
-        printf("$ \r\n");
+    	uartPutsNL(UART2_BASE_PTR, "$ ");
         int arg_len[MAXARGS+2] = {0};
-        //get argc, create string itself
-        char user_cmd[MAXLEN] = {'\0'};
+        char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
+    	while(!uartGetcharPresent(UART2_BASE_PTR)) {
+    		delay(delayCount);
+    	}
         if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
           return -99;
         }
@@ -463,24 +481,6 @@ int check_hex (char c) {
     if ((c >= 'a') && (c <= 'f')) return 1;
     if ((c >= 'A') && (c <= 'F')) return 1;
     return 0;
-}
-
-//basic implementation of strcmp
-int string_cmp(const char *first, const char *second)
-{
-    while(*first)
-    {
-        // if characters differ or end of second string is reached, break
-        if (*first != *second){
-          break;
-        }
-        // move to next pair of characters
-        first++;
-        second++;
-    }
- 
-    // return the ASCII difference after converting char* to unsigned char*
-    return *(const unsigned char*)first - *(const unsigned char*)second;
 }
 
 //checks if a given integer, assumed to be a year, is a leap year

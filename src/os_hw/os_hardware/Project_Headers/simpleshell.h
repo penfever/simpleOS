@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #ifndef _SIMPLE_SHELL_H
 #define _SIMPLE_SHELL_H
@@ -77,6 +76,8 @@ struct commandEntry {
   int (*functionp)(int argc, char *argv[]);
 };
 
+int shell(void);
+
 int check_digit(char c);
 
 int check_hex (char c);
@@ -90,5 +91,7 @@ int string_cmp(const char *first, const char *second);
 int isleapyear(int inyear);
 
 size_t hex_dec_oct(char* str);
+
+void check_overflow(unsigned long my_num);
 
 #endif
