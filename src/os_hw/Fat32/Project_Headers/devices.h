@@ -45,7 +45,7 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 	uint8_t *fileName;
 	uint32_t fileSize;
 	//LED-specific entries
-	enum led_color
+	enum led_color //TODO: figure out which dev corresponds to which color
 	{
 		red = 1,
 		yellow = 2,

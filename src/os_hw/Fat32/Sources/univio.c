@@ -73,9 +73,11 @@ int add_device_to_PCB(file_descriptor fd){
 	//populate struct in PCB with file data
 	if (fd >= PUSHB_MIN && fd <= PUSHB_MAX){
 		userptr->majorId = PUSHBUTTON;
+		pushbuttonInitAll();
 	}
 	if (fd >= LED_MIN && fd <= LED_MAX){
 		userptr->majorId = LED;
+		ledInitAll();
 	}
 	else{
 		if (MYFAT_DEBUG){
@@ -188,6 +190,39 @@ int fgetc (file_descriptor descr){
 	return err;
 }
 
+int pushb_fgetc(file_descriptor descr){
+	if (sw1In()){
+		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is pressed \n");
+	}
+	else{
+		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is not pressed \n");
+	}
+	if (sw2In()){
+		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is pressed \n");
+	}
+	else{
+		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is not pressed \n");
+	}
+	return 0;
+}
+
+int led_fgetc(file_descriptor descr){
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_E1){
+        ledOrangeOn();
+	}
+	if (userptr->minorId == dev_E2){
+        ledBlueOn();
+	}
+	if (userptr->minorId == dev_E3){
+        ledOrangeOn();
+	}
+	if (userptr->minorId == dev_E4){
+        ledYellowOn();
+	}
+	return 0;
+}
+
 /*fgets() reads in at most one less than size characters from stream and 
  * stores them into the buffer pointed to by s. Reading stops after an 
  * EOF or a newline. If a newline is read, it is stored into the buffer. 
@@ -212,6 +247,7 @@ char* fgets (file_descriptor descr, int buflen){
 }
 
 int fputc (char bufp, file_descriptor descr){
+	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -219,9 +255,31 @@ int fputc (char bufp, file_descriptor descr){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
 	}
-	int err;
+	if (userptr->deviceType == PUSHBUTTON){
+		return E_NOINPUT;
+	}
+	if (userptr->deviceType == LED){
+		err = led_fputc(descr);
+	}
 	err = file_putbuf(descr, &bufp, 1);
 	return err;
+}
+
+int led_fputc(file_descriptor descr){
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_E1){
+        ledOrangeOff();
+	}
+	if (userptr->minorId == dev_E2){
+        ledBlueOff();
+	}
+	if (userptr->minorId == dev_E3){
+        ledOrangeOff();
+	}
+	if (userptr->minorId == dev_E4){
+        ledYellowOff();
+	}
+	return 0;
 }
 
 int fputs (char* bufp, file_descriptor descr, int buflen){
