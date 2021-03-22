@@ -25,7 +25,13 @@
                   "free frees memory. \n"\
                   "memset sets an allocated memory region to a value. \n"\
                   "memchk checks that an allocated memory region is set to a value. \n"\
-                  "memorymap prints a map of all allocated memory. \n"
+                  "memorymap prints a map of all allocated memory. \n"\
+                  "fopen opens a file or device. \n"\
+                  "fclose closes a file or device. \n"\
+                  "fgetc and fgets retrieve characters or strings from a file or device. \n"\
+                  "fputc and fputs send characters or strings to a file or device. \n"\
+                  "fseek sets the file cursor to a particular position in a file. \n"
+
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
@@ -70,6 +76,15 @@ int cmd_free(int argc, char *argv[]);
 int cmd_memset(int argc, char *argv[]);
 int cmd_memchk(int argc, char *argv[]);
 int cmd_memorymap(int argc, char *argv[]);
+int cmd_fopen(int argc, char *argv[]);
+int cmd_fclose(int argc, char *argv[]);
+int cmd_create(int argc, char *argv[]);
+int cmd_delete(int argc, char *argv[]);
+int cmd_fgetc(int argc, char *argv[]);
+int cmd_fgets(int argc, char *argv[]);
+int cmd_fputc(int argc, char *argv[]);
+int cmd_fputs(int argc, char *argv[]);
+int cmd_seek(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;

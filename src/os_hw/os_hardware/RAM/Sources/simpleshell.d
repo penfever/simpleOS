@@ -33,8 +33,12 @@ Sources/simpleshell.o: ../Sources/simpleshell.c \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/simpleshell.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/myerror.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/mymalloc.h \
- C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/delay.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/devices.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/univio.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/SDHC_FAT32_Files.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/directory\ for\ students.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/SDHC_FAT32_Files.h \
+ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/delay.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uart.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/derivative.h \
  C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/MK70F12.h \
@@ -108,9 +112,17 @@ C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/mymalloc.h:
 
-C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/delay.h:
-
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/devices.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/univio.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/SDHC_FAT32_Files.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/directory\ for\ students.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/SDHC_FAT32_Files.h:
+
+C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/delay.h:
 
 C:/Users/penfe/OneDrive/Code/csci-e-92-spring-2021/src/os_hw/os_hardware/Project_Headers/uart.h:
 

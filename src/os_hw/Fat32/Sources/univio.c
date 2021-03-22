@@ -19,46 +19,40 @@ static int pid = 0; //temporarily set everything to OS
 
 /*fopen returns 0 in case of error. Enable MYFAT_DEBUG for more information. */
 
-file_descriptor fopen (char* filename, char mode){
+int myfopen (file_descriptor descr, char* filename, char mode){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
 	int isDevice = FALSE;
 	int err;
 	char* device = "_";
-	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_
+	/*CASE: device*/
+	if (strncmp("dev_", filename, 4) != 0){
 		continue;
 	}
 	else{
-		file_descriptor fd = check_dev_table(filename);
-		if (fd == 0){
+		descr = check_dev_table(filename);
+		if (descr == 0){
 			if (MYFAT_DEBUG){
 				printf("Invalid device name \n");
 			}
+			return E_NOINPUT; //TODO: errcheck
 		}
-		//put fd into the PCB
-		err = add_device_to_PCB(fd);
-		if (err != 0){
-			return 0;
-		}
-		return fd;
+		err = add_device_to_PCB(descr);
+		return err;
 	}
-	 //treat as FAT32
-	//if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor
-	file_descriptor descr;
+	/*CASE: FAT32
+	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
 	err = file_open(filename, descr);
 	if (err != 0){
-		if (MYFAT_DEBUG){
-			printf("File_open error %d \n", err);
-		}
-		return 0;
+		return err;
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		descr = 0;
+		return E_NOINPUT; //TODO: errcheck
 	}
 	userptr->mode = mode;
-	return descr;
+	return 0;
 }
 
 int add_device_to_PCB(file_descriptor fd){
@@ -118,7 +112,7 @@ file_descriptor check_dev_table(char* filename){
 	return 0;
 }
 
-int fclose (char* filename){
+int myfclose (char* filename){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -163,11 +157,9 @@ int remove_device_from_PCB(file_descriptor fd){
 	userptr->minorId = dev_null;
 	return 0;
 }
-/* fgetc() reads the next character from stream and 
- * returns it as an unsigned char cast to an int, or 
- * EOF on end of file or error.  */
-
-int fgetc (file_descriptor descr){
+/* myfgetc() reads the next character from stream and 
+ * passes it to a buffer. Returns an error code if it encounters an error.  */
+int myfgetc (file_descriptor descr, char bufp){
 	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
@@ -182,11 +174,13 @@ int fgetc (file_descriptor descr){
 	if (userptr->deviceType == PUSHBUTTON){
 		err = pushb_fgetc(descr);
 	}
+	int charsreadp = 0;
 	if (userptr->deviceType == LED){
 		err = led_fgetc(descr);
 	}
-	int charsreadp;
-	err = file_getbuf(descr, &bufp, 1, &charsreadp);
+	else{
+		err = file_getbuf(descr, &bufp, 1, &charsreadp);
+	}
 	return err;
 }
 
@@ -228,7 +222,7 @@ int led_fgetc(file_descriptor descr){
  * EOF or a newline. If a newline is read, it is stored into the buffer. 
  * A terminating null byte (\0) is stored after the last character in the buffer. */
 
-char* fgets (file_descriptor descr, int buflen){
+char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -246,7 +240,7 @@ char* fgets (file_descriptor descr, int buflen){
 	return bufp;
 }
 
-int fputc (char bufp, file_descriptor descr){
+int myfputc (file_descriptor descr, char bufp){
 	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
@@ -261,7 +255,9 @@ int fputc (char bufp, file_descriptor descr){
 	if (userptr->deviceType == LED){
 		err = led_fputc(descr);
 	}
-	err = file_putbuf(descr, &bufp, 1);
+	else{
+		err = file_putbuf(descr, &bufp, 1);
+	}
 	return err;
 }
 
@@ -282,7 +278,7 @@ int led_fputc(file_descriptor descr){
 	return 0;
 }
 
-int fputs (char* bufp, file_descriptor descr, int buflen){
+int myfputs (char* bufp, file_descriptor descr, int buflen){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -295,7 +291,7 @@ int fputs (char* bufp, file_descriptor descr, int buflen){
 	return err;
 }
 
-int create(char* filename){
+int mycreate(char* filename){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -311,7 +307,7 @@ int create(char* filename){
 	return dir_create_file(*filename);
 }
 
-int delete(char* filename){
+int mydelete(char* filename){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -327,7 +323,7 @@ int delete(char* filename){
 	return dir_delete_file(*filename);
 }
 
-int seek(file_descriptor descr, uint32_t pos){
+int myseek(file_descriptor descr, uint32_t pos){
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}

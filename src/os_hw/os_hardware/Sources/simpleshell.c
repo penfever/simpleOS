@@ -5,8 +5,10 @@
 #include "simpleshell.h"
 #include "myerror.h"
 #include "mymalloc.h"
-#include "delay.h"
 #include "devices.h"
+#include "univio.h"
+#include "SDHC_FAT32_Files.h"
+#include "delay.h"
 #include "uart.h"
 #include "uartNL.h"
 
@@ -46,7 +48,17 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"free", cmd_free},
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
-                {"memchk", cmd_memchk}};
+                {"memchk", cmd_memchk},
+                {"fopen", cmd_fopen},
+                {"fclose", cmd_fclose},
+                {"fgetc", cmd_fgetc},
+                {"fgets", cmd_fgets},
+                {"fputc", cmd_fputc},
+                {"fputs", cmd_fputs},
+                {"create", cmd_create},
+                {"delete", cmd_delete},
+                {"seek", cmd_seek}
+};
 
 /*Takes as arguments a user command and the length of that command.
 It then compares the next character to a list of escape characters and processes it accordingly.*/
@@ -113,27 +125,29 @@ int get_string(char* user_cmd, int arg_len[]){
     }
     else{
       c = uartGetchar(UART2_BASE_PTR);
+      uartPutchar(UART2_BASE_PTR, c);
     }
-    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
-      if (str_len == 0){
-          c = uartGetchar(UART2_BASE_PTR);
-      }
-      else{
-    	  str_len --;
-      }
-    }
+//    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
+//      if (str_len == 0){
+//          c = uartGetchar(UART2_BASE_PTR);
+//      }
+//      else{
+//    	  str_len --;
+//      }
+//    }
     if (c == '\r'){
       c = uartGetchar(UART2_BASE_PTR);
+      if (c == '\n'){
+        break;
+      }
+      else{
+    	continue;
+      }
     }
-    if (c == '\n'){
-      break;
-    }
-    if (c == '\033'){
-      //attempt to handle special shell escape char
+    if (c == '\033'){       //attempt to handle special shell escape char
       c = uartGetchar(UART2_BASE_PTR);
     }
-    //if it finds a backslash, assumes the use of escape character
-    if (c == BACKSLASH){
+    if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
       c = escape_char(user_cmd, &str_len);
     }
     /*otherwise, falls through and checks for a quotation mark
@@ -150,6 +164,7 @@ int get_string(char* user_cmd, int arg_len[]){
       while( buffer[0] == ' ' || buffer[0] == '\t' ){
         buffer[1] = buffer[0];
         buffer[0] = uartGetchar(UART2_BASE_PTR);
+        uartPutchar(UART2_BASE_PTR, buffer[0]);
       }
       c = buffer[0];
       arg_len[argc] = right_pos - left_pos;
@@ -180,8 +195,6 @@ int get_string(char* user_cmd, int arg_len[]){
     return E_TOO_LONG;
   }
   else{
-	uartPutchar(UART2_BASE_PTR, c);
-	uartPutchar(UART2_BASE_PTR, '\r');
     int right_pos = str_len;
     arg_len[argc] = right_pos - left_pos;
     argc ++;
@@ -234,14 +247,6 @@ the current date and time in the format "January 23, 2014 15:57:07.123456".
 "gettimeofday" returns the number of seconds and microseconds since midnight (zero
 hours) on January 1, 1970 -- this time is referred to as the Unix Epoch. */
 
-/*Checks strtoul output for integer overflow error and prints error if one is encountered.*/
-void check_overflow(unsigned long my_num){
-  if (my_num == 0){
-    error_checker(E_NOINPUT);
-  }
-  return;
-}
-
 int cmd_date(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
@@ -254,53 +259,6 @@ int cmd_clockdate(int argc, char *argv[]){
     return E_NUMARGS;
   }
   return 0;
-}
-
-/*Helper function accepts a string and returns true if every character in the string is a digit.*/
-int check_digit_all(char* str){
-  for (int i = 0; i < strlen(str); i++){
-    if (!check_digit(str[i])){
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-/*Helper function accepts a string and returns true if every character in the string is a hex digit.*/
-int check_hex_all(char* str){
-  for (int i = 0; i < strlen(str); i++){
-    if (!check_hex(str[i])){
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an integer. If it is not an integer or some other error has occurred, returns 0.*/
-size_t hex_dec_oct(char* str){
-  char* p_str = str + 2;
-  int check_str;
-  check_str = check_digit_all(str);
-  if (!check_digit(str[0])){
-    return 0;
-  }
-  if (str[0] == '0'){
-    if (str[1] == 'x' || str[1] == 'X'){
-      if (check_hex_all(p_str) == FALSE){
-        return 0;
-      }
-      return strtoul(str, NULL, 16); //return hex
-    }
-    if (check_str == FALSE){
-      return 0;
-    }
-    return strtoul(str, NULL, 8); //return octal
-}
-  if (check_str == FALSE){
-    return 0;
-  }
-  return strtoul(str, NULL, 10); //return decimal
 }
 
 int cmd_malloc(int argc, char *argv[]){
@@ -409,6 +367,118 @@ int cmd_memchk(int argc, char *argv[]){
   return 0;
 }
 
+/*shell interface for univio fopen (file_descriptor descr, char* filename, char mode)
+ * Prints pointer directly to terminal. */
+int cmd_fopen(int argc, char *argv[]){
+	if (argc != 3){
+		return E_NUMARGS;
+	}
+	if (strlen(argv[2]) != 1){
+		return E_NOINPUT;
+	}
+	int err = 0;
+	char* filename = argv[1];
+	char m = argv[2][0];
+	file_descriptor myfile;
+	err = myfopen(myfile, filename, m);
+	if (err != 0){
+		return err;
+	}
+	char* output = myMalloc(256);
+	sprintf(output, "fopen success \n FILE* is %p \n", (void*)myfile);
+	free(output);
+	return 0;
+}
+
+/*shell interface for univio fclose (file_descriptor descr)*/
+int cmd_fclose(int argc, char *argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	if (check_digit_all(argv[1]) != TRUE){
+		return E_NOINPUT;
+	}
+	unsigned long descr = strtoul(argv[1], NULL, 10);
+	return myfclose(descr);
+}
+
+/*shell interface for univio create (char* filename)*/
+int cmd_create(int argc, char *argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	return mycreate(argv[1]);
+}
+
+/*shell interface for univio delete (char* filename)*/
+int cmd_delete(int argc, char *argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	return mydelete(argv[1]);
+}
+
+/*shell interface for fgetc (file_descriptor descr, char bufp).
+ * Prints output directly to terminal. */
+int cmd_fgetc(int argc, char *argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	int err;
+	char bufp;
+	unsigned long descr = strtoul(argv[1], NULL, 10);
+	err = myfgetc(descr, bufp);
+	if (err < 0){
+		return err;
+	}
+	else{
+		uartPutchar(UART2_BASE_PTR, bufp);
+	}
+	return err;
+}
+
+/*shell interface for fgets*/
+int cmd_fgets(int argc, char *argv[]){
+	;
+}
+
+/*shell interface for fputc (file_descriptor descr, char bufp)*/
+int cmd_fputc(int argc, char *argv[]){
+	if (argc != 3){
+		return E_NUMARGS;
+	}
+	if (check_digit_all(argv[1]) != TRUE){
+		return E_NOINPUT;
+	}
+	if (strlen(argv[2]) != 1){
+		return E_NOINPUT;
+	}
+	unsigned long descr = strtoul(argv[1], NULL, 10);
+	char m = argv[2][0];
+	return myfputc(descr, m);
+}
+
+/*shell interface for fputs*/
+int cmd_fputs(int argc, char *argv[]){
+	;
+}
+
+/*shell interface for seek (file_descriptor, position)*/
+int cmd_seek(int argc, char *argv[]){
+	if (argc != 3){
+		return E_NUMARGS;
+	}
+	if (check_digit_all(argv[1]) != TRUE){
+		return E_NOINPUT;
+	}
+	if (check_digit_all(argv[2]) != TRUE){
+		return E_NOINPUT;
+	}
+	unsigned long descr = strtoul(argv[1], NULL, 10);
+	unsigned long pos = strtoul(argv[2], NULL, 10);
+	return myseek(descr, pos);
+}
+
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
@@ -425,6 +495,7 @@ int shell(void){
         if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
           return -99;
         }
+        uartPutsNL(UART2_BASE_PTR, "\n");
         int argc = arg_len[MAXARGS+1];
         char** argv = (char **)myMalloc((argc + 1) * sizeof(char *));
         if (argv == NULL) {
@@ -474,6 +545,8 @@ int shell(void){
     return err_code;
 }
 
+//HELPERS
+
 //basic implementation of isdigit
 int check_digit (char c) {
     if ((c >= '0') && (c <= '9')) return 1;
@@ -499,4 +572,59 @@ int isleapyear(int inyear){
     else{
         return FALSE;
     }
+}
+
+/*Helper: checks strtoul output for integer overflow error and prints error if one is encountered.*/
+void check_overflow(unsigned long my_num){
+  if (my_num == 0){
+    error_checker(E_NOINPUT);
+  }
+  return;
+}
+
+/*Helper function accepts a string and returns true if every character in the string is a digit.*/
+int check_digit_all(char* str){
+  for (int i = 0; i < strlen(str); i++){
+    if (!check_digit(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/*Helper function accepts a string and returns true if every character in the string is a hex digit.*/
+int check_hex_all(char* str){
+  for (int i = 0; i < strlen(str); i++){
+    if (!check_hex(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
+it is an integer. If it is not an integer or some other error has occurred, returns 0.*/
+size_t hex_dec_oct(char* str){
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
+      return strtoul(str, NULL, 16); //return hex
+    }
+    if (check_str == FALSE){
+      return 0;
+    }
+    return strtoul(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
+  }
+  return strtoul(str, NULL, 10); //return decimal
 }
