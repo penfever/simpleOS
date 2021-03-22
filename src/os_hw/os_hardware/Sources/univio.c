@@ -340,7 +340,7 @@ int myseek(file_descriptor descr, uint32_t pos){
 
 int close_all_devices(void){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
-		currentPCB->openFiles[i]->deviceType = UNUSED;
+		currentPCB->openFiles[i].deviceType = UNUSED;
 	}
     return 0;
 }

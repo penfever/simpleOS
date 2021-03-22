@@ -14,6 +14,8 @@
 #include "mymalloc.h"
 #include "myerror.h"
 #include "devices.h"
+#include "uart.h"
+#include "uartNL.h"
 
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
@@ -58,7 +60,7 @@ int file_structure_mount(void){ //TODO: integrate with myerror
     //check if card is inserted
     if (!microSDCardDetectedUsingSwitch()){
         printf("Card not detected with switch. \n");
-        free(MOUNT);
+        myFree(MOUNT);
         printf("Error, card not detected. \n");
         return 0;
     }
@@ -77,15 +79,15 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  */
 int file_structure_umount(void){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
-		if (currentPCB->openFiles[i]->deviceType == FAT32){
-			currentPCB->openFiles[i]->deviceType = UNUSED;
+		if (currentPCB->openFiles[i].deviceType == FAT32){
+			currentPCB->openFiles[i].deviceType = UNUSED;
 		}
 	}
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
     }
-    myFree(MOUNT);
+    //myFree(MOUNT); TODO: attempt to free causes bkpt
     return 0;
 }
 
@@ -226,12 +228,13 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
-	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
-	    			printf("Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
-	    			//int entr = i*-1;
-	    			//return entr;
-	    		}
+    			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+    			if(UARTIO){
+        			char* output = myMalloc(256);
+        			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
+        			uartPutsNL(UART2_BASE_PTR, output);
+        			myFree(output);
+    			}
 	    	return 0;
 	    	}
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
@@ -270,18 +273,22 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		continue;
 	    	}
-	    	if(MYFAT_DEBUG){
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
-			printf("%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
-			//TODO: if FULL is true, print attr
-			printf("Attributes: ");
-			dir_entry_print_attributes(dir_entry);
-			printf("\n");
+	    	if(UARTIO){ //TODO: enable for console IO
+    			char* output = myMalloc(256);
+    			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
+    			uartPutsNL(UART2_BASE_PTR, output);
+				if(FALSE){//TODO: if FULL is true, print attr
+					printf("Attributes: ");
+					dir_entry_print_attributes(dir_entry);
+					printf("\n");
+				}
+				myFree(output);
 	    	}
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 			if(MYFAT_DEBUG){
-			printf(" First Cluster: %lu\n", firstCluster);
-	    	printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
+				printf(" First Cluster: %lu\n", firstCluster);
+				printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
 			}
 			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 	    	if(!noMatch){
@@ -294,7 +301,14 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			memcpy(MOUNT->data, data, BLOCK);
 	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
-	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+    			if(UARTIO){
+        			char* output = myMalloc(256);
+        			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
+        			uartPutsNL(UART2_BASE_PTR, output);
+        			myFree(output);
+    			}
+    			else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
 	    		latest = dir_entry;
@@ -304,8 +318,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
 	    	if(MYFAT_DEBUG){
-			printf(" Size: %lu\n", dir_entry->DIR_FileSize);
-			printf("\n\n");
+	    		printf(" Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 	    	}
 	    }
 	    return 1; //return 1 if end of sector reached without end of directory being reached

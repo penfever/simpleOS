@@ -40,7 +40,12 @@
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
 #define BACKSLASH 92
+#ifndef CONSOLEIO
 #define CONSOLEIO 0
+#endif
+#ifndef UARTIO
+#define UARTIO 1
+#endif
 
 extern int g_noFS;
 
@@ -88,6 +93,7 @@ int cmd_fgets(int argc, char *argv[]);
 int cmd_fputc(int argc, char *argv[]);
 int cmd_fputs(int argc, char *argv[]);
 int cmd_seek(int argc, char *argv[]);
+int cmd_ls(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;

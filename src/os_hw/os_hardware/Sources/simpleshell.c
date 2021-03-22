@@ -59,7 +59,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"fputs", cmd_fputs},
                 {"create", cmd_create},
                 {"delete", cmd_delete},
-                {"seek", cmd_seek}
+                {"seek", cmd_seek},
+                {"ls", cmd_ls}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -482,6 +483,13 @@ int cmd_seek(int argc, char *argv[]){
 	return myseek(descr, pos);
 }
 
+int cmd_ls(int argc, char *argv[]){ //TODO: implement 'full' option?
+	if (argc != 1){
+		return E_NUMARGS;
+	}
+	return dir_ls(0);
+}
+
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
@@ -492,7 +500,6 @@ int shell(void){
     }
     else{
     	uartPutsNL(UART2_BASE_PTR, "SDHC card mounted. \n");
-        dir_set_cwd_to_root();
         g_noFS = FALSE;
     }
     if (CONSOLEIO){
