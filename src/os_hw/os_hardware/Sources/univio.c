@@ -49,32 +49,34 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
-	if (g_noFS || len > 12){
-		return E_NOINPUT; //TODO: errcheck E_NOFS and too-long file names
+	if (g_noFS || len > 12 || filename[len-4] != '.'){
+		return E_NOINPUT; //TODO: errcheck E_NOFS and improper file names
 	}
 	//string processing to ensure FAT32 compliance
-	char fileProc[12] = {' '};
+	char fileProc[11] = {' '};
 	if (len == 12){
-		for (int i = 0; i < len; ++i){
+		for (int i = 0; i < len-4; ++i){
 			fileProc[i] = filename[i];
 			fileProc[i] = mytoupper(fileProc[i]);
 		}
+		for (int j = len - 4; j < len; ++j){
+			fileProc[j] = filename[j+1];
+			fileProc[j] = mytoupper(fileProc[j]);
+		}
 	}
 	else{
-		fileProc[11] = filename[len-1];
-		fileProc[11] = mytoupper(fileProc[11]);
-		fileProc[10] = filename[len-2];
+		fileProc[10] = filename[len-1];
 		fileProc[10] = mytoupper(fileProc[10]);
-		fileProc[9] = filename[len-3];
+		fileProc[9] = filename[len-2];
 		fileProc[9] = mytoupper(fileProc[9]);
-		fileProc[8] = '.';
+		fileProc[8] = filename[len-3];
+		fileProc[8] = mytoupper(fileProc[8]);
 		for (int i = 0; i < len-4; ++i){
 			fileProc[i] = filename[i];
 			fileProc[i] = mytoupper(fileProc[i]);
 		}
 	}
 	err = file_open(fileProc, &descr);
-	myFree(fileProc);
 	if (err != 0){
 		return err;
 	}
