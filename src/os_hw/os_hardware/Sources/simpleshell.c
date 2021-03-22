@@ -330,7 +330,6 @@ int cmd_memset(int argc, char *argv[]){
   set_val = (char)argv[2][0];
   reg_len = hex_dec_oct(argv[3]);
   check_overflow(reg_len);
-  // unsigned long* my_offset = malloc(sizeof(long*));
   unsigned int my_bound = bounds((void *)ptr_val); //TODO: fix bounds so it can handle the middle of a region
   if (my_bound == 0 || my_bound < reg_len){
     return E_NOINPUT;
@@ -339,7 +338,6 @@ int cmd_memset(int argc, char *argv[]){
   for (int i = 0; i < reg_len; i++){
     write_val[i] = set_val;
   }
-  // free(my_offset);
   return 0;
 }
 

@@ -19,7 +19,6 @@
 #include "led.h"
 #include "pushbutton.h"
 
-
 static int pid = 0; //temporarily set everything to OS
 
 /*Devices to support: pushbuttons, LEDs, FAT32*/

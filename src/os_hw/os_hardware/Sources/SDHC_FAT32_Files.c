@@ -44,7 +44,7 @@ struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a func
 
 int file_structure_mount(void){ //TODO: integrate with myerror
     if(MOUNT == 0){
-        MOUNT = malloc(sizeof(struct myfat_mount));
+        MOUNT = myMalloc(sizeof(struct myfat_mount));
         if(MOUNT == NULL){
             printf("could not malloc\n");
             exit(1);
@@ -76,11 +76,16 @@ int file_structure_mount(void){ //TODO: integrate with myerror
  * Returns an error code if the file structure is not mounted
  */
 int file_structure_umount(void){
-	//TODO: if any files aren't closed, close them
+	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+		if (currentPCB->openFiles[i]->deviceType == FAT32){
+			currentPCB->openFiles[i]->deviceType = UNUSED;
+		}
+	}
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
         printf("Could not re-enable resistor.\n");
         return 1;
     }
+    myFree(MOUNT);
     return 0;
 }
 
