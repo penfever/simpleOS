@@ -22,11 +22,19 @@ src/toggle/.project
 src/toggle/ReferencedRSESystems.xml
 src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
 src/os/mymalloc/main.exe
-ps3/ProblemSet3.txt
-ps3/AN1 ConsoleIO.txt
-ps3/AN15 UART2andOSBDM.txt
-ps3/AN16 SerialPortUARTIO.txt
-ps3/uart.c
-ps3/uart.h
-ps3/InputandOutput/main.c
-ps3/serialIO/main.c
+ps3/
+os_hw/Fat32
+os_hw/fat32_sdhc
+os_hw/os_hardware/.settings/
+os_hw/os_hardware/Project_Settings/
+os_hw/os_hardware/RAM/
+*.cproject
+*.project
+*.cwGeneratedFileSetLog
+*.jlink
+*.apconfig
+*.elf
+*.map
+*.o
+*.d
+os_hw/os_hardware/ReferencedRSESystems.xml

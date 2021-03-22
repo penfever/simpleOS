@@ -12,6 +12,7 @@
 #include "univio.h"
 #include "devices.h"
 #include "myerror.h"
+#include "simpleshell.h"
 #include "SDHC_FAT32_Files.h"
 #include "uart.h"
 #include "uartNL.h"
@@ -32,7 +33,7 @@ int myfopen (file_descriptor descr, char* filename, char mode){
 	char* device = "_";
 	/*CASE: device*/
 	if (strncmp("dev_", filename, 4) != 0){
-		continue;
+		;
 	}
 	else{
 		descr = check_dev_table(filename);
@@ -70,11 +71,11 @@ int add_device_to_PCB(file_descriptor fd){
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
 	if (fd >= PUSHB_MIN && fd <= PUSHB_MAX){
-		userptr->majorId = PUSHBUTTON;
+		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
 	}
 	if (fd >= LED_MIN && fd <= LED_MAX){
-		userptr->majorId = LED;
+		userptr->deviceType = LED;
 		ledInitAll();
 	}
 	else{
@@ -94,22 +95,22 @@ file_descriptor check_dev_table(char* filename){
 		}
 		else{
 			if (i == 1){
-				return sw1;
+				return dev_sw1;
 			}
 			if (i == 2){
-				return sw2;
+				return dev_sw2;
 			}
 			if (i == 3){
-				return E1;
+				return dev_E1;
 			}
 			if (i == 4){
-				return E2;
+				return dev_E2;
 			}
 			if (i == 5){
-				return E3;
+				return dev_E3;
 			}
 			if (i == 6){
-				return E4;
+				return dev_E4;
 			}
 		}
 	}
@@ -125,7 +126,7 @@ int myfclose (file_descriptor descr){
 		return E_NOINPUT;
 	}
 	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == LED){
-		return remove_device_from_PCB(fd);
+		return remove_device_from_PCB(descr);
 	}
 	//treat as FAT32	
 	return file_close(descr);
@@ -136,7 +137,7 @@ int remove_device_from_PCB(file_descriptor fd){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
 	}
-	userptr->majorId = UNUSED;
+	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;
 	return 0;
 }
@@ -206,6 +207,7 @@ int led_fgetc(file_descriptor descr){
  * A terminating null byte (\0) is stored after the last character in the buffer. */
 
 char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
+	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
@@ -282,7 +284,7 @@ int mycreate(char* filename){
 	int err;
 	char* device = "_";
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_
-		continue;
+		;
 	}
 	else{
 		return E_NOINPUT;
@@ -298,7 +300,7 @@ int mydelete(char* filename){
 	int err;
 	char* device = "_";
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_
-		continue;
+		;
 	}
 	else{
 		return E_NOINPUT;
