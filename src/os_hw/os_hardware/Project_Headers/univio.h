@@ -33,4 +33,6 @@ file_descriptor check_dev_table(char* filename);
 
 int remove_device_from_PCB(file_descriptor fd);
 
+int close_all_devices(void);
+
 #endif /* UNIVIO_H_ */

@@ -232,6 +232,8 @@ int cmd_exit(int argc, char *argv[]){
   myFree(argv);
   free(first);
   first = NULL;
+  //TODO: turn off all LEDs?
+  close_all_devices();
   file_structure_umount();
   exit(0);
 }
