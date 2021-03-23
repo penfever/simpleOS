@@ -439,13 +439,19 @@ int cmd_fgetc(int argc, char *argv[]){
 	}
 	int err;
 	char bufp = '\0';
-	unsigned long descr = strtoul(argv[1], NULL, 10);
-	err = myfgetc(descr, bufp);
+	file_descriptor descr;
+	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
+		return E_NOINPUT;
+	}
+	err = myfgetc(descr, &bufp);
 	if (err < 0){
 		return err;
 	}
 	else{
-		uartPutchar(UART2_BASE_PTR, bufp);
+		char output[2];
+		output[0] = bufp;
+		output[1] = '\n';
+		uartPutsNL(UART2_BASE_PTR, output);
 	}
 	return err;
 }

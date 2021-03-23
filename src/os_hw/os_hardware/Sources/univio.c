@@ -185,7 +185,7 @@ int remove_device_from_PCB(file_descriptor fd){
 }
 /* myfgetc() reads the next character from stream and 
  * passes it to a buffer. Returns an error code if it encounters an error.  */
-int myfgetc (file_descriptor descr, char bufp){
+int myfgetc (file_descriptor descr, char* bufp){
 	int err;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
@@ -209,7 +209,7 @@ int myfgetc (file_descriptor descr, char bufp){
 		if (g_noFS){
 			return E_NOINPUT; //TODO: errcheck E_NOFS
 		}
-		err = file_getbuf(descr, &bufp, 1, &charsreadp);
+		err = file_getbuf(descr, bufp, 1, &charsreadp);
 	}
 	return err;
 }

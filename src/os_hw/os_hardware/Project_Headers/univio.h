@@ -7,7 +7,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode);
 
 int myfclose (file_descriptor descr);
 
-int myfgetc (file_descriptor descr, char bufp);
+int myfgetc (file_descriptor descr, char* bufp);
 
 char* myfgets (file_descriptor descr, int buflen);
 
