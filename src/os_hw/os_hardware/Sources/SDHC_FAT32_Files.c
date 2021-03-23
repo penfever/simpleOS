@@ -536,7 +536,7 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 }
 
 /* •The first short filename character DIR_Name[0] may not be a space (0x20)
-•There is an implied period (‘.’) between the main part and the extension except then the extension is all spaces
+•There is an implied period (‘.’) between the main part and the extension except when the extension is all spaces
 •No lowercase characters may be in the short filename
 •The following characters may not appear in the short filename: lowercase characters, 0x22, 
 0x2A through 0x2F, 0x3A through 0x3F, 0x5B through 0x5D, and 0x7C

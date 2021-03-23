@@ -54,6 +54,20 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 	}
 	//string processing to ensure FAT32 compliance
 	char fileProc[11] = {' '};
+	process_strname(fileProc, filename);
+	err = file_open(fileProc, descr);
+	if (err != 0){
+		return err;
+	}
+	struct stream* userptr = (struct stream *)*descr;
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT; //TODO: errcheck
+	}
+	userptr->mode = mode;
+	return 0;
+}
+
+void process_strname(char* fileProc, char* filename){
 	if (len == 12){
 		for (int i = 0; i < len-4; ++i){
 			fileProc[i] = filename[i];
@@ -76,16 +90,6 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			fileProc[i] = mytoupper(fileProc[i]);
 		}
 	}
-	err = file_open(fileProc, descr);
-	if (err != 0){
-		return err;
-	}
-	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT; //TODO: errcheck
-	}
-	userptr->mode = mode;
-	return 0;
 }
 
 char mytoupper(char c){
@@ -340,7 +344,11 @@ int mycreate(char* filename){
 	if (g_noFS){
 		return E_NOINPUT; //TODO: errcheck E_NOFS
 	}
-	return dir_create_file(filename);
+	//filename processing for FAT32 compliance
+	int len = strlen(argv[1]);
+	char fileProc[11] = {' '};
+	process_strname(fileProc, filename);
+	return dir_create_file(fileProc);
 }
 
 int mydelete(char* filename){

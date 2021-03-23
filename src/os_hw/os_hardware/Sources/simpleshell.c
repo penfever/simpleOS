@@ -90,9 +90,11 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
   c = uartGetchar(UART2_BASE_PTR);
+  uartPutchar(UART2_BASE_PTR, c);
   while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
     if (c == '\r'){
       c = uartGetchar(UART2_BASE_PTR);
+      uartPutchar(UART2_BASE_PTR, c);
       if (c == '\n'){
         return E_NOINPUT;
       }
@@ -101,6 +103,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     sprintf(user_cmd_ptr, &c);
     *str_len = *str_len + 1;
     c = uartGetchar(UART2_BASE_PTR);
+    uartPutchar(UART2_BASE_PTR, c);
   }
   *this_len = right_pos - left_pos;
   left_pos = right_pos;
@@ -153,14 +156,15 @@ int get_string(char* user_cmd, int arg_len[]){
     if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
       c = escape_char(user_cmd, &str_len);
     }
-    /*otherwise, falls through and checks for a quotation mark
+    //otherwise, falls through and checks for a quotation mark
     if (c == '"'){
       int* this_len = &arg_len[argc + 1];
       c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
+      uartPutchar(UART2_BASE_PTR, c);
       if (c == E_NOINPUT){
         return E_NOINPUT;
       }
-    }*/
+    }
     if (c == ' ' || c == '\t'){
       int right_pos = str_len;
       buffer[0] = c;
@@ -389,7 +393,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = myMalloc(256);
-	sprintf(output, "fopen success \n FILE* is %x \n", myfile);
+	sprintf(output, "fopen success \n FILE* is 0x%x \n", myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
 	myFree(output);
 	return 0;
@@ -400,11 +404,15 @@ int cmd_fclose(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	if (check_digit_all(argv[1]) != TRUE){
+	file_descriptor descr;
+	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	unsigned long descr = strtoul(argv[1], NULL, 10);
-	return myfclose(descr);
+	int err = myfclose(descr);
+	if (err == 0){
+		uartPutsNL(UART2_BASE_PTR, "File close successful. \n");
+	}
+	return err;
 }
 
 /*shell interface for univio create (char* filename)*/
