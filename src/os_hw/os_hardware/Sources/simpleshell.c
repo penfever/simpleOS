@@ -216,14 +216,12 @@ int cmd_echo(int argc, char *argv[]){
   if (argc == 1){
     return 0;
   }
-  if (UARTIO){
-	  for (int i = 1; i < argc - 1; i++){
-		uartPutsNL(UART2_BASE_PTR, argv[i]);
-		uartPutsNL(UART2_BASE_PTR, "\n");
-	  }
-	  uartPutsNL(UART2_BASE_PTR, argv[argc - 1]);
-	  uartPutsNL(UART2_BASE_PTR, "\n");
+  for (int i = 1; i < argc - 1; i++){
+	uartPutsNL(UART2_BASE_PTR, argv[i]);
+	uartPutchar(UART2_BASE_PTR, '\n');
   }
+  uartPutsNL(UART2_BASE_PTR, argv[argc - 1]);
+  uartPutchar(UART2_BASE_PTR, '\n');
   return 0;
 }
 
@@ -498,12 +496,13 @@ int cmd_ls(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	if (argv[1][0] == 'f' || argv[1][0] == 'F'){
-		return dir_ls(1);
+	if (argv[1][0] != '0' && argv[1][0] != '1'){
+		return E_NOINPUT;
 	}
-	else{
+	else if (argv[1][0] == '0'){
 		return dir_ls(0);
 	}
+	return dir_ls(1);
 }
 
 //command line shell accepts user input and executes basic commands

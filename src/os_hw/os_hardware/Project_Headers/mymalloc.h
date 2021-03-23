@@ -34,8 +34,6 @@ int myFreeErrorCode(void *ptr);
 
 struct mem_region* walk_struct(struct mem_region* this_region);
 
-void walk_struct_err();
-
 //TODO add func declarations
 
 #endif

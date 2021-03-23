@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
-#include <null.h>
 #include "breakpoint.h"
 #include "mymalloc.h"
 #include "myerror.h"
@@ -32,15 +31,14 @@ allocated to myMalloc, attempts to call malloc to acquire the necessary memory, 
 init_struct then fills in the correct values for 'free', 'size' and 'pid' for the initial struct. Finally, it updates the
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
-	first = (struct mem_region*)malloc(MAX);
-    if (first == NULL){
+    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
     	char* output = "K70 malloc fail ... \n";
     	uartPutsNL(UART2_BASE_PTR, output);
         return NULL;
     }
     else{
-    	g_lower_bound = (char *)&first[0]; //pointers to lower and upper memory bounds
-    	g_upper_bound = g_lower_bound + MAX - 1;
+    	g_lower_bound = (char*)&first[0];
+    	g_upper_bound = (char*)&first[MAX-1];
         node_count += 1;
         first->free = TRUE;
         first->size = MAX - MEMSTRUCT;
@@ -55,7 +53,7 @@ broken off from the larger region of memory. After subdividing, it fills in the 
 'pid' for the initial struct. Finally, it updates the global variable for total node count and returns the modified struct. */
 struct mem_region* subdivide(struct mem_region* mem, int size){
     char* next_c = (char *)mem;
-    next_c += mem->size - size;
+    next_c += (mem->size - size);
     struct mem_region* next = (struct mem_region*)next_c;// pointer backs up so it now points to the correct spot in memory 
     next->free = FALSE; //marks the new region as allocated (since a new region will always be requested)
     next->size = size;
@@ -126,11 +124,11 @@ uint8_t getCurrentPid(){
 /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
-
 struct mem_region* walk_struct(struct mem_region* this_region){
-    int incr_size = this_region->size;
-    char* char_region = (char *)&this_region->data[0];
-    char_region += incr_size;
+	if (this_region->data + this_region->size > g_upper_bound || this_region->data + this_region->size < g_lower_bound){
+		return NULL;
+	}
+    char* char_region = (char *)(this_region->data + this_region->size);
     return (struct mem_region*)char_region;
 }
 
@@ -255,6 +253,9 @@ int free_match(struct mem_region* temp, void* ptr){
         else {
         prev = temp; //previous gets current
         temp = walk_struct(temp);  //current gets next.
+			if (temp == NULL){
+				walk_struct_err();
+			}
         }
     }
     return E_FREE;
