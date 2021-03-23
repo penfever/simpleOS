@@ -18,6 +18,8 @@ In order to build the shell and test the commands, create a new Codewarrior proj
 #MYFAT_DEBUG and #MYFAT_DEBUG_LITE are defined in myerror.h
 I recommend building in Codewarrior’s debug mode, as I am using formatted I/O to string functions.
 
+src/os_hw is included in the repo for the purposes of showing my commit history. It is not required for the build.
+
 
 ## Codewarrior Notes
 

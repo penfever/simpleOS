@@ -1,4 +1,4 @@
-			Last revised 10-Mar-21
+			Last revised 23-Feb-21
 
 			    Problem Set 3
 
@@ -21,28 +21,82 @@ command line arguments.
     return 0;
   }
 
+argv[1] -> a char* array, a pointer to a string.
+(int *)argv[1] -> a char* array cast to a pointer to an integer
+*(int *)argv[1] -> Give me the dereferenced value of the pointer (IE its memory address)
+
+
 
 On computer A, which has a Digital Equipment Corporation (DEC) Alpha
 processor, it produces this output:
 
 1701998445 1936942444
-
+Hex: 65726F6D 7373656C
 
 On computer B, which is an IBM System/360, it produces this output:
 
 1836020325 1818588019
+Hex: 6D6F7265 6C657373
 
+IBM 360: 
+
+Bits	32-bit
+
+System 20: eight 16-bit registers instead of the sixteen 32-bit registers of all other models (doesn't matter?)
+
+The System/360 introduced a number of industry standards to the marketplace, such as:
+
+    The 8-bit byte (against financial pressure during development to reduce the byte to 4 or 6 bits), 
+    rather than adopting the 7030 concept of accessing bytes of variable size at arbitrary bit addresses.
+    Byte-addressable memory (as opposed to bit-addressable or word-addressable memory)
+    32-bit (4-byte) words.
+
+Concurrency without swapping. Memory was divided into 2-KB blocks and each
+was assigned a 4-bit protection key held in special registers inside the CPU. A machine with a 1-MB memory needed 
+only 512 of these 4-bit registers for a total of 256 bytes of key storage. The PSW (Program Status Word) also contained a 4-bit
+key. The 360 hardware trapped any attempt by a running process to access memory with a protection code different 
+from the PSW key. Since only the operating system could change the protection keys, user processes were prevented 
+from interfering with one another and with the operating system itself.
+
+The core problem here is that the two programs both reference absolute physical memory. 
+
+What the IBM 360 did as a stop-gap solution was modify the
+second program on the fly as it loaded it into memory using a technique known as
+static relocation. It worked like this. When a program was loaded at address
+16,384, the constant 16,384 was added to every program address during the load
+process (so ‘‘JMP 28’’ became ‘‘JMP 16,412’’, etc.).While this mechanism works
+if done right, it is not a very general solution and slows down loading. 
+
+
+DEC ALPHA: 
+
+Alpha, originally known as Alpha AXP, is a 64-bit reduced instruction set computing (RISC) instruction set architecture (ISA) developed by Digital Equipment Corporation (DEC), designed to replace their 32-bit VAX complex instruction set computer (CISC) ISA.
+
+The architecture defined a set of 32 integer registers and a set of 32 floating-point registers in addition to a program counter, two lock registers and a floating-point control register (FPCR). It also defined registers that were optional, implemented only if the implementation required them. Lastly, registers for PALcode were defined.
+
+The integer registers were denoted by R0 to R31 and floating-point registers were denoted by F0 to F31. The R31 and F31 registers were hardwired to zero and writes to those registers by instructions are ignored. Digital considered using a combined register file, but a split register file was determined to be better as it enabled two-chip implementations to have a register file located on each chip and integer-only implementations to omit the floating-point register file containing the floating point registers. A split register file was also determined to be more suitable for multiple instruction issue due to the reduced number of read and write ports. The number of registers per register file was also considered, with 32 and 64 being contenders. Digital concluded that 32 registers was more suitable as it required less die space, which improved clock frequencies. This number of registers was deemed not to be a major issue in respect to performance and future growth, as thirty-two registers could support at least eight-way instruction issue.
+
+The program counter is a 64-bit register which contains a longword-aligned virtual byte address, that is, the low two bits of the program counter are always zero. The PC is incremented by four to the address of the next instruction when an instruction is decoded. A lock flag and locked physical address register are used by the load-locked and store-conditional instructions for multiprocessor support. The floating-point control register (FPCR) is a 64-bit register defined by the architecture intended for use by Alpha implementations with IEEE 754-compliant floating-point hardware.
+Data types
+In the Alpha architecture, a byte was defined as an 8-bit datum (octet), a word as a 16-bit datum, a longword as a 32-bit datum, a quadword as a 64-bit datum, and an octaword as a 128-bit datum. 
 
   a. (5 Points) Why does the same program produce different outputs
   on these two machines?  What is different about these computers?
   Exactly how does this difference affect the output?
 
-  b. (2 Points) What command line was used in both cases?
+  This program produces different outputs on different machines because the memory address
+  of the int pointer which the code prints differs on different computers. It will in fact differ 
+  every time the program is run!
+
+  The IBM 360 is modifying the program on the fly as it loads into memory using a technique known as
+static relocation.
+
+  b. (2 Points) What command line argument was used in both cases?
 
   c. (3 Points) If the following program was run with the same
   command line arguments as for the program above, on which of these
   computers would the printf output be correct (i.e., the printf
-  output would be a true statement)?
+  ourput would be a true statement)?
 
 
   #include <stdio.h>
@@ -54,17 +108,46 @@ On computer B, which is an IBM System/360, it produces this output:
     return 0;
   }
 
+  DEC Alpha
+
+For 32-bit signed integers, the minimum value is 0x80000000 (-2147483648) 
+and the maximum value is 0x7fffffff (2147483647).
 
 2. (12 Points) Memory Allocation.  Tanenbaum 4/e 3.4 (Tanenbaum 3/e
 3.4, Tanenbaum 2/e 4.5)
 
+Consider a swapping system in which memory consists of the following hole sizes in
+memory order: 10 MB, 4 MB, 20 MB, 18 MB, 7 MB, 9 MB, 12 MB, and 15 MB.
+Which hole is taken for successive segment requests of
+(a) 12 MB
+(b) 10 MB
+(c) 9 MB
+for first fit? Now repeat the question for best fit, worst fit, and next fit.
+
   (3 Points) First fit for request (a), followed by (b), then (c).
+  20MB, 10MB, 18MB
   (3 Points) Best fit for request (a), followed by (b), and (c).
+  12MB, 10MB, 9MB
   (3 Points) Worst fit for request (a), followed by (b), and (c).
+  20MB, 18MB, 15MB
   (3 Points) Next fit for request (a), followed by (b), and (c).
+  20MB, 18MB, 9MB
+  
 
 3. (8 Points) Page Replacement Algorithms.  Tanenbaum 4/e 3.36
 (Tanenbaum 3/e 3.28, Tanenbaum 2/e 4.29)
+
+A computer has four page frames. The time of loading, time of last access, and the R
+and M bits for each page are as shown below (the times are in clock ticks):
+Page Loaded Last ref. R   M
+0     126   280       1   0
+1     230   265       0   1
+2     140   270       0   0
+3     110   285       1   1
+(a) Which page will NRU replace?  2
+(b) Which page will FIFO replace?  3
+(c) Which page will LRU replace?  1
+(d) Which page will second chance replace? 1
 
   (2 Points) NRU.
   (2 Points) FIFO.
@@ -77,11 +160,9 @@ to a variety of hardware devices.  For this problem set, the supported
 devices will be the LEDs, the pushbuttons, and a FAT32 file system
 running on the microSDHC system.
 
-Porting myMalloc and myFree to the K70
-
 This problem set should be implemented on the Freescale K70 Tower
 system.  Therefore, your current myMalloc and myFree functions need to
-be ported from our cscie92.dce.harvard.edu Linux EC2 instance to the
+be ported from our cscie92.dce.harvard.edu Linix EC2 instance to the
 K70 environment.  Keep in mind that the K70 has 128K bytes of static
 RAM and, therefore, the built-in malloc call supports a maximum size
 that is substantially less than 128K bytes.  It is likely that the
@@ -89,8 +170,6 @@ maximum size memory request for a successful system malloc call will
 be about 64K bytes.  Depending on how much RAM the system and your
 program uses, you may find that you are able to allocate substantially
 less than 64K bytes of memory.
-
-Using the UART serial port instead of the console
 
 You are required to use UART serial port I/O for your shell's
 interaction with the user.  That is, all of a user's usual interaction
@@ -145,30 +224,20 @@ in CodeWarrior or semihosting in KDS ("-specs=rdimon.specs
 "semihosting" needs to be enabled for the debugging interface you are
 using -- either P&E or Segger.
 
-Device-independent I/O
+  Your device-independent I/O system should be based on byte-size input
+  and output operations, customarily named fgetc and fputc,
+  respectively.  These calls require a file to be opened before
+  operations are performed and closed after operations are performed.
+  The functions to perform those operations are customarily named fopen
+  and fclose, respectively.  Traditionally, fopen returns a pointer to
+  an object that can be used to control the input and output operations
+  -- we'll refer to this pointer as a stream.  Streams in the ISO C
+  Standard are declared as "FILE *" -- that is, as pointer to FILE.  In
+  the Standard, there are some predefined streams (stdin, stdout, and
+  stderr) that have predefined values and can be used without requiring
+  calls to fopen and fclose.  
 
-You will be implementing a layer in your I/O system that allows users
-to write programs that can function independently of which specific
-device is being used.  This device-independent I/O is used, for
-example, in a shell, when we can invoke a "cat <args>" command to
-output to stdout the contents of each of the files/devices listed as
-<args> on the command line in order sequentially.  That "cat" command
-doesn't need to know about the specifics of the files/devices; rather,
-it performs all of its input/output operations using
-"device-independent I/O."
-
-Your device-independent I/O system should be based on byte-size input
-and output operations, customarily named fgetc and fputc,
-respectively.  These calls require a file to be opened before
-operations are performed and closed after operations are performed.
-The functions to perform those operations are customarily named fopen
-and fclose, respectively.  Traditionally, fopen returns a pointer to
-an object that can be used to control the input and output operations
--- we'll refer to this pointer as a stream.  Streams in the ISO C
-Standard are declared as "FILE *" -- that is, as pointer to FILE.  In
-the Standard, there are some predefined streams (stdin, stdout, and
-stderr) that have predefined values and can be used without requiring
-calls to fopen and fclose.  If you choose to implement these, they
+If you choose to implement these, they
 should be opened by your operating system before starting to run the
 "application."  Of course, your design does not need to use this
 specific mechanism or these same names nor does your design need to
@@ -182,15 +251,6 @@ pointer-to-FILE ("FILE *") as an index into an array of open streams.
 That array would be located in each process' PCB.  Thereby, as
 appropriate, each process would have its own set of open streams.
 Each entry in that array could be a pointer to a "struct stream."
-
-You need to allow any 8-bit character in your fgetc and fputc calls.
-This is especially true for the FAT32 file system and some other
-devices we will add later.  Therefore, in addition to printable
-characters, you need to allow any byte value with values from 0 to
-255, inclusive, to be valid characters.  If you want to have a return
-value from fgetc that indicates end-of-file (EOF) or some other
-exceptional condition, you will probably want fgetc to return an int
-and use negative values for those exceptions.
 
 You are welcome to have a fixed maximum number of concurrently open
 streams for each process.  You must allow at least 32 streams to be
@@ -231,47 +291,26 @@ naming convention, you might name devices with a letter (or a short
 string) to specify the device, followed by a colon.  Similarly, a
 device that supports named files might use a name which starts with a
 letter (or a short string) to identify the device, followed by a
-colon, followed by the file name.  The FAT32 specification determines
-which characters are allowed in file names; you must enforce those
-constraints.  As an alternate to Windows-like names, you might decide
-to model your system after a Unix-like naming convention.  Devices
-like an LED might be named /dev/led/green, /dev/led/blue, etc.  Such
-device names might or might not actually exist as files on the
-microSDHC FAT32 file structure.
+colon, followed by the file name.  You should decide which characters
+are allowed in your file names and enforce those constraints.  Support
+for file name extensions is not required.
 
-The FAT32 file system
+You will also be implementing an FAT32 file system as described in the
+FAT32 File Structure slides.
 
-For details on the FAT32 file system and the lowest-level functions
-that you need to implement, please refer to the FAT32 File Structure
-slides.  For the FAT32 file system, those lowest-level functions will
-be used as the basis upon which you will build your device-independent
-byte-oriented I/O system.
-
-In order to have an efficient implementation for reading from and
-writing to files on the FAT32 file system, we are requiring you to
-implement a cache for at least a single sector that would contain the
-last referenced sector from the file system.  That single sector cache
-would be referenced by functions to read or write a sector in a file.
-Associated with the cache would be variables that indicate: (1) if the
-cache contains a "valid" entry (initially the cache would not be valid
-because no sector would initially be in the cache), (2) the "sector
-number" of the sector in the cache, (3) if the sector in the cache was
-"modified" after being read from the file system.  An additional
-function would be added to flush the cache -- flushing is an operating
-that writes the cache contents to the file system if it has been
-modified.
+You need to allow any 8-bit character to be stored in your FAT32
+file system.  Therefore, in addition to printable characters, you need
+to allow any byte value with values from 0 to 255, inclusive, to be
+valid characters.  If you want to have a return value from fgetc that
+indicates end-of-file (EOF) or some other exceptional condition, you
+will probably want fgetc to return an int and use negative values for
+those exceptions.
 
 In addition to supporting the fopen, fgetc, fputc, and fclose
-device-independent functions on top of your FAT32 file system, you
-also need to support device-independent create and delete functions.
-The create function will create a named file on the FAT32 file system
-and the delete function will delete a named file from the FAT32 file
-system.  These functions will be based on the functions mandated in
-the FAT32 File Structure slides.  You are welcome to implement other
-device-independent functions for additional capabilities of your
-system.  These might include dealing with the current working
-directory (chdir), creating and deleting directories (mkdir, rmdir),
-etc.
+functions on your FAT32 file system, you also need to support a create
+and a delete function.  The create function will create a named file
+on the FAT32 file system and the delete function will delete a named
+file from the FAT32 file system.
 
 Your design should specify the behavior when certain operations are
 attempted.  These include: (1) Can any device be opened simultaneously
@@ -286,24 +325,22 @@ Unix system calls of the same names, but it may be instructive to look
 at the documentation for those calls.  Feel free to simplify, alter,
 and/or extend the Unix calls as appropriate.
 
-Shell extensions
+  So that we are able to test your device-independent I/O system, you
+  must port your shell implementation from Unix to the K70 and add
+  commands to your shell that call the fopen, fclose, fgetc, fputc,
+  create, and delete system calls.  Don't try to get your date command
+  working at this point in time.  Add an appropriate command for each of
+  the fopen, fclose, fgetc, fputc, create and delete system calls.  Each
+  command should issue the corresponding system call once.
 
-So that we are able to test your device-independent I/O system, you
-must port your shell implementation from Unix to the K70 and add
-commands to your shell that call the fopen, fclose, fgetc, fputc,
-create, and delete system calls.  Don't try to get your date command
-working at this point in time.  Add an appropriate command for each of
-the fopen, fclose, fgetc, fputc, create and delete system calls.  Each
-command should issue the corresponding system call once.
-
-Because the fgetc system call may return a non-printing character, the
-fgetc shell command should translate all non-printing characters to a
-printing form before outputting the byte read by the fgetc shell
-command.  The printing characters have ASCII values from 32 decimal
-(0x20) to 126 decimal (0x7e), inclusive.  Characters with ASCII values
-from 0 to 31 decimal (0x1f), inclusive, and from 127 decimal (0x7f) to
-255 decimal (0xff), inclusive, should be printed in hexadecimal with a
-prefix of "0x" (without the quotes).
+  Because the fgetc system call may return a non-printing character, the
+  fgetc shell command should translate all non-printing characters to a
+  printing form before outputting the byte read by the fgetc shell
+  command.  The printing characters have ASCII values from 32 decimal
+  (0x20) to 126 decimal (0x7e), inclusive.  Characters with ASCII values
+  from 0 to 31 decimal (0x1f), inclusive, and from 127 decimal (0x7f) to
+  255 decimal (0xff), inclusive, should be printed in hexadecimal with a
+  prefix of "0x" (without the quotes).
 
 As always, all code should be heavily documented and commented.  All
 return codes and command line arguments should be checked and any
