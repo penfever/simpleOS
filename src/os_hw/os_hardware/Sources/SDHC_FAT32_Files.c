@@ -198,10 +198,10 @@ int dir_ls(int full){
     if (err != 0){
     	return err;
     }
-    struct dir_entry_8_3 *dir_entry = (struct dir_entry_8_3 *)MOUNT->data;
-    if (dir_entry->DIR_Attr != DIR_ENTRY_ATTR_DIRECTORY){
-    	return E_NOINPUT;
-    }
+//    struct dir_entry_8_3 *dir_entry = (struct dir_entry_8_3 *)MOUNT->data;
+//    if (dir_entry->DIR_Attr != DIR_ENTRY_ATTR_DIRECTORY){ //TODO: implement other CWD at some point
+//    	return E_NOINPUT;
+//    }
     err = read_all(MOUNT->data, logicalSector, NULL);
     return err;
 }
