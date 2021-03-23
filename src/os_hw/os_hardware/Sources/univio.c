@@ -288,6 +288,9 @@ int myfputc (file_descriptor descr, char bufp){
 	}
 	if (userptr->deviceType == LED){
 		err = led_fputc(descr);
+		if (err == 0 && UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+		}
 	}
 	//CASE: FAT32
 	else{
@@ -295,6 +298,9 @@ int myfputc (file_descriptor descr, char bufp){
 			return E_NOINPUT; //TODO: errcheck E_NOFS
 		}
 		err = file_putbuf(descr, &bufp, 1);
+	}
+	if (err == 0 && UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
 	}
 	return err;
 }

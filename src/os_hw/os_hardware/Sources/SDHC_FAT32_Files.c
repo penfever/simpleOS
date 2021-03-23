@@ -874,7 +874,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		return E_NOINPUT; //TODO: error handling
 	}
 	if (userptr->mode == 'a' || userptr->mode == 'A'){
-		userptr->cursor = userptr->fileSize; //append mode -- move cursor to EOF before writing
+		userptr->cursor = userptr->fileSize; //TODO: append mode -- move cursor to EOF before writing
 	}
     uint32_t dirLogicalSector = 0;
     uint32_t* dirLogSecPtr = &dirLogicalSector;
@@ -883,7 +883,6 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
 	int charsread = 0;
 	int *charsreadp = &charsread;
-
     err = dir_get_cwd(&dirLogicalSector, dirData);
     if (err != 0){
     	return err;
