@@ -37,14 +37,14 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 		;
 	}
 	else{
-		*descr = check_dev_table(filename);
+		uint32_t devicePtr = check_dev_table(filename);
 		if (descr == 0){
 			if (MYFAT_DEBUG){
 				printf("Invalid device name \n");
 			}
 			return E_NOINPUT; //TODO: errcheck
 		}
-		err = add_device_to_PCB(*descr);
+		err = add_device_to_PCB(devicePtr, descr);
 		return err;
 	}
 	/*CASE: FAT32
@@ -99,7 +99,7 @@ char mytoupper(char c){
 	}
 }
 
-int add_device_to_PCB(uint32_t fd){
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor fd){
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		if (MYFAT_DEBUG){
@@ -109,14 +109,14 @@ int add_device_to_PCB(uint32_t fd){
 	}
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
-	if (fd >= PUSHB_MIN && fd <= PUSHB_MAX){
+	if (devicePtr >= PUSHB_MIN && devicePtr <= PUSHB_MAX){
 		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
 		if (UARTIO){
 			uartPutsNL(UART2_BASE_PTR, "Pushbutton initialized. \n");
 		}
 	}
-	else if (fd >= LED_MIN && fd <= LED_MAX){
+	else if (devicePtr >= LED_MIN && devicePtr <= LED_MAX){
 		userptr->deviceType = LED;
 		ledInitAll();
 		if (UARTIO){
@@ -129,7 +129,8 @@ int add_device_to_PCB(uint32_t fd){
 		}
 		return E_NOINPUT;
 	}
-	userptr->minorId = fd; //This should macro to the correct minorId
+	userptr->minorId = devicePtr; //This should macro to the correct minorId
+	fd = (file_descriptor *)userptr; //device pointer becomes user pointer
 	return 0;
 }
 
@@ -222,17 +223,19 @@ int myfgetc (file_descriptor descr, char* bufp){
 }
 
 int pushb_fgetc(file_descriptor descr){
-	if (sw1In()){
-		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is pressed \n");
-	}
-	else{
-		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is not pressed \n");
-	}
-	if (sw2In()){
-		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is pressed \n");
-	}
-	else{
-		uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is not pressed \n");
+	if (UARTIO){
+		if (sw1In()){
+			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is pressed \n");
+		}
+		else{
+			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is not pressed \n");
+		}
+		if (sw2In()){
+			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is pressed \n");
+		}
+		else{
+			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is not pressed \n");
+		}
 	}
 	return 0;
 }
