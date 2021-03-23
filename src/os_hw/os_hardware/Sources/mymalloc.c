@@ -10,10 +10,6 @@ static int node_count = 0;
 
 struct pcb op_sys = {"OS", 0};
 
-struct pcb* currentPCB = &op_sys;
-
-struct mem_region* first = NULL;
-
 /* round_size accepts as a parameter a size, in bytes, and returns a size, in bytes,
 rounded up to the nearest double word boundary.  */
 int round_size(int size){
@@ -66,7 +62,7 @@ struct mem_region* first_fit(struct mem_region* temp, int size){
             return temp;
         }
         else{ //walk the list
-            temp = walk_struct(temp);
+        	temp = walk_struct(temp);
         }
     }
     return NULL; //eventually, return NULL
@@ -104,10 +100,10 @@ uint8_t getCurrentPid(){
 /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
 address of the next struct in memory. */
 struct mem_region* walk_struct(struct mem_region* this_region){
-    //int incr_size = this_region->size;
-    //this_region += incr_size/sizeof(this_region);
-    this_region = this_region->data + this_region->size;
-    return this_region;
+    int incr_size = this_region->size;
+    char* char_region = (char *)&this_region->data[0];
+    char_region += incr_size;
+    return (struct mem_region*)char_region;
 }
 
 /*memoryMap prints the contents of memory in their entirety. If memory is empty, it prints NULL.*/
@@ -131,8 +127,10 @@ void memoryMap(void){
         fprintf(stdout, "------------------------------- \n");
         temp = walk_struct(temp);
     }
-    fprintf(stdout,     "TOTAL MEMORY SIZE = %d \n", total_size);
-    //outputs to stdout a map of all used and free regions in the 128M byte region of memory.
+    char* memDisplay2 = myMalloc(256);
+    sprintf(memDisplay2, "TOTAL MEMORY SIZE = %d \n", total_size);
+	uartPutsNL(UART2_BASE_PTR, memDisplay2);
+    myFree(memDisplay2); 
 }
 
 /*bounds accepts as a parameter a void* ptr. It then finds the appropriate

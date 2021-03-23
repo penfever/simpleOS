@@ -16,12 +16,6 @@
 #define PUSHB_MAX 0x00FF0001
 #define LED_MIN 0x00EF0000
 #define LED_MAX 0x00EF0003
-#ifndef CONSOLEIO
-#define CONSOLEIO 0
-#endif
-#ifndef UARTIO
-#define UARTIO 1
-#endif
 
 extern struct pcb* currentPCB;
 extern struct pcb op_sys;
