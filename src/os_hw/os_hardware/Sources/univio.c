@@ -68,6 +68,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 }
 
 void process_strname(char* fileProc, char* filename){
+	int len = strlen(filename);
 	if (len == 12){
 		for (int i = 0; i < len-4; ++i){
 			fileProc[i] = filename[i];
@@ -345,7 +346,6 @@ int mycreate(char* filename){
 		return E_NOINPUT; //TODO: errcheck E_NOFS
 	}
 	//filename processing for FAT32 compliance
-	int len = strlen(argv[1]);
 	char fileProc[11] = {' '};
 	process_strname(fileProc, filename);
 	return dir_create_file(fileProc);

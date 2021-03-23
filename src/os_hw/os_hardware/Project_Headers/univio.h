@@ -37,4 +37,6 @@ int close_all_devices(void);
 
 char mytoupper(char c);
 
+void process_strname(char* fileProc, char* filename);
+
 #endif /* UNIVIO_H_ */
