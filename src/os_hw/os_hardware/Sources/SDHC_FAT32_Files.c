@@ -20,6 +20,18 @@
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
 
+struct myfat_mount *MOUNT;
+struct sdhc_card_status card_status;
+uint32_t latestSector; //records sector number of most recent dir_entry
+struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
+struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
+struct dir_entry_8_3 *cwd = NULL;
+static int g_unusedSeek = FALSE;
+static int g_deleteFlag = FALSE;
+static int g_printAll = FALSE:
+static int* g_numSector = 0;
+struct pcb* currentPCB = &op_sys;
+
 /**
  * Indicates that the microSDHC card is to be made available for these
  * function calls
@@ -33,36 +45,30 @@
  * - call sdhc_initialize
  * Returns an error code if the file structure is already mounted
  */
-struct myfat_mount *MOUNT;
-struct sdhc_card_status card_status;
-uint32_t latestSector; //records sector number of most recent dir_entry
-struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
-struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
-struct dir_entry_8_3 *cwd = NULL;
-static int g_unusedSeek = FALSE;
-static int g_deleteFlag = FALSE;
-static int* g_numSector = 0;
-struct pcb* currentPCB = &op_sys; //TODO: figure out how to get this into a function
-
-int file_structure_mount(void){ //TODO: integrate with myerror
+int file_structure_mount(void){
     if(MOUNT == 0){
         MOUNT = myMalloc(sizeof(struct myfat_mount));
         if(MOUNT == NULL){
-            printf("could not malloc\n");
-            exit(1);
+        	if (MYFAT_DEBUG){
+                printf("could not malloc\n");
+        	}
+            exit(1); //TODO: desired behavior?
         }
     }
     else{
-        printf("Card already mounted\n");
+    	if (MYFAT_DEBUG){
+            printf("Card already mounted\n");
+    	}
         return 0;
     }
     microSDCardDetectConfig();
     //check if card is inserted
     if (!microSDCardDetectedUsingSwitch()){
-        printf("Card not detected with switch. \n");
+    	if (MYFAT_DEBUG){
+            printf("Error, card not detected. \n");
+    	}
         myFree(MOUNT);
-        printf("Error, card not detected. \n");
-        return 0;
+        return E_NOINPUT; //TODO: errcheck
     }
     microSDCardDisableCardDetectARMPullDownResistor();
     MOUNT->rca = sdhc_initialize();
@@ -84,8 +90,10 @@ int file_structure_umount(void){
 		}
 	}
     if(SDHC_SUCCESS != sdhc_command_send_set_clr_card_detect_connect(MOUNT->rca)){
-        printf("Could not re-enable resistor.\n");
-        return 1;
+    	if (MYFAT_DEBUG){
+            printf("Could not re-enable resistor.\n");
+    	}
+        return E_NOINPUT; //TODO: errcheck
     }
     //myFree(MOUNT); TODO: attempt to free causes bkpt
     return 0;
@@ -101,9 +109,13 @@ int dir_set_cwd_to_root(void){
         MOUNT->cwd_cluster=root_directory_cluster;
         return 0;
     }
-    printf("Card not mounted\n");
-    return 0;}
+    if (MYFAT_DEBUG){
+        printf("Card not mounted\n");
+    }
+    return E_NOINPUT; //TODO: errcheck
+}
 
+/*write_cache writes the contents of the cache to disk and sets the dirty flag to clean, or returns an error in case of write failure.*/
 int write_cache(){
 	if (MOUNT->dirty == TRUE){
 	    if(SDHC_SUCCESS != sdhc_write_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){
@@ -116,28 +128,46 @@ int write_cache(){
 }
 
 /**
- * Display on stdout the cwd's filenames (full == 0) or all directory
- * information (full == 1); implementing full is optional
+ * Prints the cwd's filenames (full == 0) or all directory
+ * information (full == 1);
  */
 
 void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_READ_ONLY){
-		printf("READ_ONLY");
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "READ_ONLY");
+		}
+		else if (MYFAT_DEBUG_LITE){
+			printf("READ_ONLY");	
+		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_HIDDEN){
-		printf("Hidden");
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "Hidden");
+		}
+		else if (MYFAT_DEBUG_LITE){
+			printf("Hidden");	
+		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_SYSTEM){
-		printf("System");
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "System");
+		}
+		else if (MYFAT_DEBUG_LITE){
+			printf("System");	
+		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_VOLUME_ID){
-		printf("Volume ID");
-	}
-	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_DIRECTORY){
-		printf("Directory");
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "Volume ID");
+		}
+		else if (MYFAT_DEBUG_LITE){
+			printf("Volume ID");	
+		}
 	}
 }
 
+/*updates logicalSector with the value for the current working directory and reads the data from that dir-entry into 'data'.*/
 int dir_get_cwd(int* logicalSector, uint8_t data[BLOCK]){
 	*logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     if(MYFAT_DEBUG){
@@ -149,7 +179,14 @@ int dir_get_cwd(int* logicalSector, uint8_t data[BLOCK]){
     return 0;
 }
 
+/*Prints cwd contents to the UART and/or console IO.*/
 int dir_ls(int full){
+	if (full == TRUE){
+		g_printAll = TRUE;
+	}
+	else{
+		g_printAll = FALSE;
+	}
     int err;
     //check if file system is mounted
     if (0 == MOUNT){
@@ -161,7 +198,10 @@ int dir_ls(int full){
     if (err != 0){
     	return err;
     }
-    //TODO: verify this is a directory, return error otherwise
+    struct dir_entry_8_3 *dir_entry = (struct dir_entry_8_3 *)MOUNT->data;
+    if (dir_entry->DIR_Attr != DIR_ENTRY_ATTR_DIRECTORY){
+    	return E_NOINPUT;
+    }
     err = read_all(MOUNT->data, logicalSector, NULL);
     return err;
 }
@@ -197,10 +237,16 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	    	}
 			latestSector = logicalSector;
 	    }
-		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
-			printf("Total entries in other sectors = %d. \n", entries);
+		int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
+		char* output = myMalloc(48);
+		sprintf(output, "Total entries in other sectors = %d. \n", entries);
+		if(UARTIO){
+			uartPutsNL(UART2_BASE_PTR, output);
 		}
+		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+			printf(output);
+		}
+		myFree(output);
 	    return finished;
 }
 
@@ -230,7 +276,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
     			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     			if(UARTIO){
-        			char* output = myMalloc(256);
+        			char* output = myMalloc(32);
         			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
         			uartPutsNL(UART2_BASE_PTR, output);
         			myFree(output);
@@ -263,22 +309,34 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
-	    		if(MYFAT_DEBUG){
-	    			printf("Sector %d, entry %d has a long file name\n", logicalSector, i);
+	    		char* output = myMalloc(48);
+    			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
+    			if (g_printAll){
+        			uartPutsNL(UART2_BASE_PTR, output);
+    			}
+    			else if (MYFAT_DEBUG){
+	    			printf(output);
 	    		}
+    			myFree(output);
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
-	    		if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			printf("Sector %d, entry %d is a directory\n", logicalSector, i);
+	    		char* output = myMalloc(48);
+    			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
+    			if (g_printAll){
+        			uartPutsNL(UART2_BASE_PTR, output);
+    			}
+    			else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    			printf(output);
 	    		}
+    			myFree(output);
 	    		continue;
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){ //TODO: enable for console IO
-    			char* output = myMalloc(256);
+    			char* output = myMalloc(16);
     			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
     			uartPutsNL(UART2_BASE_PTR, output);
-				if(FALSE){//TODO: if FULL is true, print attr
+				if(g_printAll){
 					printf("Attributes: ");
 					dir_entry_print_attributes(dir_entry);
 					printf("\n");
@@ -302,13 +360,12 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
     			if(UARTIO){
-        			char* output = myMalloc(256);
+        			char* output = myMalloc(64);
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
         			uartPutsNL(UART2_BASE_PTR, output);
         			myFree(output);
     			}
     			else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
 	    		}
 	    		latest = dir_entry;
@@ -317,9 +374,15 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
-	    	if(MYFAT_DEBUG){
-	    		printf(" Size: %lu\n\n\n", dir_entry->DIR_FileSize);
-	    	}
+    		char* output = myMalloc(48);
+			sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
+			if (g_printAll){
+    			uartPutsNL(UART2_BASE_PTR, output);
+			}
+			else if (MYFAT_DEBUG){
+    			printf(output);
+    		}
+			myFree(output);
 	    }
 	    return 1; //return 1 if end of sector reached without end of directory being reached
 }
@@ -437,6 +500,9 @@ int dir_create_file(char *filename){
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
 		return err;
+	}
+	else if (UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "File created. \n");
 	}
 	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		printf("File created. \n");
@@ -614,6 +680,12 @@ int dir_delete_file(char *filename){
 	if ((err = write_cache()) != 0){
 		g_deleteFlag = FALSE;
 		return err;
+	}
+	else if (UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "File deleted. \n");
+	}
+	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		printf("File deleted. \n");
 	}
 	g_deleteFlag = FALSE;
 	return 0;

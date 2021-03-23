@@ -364,7 +364,9 @@ int mydelete(char* filename){
 	if (g_noFS){
 		return E_NOINPUT; //TODO: errcheck E_NOFS
 	}
-	return dir_delete_file(filename);
+	char* fileProc = "           ";
+	process_strname(fileProc, filename);
+	return dir_delete_file(fileProc);
 }
 
 int myseek(file_descriptor descr, uint32_t pos){

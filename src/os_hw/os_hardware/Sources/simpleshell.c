@@ -492,11 +492,17 @@ int cmd_seek(int argc, char *argv[]){
 	return myseek(descr, pos);
 }
 
-int cmd_ls(int argc, char *argv[]){ //TODO: implement 'full' option?
-	if (argc != 1){
+int cmd_ls(int argc, char *argv[]){
+	if (argc != 2){
 		return E_NUMARGS;
 	}
-	return dir_ls(0);
+	if (argv[1][0] != '0' && argv[1][0] != '1'){
+		return E_NOINPUT;
+	}
+	else if (argv[1][0] == '0'){
+		return dir_ls(0);
+	}
+	return dir_ls(1);
 }
 
 //command line shell accepts user input and executes basic commands
