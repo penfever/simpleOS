@@ -4,16 +4,6 @@
 #include <stdint.h>
 #include "directory for students.h"
 
-#define MYFAT_DEBUG 0
-#define MYFAT_DEBUG_LITE 1
-#define DEBUG_CODE 3
-#ifndef CONSOLEIO
-#define CONSOLEIO 0
-#endif
-#ifndef UARTIO
-#define UARTIO 1
-#endif
-
 #define FOUND_AND_RETURNING 2
 #define BLOCK 512
 
@@ -212,5 +202,7 @@ int filename_verify(char* filename, int len);
 int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
 
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry);
+
+void uart_debug_print(char* output);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

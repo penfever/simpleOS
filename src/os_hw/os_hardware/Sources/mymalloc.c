@@ -13,6 +13,10 @@ static int node_count = 0;
 
 struct mem_region* first = NULL;
 
+char* g_lower_bound = NULL;
+
+char* g_upper_bound = NULL;
+
 /* round_size accepts as a parameter a size, in bytes, and returns a size, in bytes,
 rounded up to the nearest double word boundary.  */
 int round_size(int size){
@@ -33,6 +37,8 @@ struct mem_region* init_struct(struct mem_region* first){
         return NULL;
     }
     else{
+    	g_lower_bound = (char*)&first[0];
+    	g_upper_bound = (char*)&first[MAX-1];
         node_count += 1;
         first->free = TRUE;
         first->size = MAX - MEMSTRUCT;
@@ -68,6 +74,9 @@ struct mem_region* first_fit(struct mem_region* temp, int size){
         }
         else{ //walk the list
         	temp = walk_struct(temp);
+            if (temp <= 0){
+            	walk_struct_err();
+            }
         }
     }
     return NULL; //eventually, return NULL
@@ -106,9 +115,10 @@ uint8_t getCurrentPid(){
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
 struct mem_region* walk_struct(struct mem_region* this_region){
-    int incr_size = this_region->size;
-    char* char_region = (char *)&this_region->data[0];
-    char_region += incr_size;
+	if (this_region > g_upper_bound || this_region < g_lower_bound){
+		return E_MALLOC;
+	}
+    char* char_region = (char *)(this_region->data + this_region->size);
     return (struct mem_region*)char_region;
 }
 
@@ -139,11 +149,24 @@ void memoryMap(void){
     	uartPutsNL(UART2_BASE_PTR, output2);
         myFree(memDisplay);
         temp = walk_struct(temp);
+        if (temp <= 0){
+        	walk_struct_err();
+        }
     }
     char* memDisplay2 = myMalloc(256);
     sprintf(memDisplay2, "TOTAL MEMORY SIZE = %d \n", total_size);
 	uartPutsNL(UART2_BASE_PTR, memDisplay2);
     myFree(memDisplay2); 
+}
+
+void walk_struct_err(){
+	if (UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "walk_struct error (check memory bounds)\n");
+	}
+	else if (MYFAT_DEBUG){
+		printf("walk_struct error (check memory bounds)\n");
+	}
+	exit(E_MALLOC);
 }
 
 /*bounds accepts as a parameter a void* ptr. It then finds the appropriate
@@ -162,6 +185,9 @@ uint32_t bounds(void* ptr){
             prev = temp;
             if (i < node_count - 1){
                 temp = walk_struct(temp);
+                if (temp <= 0){
+                	walk_struct_err();
+                }
             }
             else if (i == node_count - 1){ // mem_ptr points either into or past the last region
                 long bounds = (unsigned char*)mem_ptr - &temp->data[0];
@@ -207,6 +233,9 @@ int free_match(struct mem_region* temp, void* ptr){
         else {
         prev = temp; //previous gets current
         temp = walk_struct(temp);  //current gets next.
+        if (temp <= 0){
+        	walk_struct_err();
+        }
         }
     }
     return E_FREE;

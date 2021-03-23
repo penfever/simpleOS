@@ -238,16 +238,19 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 			latestSector = logicalSector;
 	    }
 		int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
-		char* output = myMalloc(48);
+		char output[48];
 		sprintf(output, "Total entries in other sectors = %d. \n", entries);
-		if(UARTIO){
-			uartPutsNL(UART2_BASE_PTR, output);
-		}
-		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-			printf(output);
-		}
-		myFree(output);
+		uart_debug_print(output);
 	    return finished;
+}
+
+void uart_debug_print(char* output){
+	if(UARTIO){
+		uartPutsNL(UART2_BASE_PTR, output);
+	}
+	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		printf(output);
+	}
 }
 
 int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
@@ -309,26 +312,18 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
-	    		char* output = myMalloc(48);
+	    		char output[48] = {' '};
     			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
-    			if (g_printAll){
-        			uartPutsNL(UART2_BASE_PTR, output);
+    			if (g_printAll || MYFAT_DEBUG){
+    	    		uart_debug_print(output);
     			}
-    			else if (MYFAT_DEBUG){
-	    			printf(output);
-	    		}
-    			myFree(output);
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
-	    		char* output = myMalloc(48);
+	    		char output[48] = {' '};
     			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
     			if (g_printAll){
-        			uartPutsNL(UART2_BASE_PTR, output);
+    	    		uart_debug_print(output);
     			}
-    			else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			printf(output);
-	    		}
-    			myFree(output);
 	    		continue;
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
@@ -336,10 +331,11 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			char* output = myMalloc(16);
     			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
     			uartPutsNL(UART2_BASE_PTR, output);
-				if(g_printAll){
-					printf("Attributes: ");
+				if(g_printAll && UARTIO){
+    	    		uart_debug_print(output);
+        			uartPutsNL(UART2_BASE_PTR, "Attributes: ");
 					dir_entry_print_attributes(dir_entry);
-					printf("\n");
+        			uartPutsNL(UART2_BASE_PTR, "\n");
 				}
 				myFree(output);
 	    	}
@@ -359,14 +355,10 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			memcpy(MOUNT->data, data, BLOCK);
 	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
-    			if(UARTIO){
-        			char* output = myMalloc(64);
+    			if(UARTIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+    	    		char output[64] = {' '};
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
-        			uartPutsNL(UART2_BASE_PTR, output);
-        			myFree(output);
-    			}
-    			else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
+    	    		uart_debug_print(output);
 	    		}
 	    		latest = dir_entry;
 	    		if (dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY){
@@ -374,15 +366,11 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
-    		char* output = myMalloc(48);
+    		char output[64] = {' '};
 			sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
-			if (g_printAll){
-    			uartPutsNL(UART2_BASE_PTR, output);
+			if (g_printAll || MYFAT_DEBUG){
+	    		uart_debug_print(output);
 			}
-			else if (MYFAT_DEBUG){
-    			printf(output);
-    		}
-			myFree(output);
 	    }
 	    return 1; //return 1 if end of sector reached without end of directory being reached
 }
