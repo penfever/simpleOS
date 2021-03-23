@@ -53,7 +53,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 		return E_NOINPUT; //TODO: errcheck E_NOFS and improper file names
 	}
 	//string processing to ensure FAT32 compliance
-	char fileProc[11] = {' '};
+	char* fileProc = "           ";
 	process_strname(fileProc, filename);
 	err = file_open(fileProc, descr);
 	if (err != 0){
@@ -346,7 +346,7 @@ int mycreate(char* filename){
 		return E_NOINPUT; //TODO: errcheck E_NOFS
 	}
 	//filename processing for FAT32 compliance
-	char fileProc[11] = {' '};
+	char* fileProc = "           ";
 	process_strname(fileProc, filename);
 	return dir_create_file(fileProc);
 }
