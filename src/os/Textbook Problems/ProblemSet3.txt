@@ -38,48 +38,6 @@ On computer B, which is an IBM System/360, it produces this output:
 1836020325 1818588019
 Hex: 6D6F7265 6C657373
 
-IBM 360: 
-
-Bits	32-bit
-
-System 20: eight 16-bit registers instead of the sixteen 32-bit registers of all other models (doesn't matter?)
-
-The System/360 introduced a number of industry standards to the marketplace, such as:
-
-    The 8-bit byte (against financial pressure during development to reduce the byte to 4 or 6 bits), 
-    rather than adopting the 7030 concept of accessing bytes of variable size at arbitrary bit addresses.
-    Byte-addressable memory (as opposed to bit-addressable or word-addressable memory)
-    32-bit (4-byte) words.
-
-Concurrency without swapping. Memory was divided into 2-KB blocks and each
-was assigned a 4-bit protection key held in special registers inside the CPU. A machine with a 1-MB memory needed 
-only 512 of these 4-bit registers for a total of 256 bytes of key storage. The PSW (Program Status Word) also contained a 4-bit
-key. The 360 hardware trapped any attempt by a running process to access memory with a protection code different 
-from the PSW key. Since only the operating system could change the protection keys, user processes were prevented 
-from interfering with one another and with the operating system itself.
-
-The core problem here is that the two programs both reference absolute physical memory. 
-
-What the IBM 360 did as a stop-gap solution was modify the
-second program on the fly as it loaded it into memory using a technique known as
-static relocation. It worked like this. When a program was loaded at address
-16,384, the constant 16,384 was added to every program address during the load
-process (so ‘‘JMP 28’’ became ‘‘JMP 16,412’’, etc.).While this mechanism works
-if done right, it is not a very general solution and slows down loading. 
-
-
-DEC ALPHA: 
-
-Alpha, originally known as Alpha AXP, is a 64-bit reduced instruction set computing (RISC) instruction set architecture (ISA) developed by Digital Equipment Corporation (DEC), designed to replace their 32-bit VAX complex instruction set computer (CISC) ISA.
-
-The architecture defined a set of 32 integer registers and a set of 32 floating-point registers in addition to a program counter, two lock registers and a floating-point control register (FPCR). It also defined registers that were optional, implemented only if the implementation required them. Lastly, registers for PALcode were defined.
-
-The integer registers were denoted by R0 to R31 and floating-point registers were denoted by F0 to F31. The R31 and F31 registers were hardwired to zero and writes to those registers by instructions are ignored. Digital considered using a combined register file, but a split register file was determined to be better as it enabled two-chip implementations to have a register file located on each chip and integer-only implementations to omit the floating-point register file containing the floating point registers. A split register file was also determined to be more suitable for multiple instruction issue due to the reduced number of read and write ports. The number of registers per register file was also considered, with 32 and 64 being contenders. Digital concluded that 32 registers was more suitable as it required less die space, which improved clock frequencies. This number of registers was deemed not to be a major issue in respect to performance and future growth, as thirty-two registers could support at least eight-way instruction issue.
-
-The program counter is a 64-bit register which contains a longword-aligned virtual byte address, that is, the low two bits of the program counter are always zero. The PC is incremented by four to the address of the next instruction when an instruction is decoded. A lock flag and locked physical address register are used by the load-locked and store-conditional instructions for multiprocessor support. The floating-point control register (FPCR) is a 64-bit register defined by the architecture intended for use by Alpha implementations with IEEE 754-compliant floating-point hardware.
-Data types
-In the Alpha architecture, a byte was defined as an 8-bit datum (octet), a word as a 16-bit datum, a longword as a 32-bit datum, a quadword as a 64-bit datum, and an octaword as a 128-bit datum. 
-
   a. (5 Points) Why does the same program produce different outputs
   on these two machines?  What is different about these computers?
   Exactly how does this difference affect the output?
