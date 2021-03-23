@@ -260,7 +260,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			return E_NOINPUT; //TODO: file not found error
 	    		}
 	    		if (g_unusedSeek == TRUE){
-	    			*MOUNT->data = *data;
+	    	    	memcpy(&MOUNT->data, &data, BLOCK);
 	    			MOUNT->writeSector = logicalSector;
 	    			int err = dir_extend_dir(i, currCluster);//TODO: implement directory extending function
 	    			if (err != 0){
@@ -526,7 +526,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)nextData[512];
 	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
 	    MOUNT->writeSector += 1;
-	    *MOUNT->data = *nextData;
+    	memcpy(&MOUNT->data, &nextData, BLOCK);
 	}
 	//CASE 3, new cluster reqd
 	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector == sectors_per_cluster){
@@ -903,7 +903,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	    return err; //file entry not found in directory?
     	    //TODO: undo all the writing?
     	}
-    	*MOUNT->data = *dirData;
+    	memcpy(&MOUNT->data, &dirData, BLOCK);
     	MOUNT->writeSector = dirLogicalSector;
     	MOUNT->dirty = TRUE;
     	if ((err = write_cache()) != 0){
@@ -985,7 +985,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	if ((err == dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
 	    return err; //file entry not found in directory?
 	}
-	*MOUNT->data = *dirData;
+	memcpy(&MOUNT->data, &dirData, BLOCK);
 	MOUNT->writeSector = dirLogicalSector;
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
