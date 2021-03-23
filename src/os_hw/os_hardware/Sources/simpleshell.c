@@ -393,7 +393,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = malloc(256);
-	sprintf(output, "fopen success \n FILE* is 0x%x \n", &myfile);
+	sprintf(output, "fopen success \n FILE* is 0x%x \n", myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
 	free(output);
 	return 0;

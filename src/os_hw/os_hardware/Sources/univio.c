@@ -38,7 +38,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 	}
 	else{
 		uint32_t devicePtr = check_dev_table(filename);
-		if (descr == 0){
+		if (devicePtr == 0){
 			if (MYFAT_DEBUG){
 				printf("Invalid device name \n");
 			}
@@ -99,8 +99,8 @@ char mytoupper(char c){
 	}
 }
 
-int add_device_to_PCB(uint32_t devicePtr, file_descriptor fd){
-	struct stream* userptr = find_open_stream();
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
+	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){
 		if (MYFAT_DEBUG){
 			printf("You have too many file streams open \n");
@@ -130,7 +130,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor fd){
 		return E_NOINPUT;
 	}
 	userptr->minorId = devicePtr; //This should macro to the correct minorId
-	fd = (file_descriptor *)userptr; //device pointer becomes user pointer
+	*fd = (file_descriptor *)userptr; //device pointer becomes user pointer
 	return 0;
 }
 
@@ -241,7 +241,7 @@ int pushb_fgetc(file_descriptor descr){
 	return 0;
 }
 
-int led_fgetc(file_descriptor descr){
+int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
 	struct stream* userptr = (struct stream*)descr;
 	if (userptr->minorId == dev_E1){
         ledOrangeOn();

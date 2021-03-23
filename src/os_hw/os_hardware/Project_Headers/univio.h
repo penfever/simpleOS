@@ -27,7 +27,7 @@ int mydelete(char* filename);
 
 int myseek(file_descriptor descr, uint32_t pos);
 
-int add_device_to_PCB(uint32_t devicePtr, file_descriptor fd);
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd);
 
 file_descriptor check_dev_table(char* filename);
 
