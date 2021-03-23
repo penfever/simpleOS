@@ -466,13 +466,13 @@ int cmd_fputc(int argc, char *argv[]){
 	if (argc != 3){
 		return E_NUMARGS;
 	}
-	if (check_digit_all(argv[1]) != TRUE){
-		return E_NOINPUT;
-	}
 	if (strlen(argv[2]) != 1){
 		return E_NOINPUT;
 	}
-	unsigned long descr = strtoul(argv[1], NULL, 10);
+	file_descriptor descr;
+	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
+		return E_NOINPUT;
+	}
 	char m = argv[2][0];
 	return myfputc(descr, m);
 }
