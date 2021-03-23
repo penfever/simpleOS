@@ -218,10 +218,10 @@ int cmd_echo(int argc, char *argv[]){
   }
   for (int i = 1; i < argc - 1; i++){
 	uartPutsNL(UART2_BASE_PTR, argv[i]);
-	uartPutchar(UART2_BASE_PTR, '\n');
+	uartPutsNL(UART2_BASE_PTR, "\n");
   }
   uartPutsNL(UART2_BASE_PTR, argv[argc - 1]);
-  uartPutchar(UART2_BASE_PTR, '\n');
+  uartPutsNL(UART2_BASE_PTR, "\n");
   return 0;
 }
 
