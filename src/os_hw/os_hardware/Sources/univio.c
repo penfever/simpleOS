@@ -37,14 +37,14 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 		;
 	}
 	else{
-		descr = check_dev_table(filename);
+		*descr = check_dev_table(filename);
 		if (descr == 0){
 			if (MYFAT_DEBUG){
 				printf("Invalid device name \n");
 			}
 			return E_NOINPUT; //TODO: errcheck
 		}
-		err = add_device_to_PCB(descr);
+		err = add_device_to_PCB(*descr);
 		return err;
 	}
 	/*CASE: FAT32
@@ -99,7 +99,7 @@ char mytoupper(char c){
 	}
 }
 
-int add_device_to_PCB(file_descriptor fd){
+int add_device_to_PCB(uint32_t fd){
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		if (MYFAT_DEBUG){
@@ -112,10 +112,16 @@ int add_device_to_PCB(file_descriptor fd){
 	if (fd >= PUSHB_MIN && fd <= PUSHB_MAX){
 		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "Pushbutton initialized. \n");
+		}
 	}
-	if (fd >= LED_MIN && fd <= LED_MAX){
+	else if (fd >= LED_MIN && fd <= LED_MAX){
 		userptr->deviceType = LED;
 		ledInitAll();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "LED initialized. \n");
+		}
 	}
 	else{
 		if (MYFAT_DEBUG){
@@ -129,7 +135,8 @@ int add_device_to_PCB(file_descriptor fd){
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		if (strncmp(&devTable[i], filename, strlen(filename)) != 0){
+		char* test_str = devTable[i];
+		if (strncmp(test_str, filename, strlen(filename)) != 0){
 			continue;
 		}
 		else{

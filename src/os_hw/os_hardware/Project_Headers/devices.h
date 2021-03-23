@@ -25,7 +25,7 @@
 
 extern struct pcb* currentPCB;
 extern struct pcb op_sys;
-extern char* devTable;
+extern char *devTable[7];
 
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs

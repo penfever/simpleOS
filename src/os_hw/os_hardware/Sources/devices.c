@@ -30,7 +30,7 @@ struct pcb op_sys =
 		}
 };
 
-char* devTable = {
+char *devTable[7] = {
 	"dev_null",
 	"dev_sw1",
 	"dev_sw2",
