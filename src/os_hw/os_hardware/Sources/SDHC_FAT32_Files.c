@@ -22,11 +22,11 @@
 
 struct myfat_mount *MOUNT;
 struct sdhc_card_status card_status;
-uint32_t latestSector; //records sector number of most recent dir_entry
 struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
+uint32_t latestSector; //records sector number of most recent dir_entry
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
-struct dir_entry_8_3 *cwd = NULL;
 static int g_unusedSeek = FALSE;
+struct dir_entry_8_3 *cwd = NULL;
 static int g_deleteFlag = FALSE;
 static int g_printAll = FALSE;
 static int* g_numSector = 0;
@@ -483,12 +483,15 @@ int dir_create_file(char *filename){
 	}
 	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
 		g_unusedSeek = TRUE;
-		dir_ls(0); //fills unused slot
+		dir_ls(0); //fills unused slot and copies data to MOUNT->data
 		if (unused == NULL){
 			return E_NOINPUT; //no free dir_entry could be created (out of space)
 		}
 		g_unusedSeek = FALSE;
 	}
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //verify cache is correct
+    	return E_NOINPUT; //TODO: error checking
+    }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
@@ -876,14 +879,14 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	if (userptr->mode == 'a' || userptr->mode == 'A'){
 		userptr->cursor = userptr->fileSize; //TODO: append mode -- move cursor to EOF before writing
 	}
-    uint32_t dirLogicalSector = 0;
-    uint32_t* dirLogSecPtr = &dirLogicalSector;
+    int dirLogicalSector = 0;
+    int* dirLogSecPtr = &dirLogicalSector;
     int err = 0;
     uint8_t dirData[BLOCK];
     struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
 	int charsread = 0;
 	int *charsreadp = &charsread;
-    err = dir_get_cwd(&dirLogicalSector, dirData);
+    err = dir_get_cwd(dirLogSecPtr, dirData);
     if (err != 0){
     	return err;
     }
@@ -982,7 +985,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		numSector ++;
 	}
 	userptr->fileSize = userptr->cursor = pos; //update filesize and cursor in PCB struct and dir_entry
-	if ((err == dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
+	if ((err = dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
 	    return err; //file entry not found in directory?
 	}
 	memcpy(&MOUNT->data, &dirData, BLOCK);
