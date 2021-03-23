@@ -194,26 +194,27 @@ int remove_device_from_PCB(file_descriptor fd){
 /* myfgetc() reads the next character from stream and 
  * passes it to a buffer. Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
-	int err;
+	int err = -5;
 	if (pid != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
+//	if (find_curr_stream(userptr) == FALSE){ //TODO: errcheck, why false?
+//		return E_NOINPUT;
+//	}
+	if (userptr->deviceType == FAT32){
+		if (userptr->cursor >= userptr->fileSize){
+			return E_EOF;
+		}
 	}
-	if (userptr->cursor >= userptr->fileSize){
-		return E_EOF;
-	}
+	int charsreadp = 0;
 	if (userptr->deviceType == PUSHBUTTON){
 		err = pushb_fgetc(descr);
 	}
-	int charsreadp = 0;
-	if (userptr->deviceType == LED){
+	else if (userptr->deviceType == LED){
 		err = led_fgetc(descr);
 	}
-	//CASE: FAT32
-	else{
+	else{ //CASE: FAT32
 		if (g_noFS){
 			return E_NOINPUT; //TODO: errcheck E_NOFS
 		}
