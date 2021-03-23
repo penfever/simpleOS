@@ -238,7 +238,7 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 			latestSector = logicalSector;
 	    }
 		int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
-		char* output = malloc(48);
+		char output[64] = {' '};
 		sprintf(output, "Total entries in other sectors = %d. \n", entries);
 		if(UARTIO){
 			uartPutsNL(UART2_BASE_PTR, output);
@@ -309,7 +309,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
 	    		//long file name
-	    		char* output = malloc(48);
+	    		char output[64] = {' '};
     			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
     			if (g_printAll){
         			uartPutsNL(UART2_BASE_PTR, output);
@@ -320,7 +320,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			myFree(output);
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
-	    		char* output = malloc(48);
+	    		char output[64] = {' '};
     			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
     			if (g_printAll){
         			uartPutsNL(UART2_BASE_PTR, output);
@@ -333,7 +333,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){ //TODO: enable for console IO
-    			char* output = malloc(16);
+	    		char output[64] = {' '};
     			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
     			uartPutsNL(UART2_BASE_PTR, output);
 				if(g_printAll){
@@ -360,7 +360,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
     			if(UARTIO){
-        			char* output = malloc(64);
+        			char output[64];
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
         			uartPutsNL(UART2_BASE_PTR, output);
         			myFree(output);
@@ -374,7 +374,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
 	    	}
-    		char* output = malloc(48);
+    		char output[64] = {' '};
 			sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 			if (g_printAll){
     			uartPutsNL(UART2_BASE_PTR, output);
