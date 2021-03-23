@@ -67,7 +67,7 @@ int file_structure_mount(void){
     	if (MYFAT_DEBUG){
             printf("Error, card not detected. \n");
     	}
-        myFree(MOUNT);
+        free(MOUNT);
         return E_NOINPUT; //TODO: errcheck
     }
     microSDCardDisableCardDetectARMPullDownResistor();
@@ -246,7 +246,6 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 			printf(output);
 		}
-		myFree(output);
 	    return finished;
 }
 
@@ -276,10 +275,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
     			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     			if(UARTIO){
-        			char* output = malloc(32);
+    	    		char output[64] = {' '};
         			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
         			uartPutsNL(UART2_BASE_PTR, output);
-        			myFree(output);
     			}
 	    	return 0;
 	    	}
@@ -317,7 +315,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			else if (MYFAT_DEBUG){
 	    			printf(output);
 	    		}
-    			myFree(output);
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
 	    		char output[64] = {' '};
@@ -328,7 +325,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf(output);
 	    		}
-    			myFree(output);
 	    		continue;
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
@@ -341,7 +337,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 					dir_entry_print_attributes(dir_entry);
 	    			uartPutsNL(UART2_BASE_PTR, "\n");
 				}
-				myFree(output);
 	    	}
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 			if(MYFAT_DEBUG){
@@ -360,10 +355,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
     			if(UARTIO){
-        			char output[64];
+    	    		char output[64] = {' '};
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
         			uartPutsNL(UART2_BASE_PTR, output);
-        			myFree(output);
     			}
     			else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
@@ -382,7 +376,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 			else if (MYFAT_DEBUG){
     			printf(output);
     		}
-			myFree(output);
 	    }
 	    return 1; //return 1 if end of sector reached without end of directory being reached
 }
