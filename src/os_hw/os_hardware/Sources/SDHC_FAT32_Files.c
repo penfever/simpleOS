@@ -328,7 +328,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){ //TODO: enable for console IO
-    			char* output = myMalloc(16);
+    			char output[32];
     			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
     			uartPutsNL(UART2_BASE_PTR, output);
 				if(g_printAll && UARTIO){
@@ -337,7 +337,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 					dir_entry_print_attributes(dir_entry);
         			uartPutsNL(UART2_BASE_PTR, "\n");
 				}
-				myFree(output);
 	    	}
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 			if(MYFAT_DEBUG){
