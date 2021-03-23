@@ -28,7 +28,7 @@ struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cwd = NULL;
 static int g_unusedSeek = FALSE;
 static int g_deleteFlag = FALSE;
-static int g_printAll = FALSE:
+static int g_printAll = FALSE;
 static int* g_numSector = 0;
 struct pcb* currentPCB = &op_sys;
 
