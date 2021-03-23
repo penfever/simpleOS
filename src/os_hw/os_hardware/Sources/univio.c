@@ -199,9 +199,9 @@ int myfgetc (file_descriptor descr, char* bufp){
 		return E_NOINPUT; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
-//	if (find_curr_stream(userptr) == FALSE){ //TODO: errcheck, why false?
-//		return E_NOINPUT;
-//	}
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
+	}
 	if (userptr->deviceType == FAT32){
 		if (userptr->cursor >= userptr->fileSize){
 			return E_EOF;
