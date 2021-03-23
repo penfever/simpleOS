@@ -5,6 +5,10 @@
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
 
+#define MYFAT_DEBUG 0
+#define MYFAT_DEBUG_LITE 1
+#define DEBUG_CODE 3
+
 typedef enum _os_error error_t;
 
 enum _os_error
@@ -21,7 +25,9 @@ enum _os_error
     E_FREE = -9,
     E_EMPTYMEM = -10,
     E_FREE_PERM = -11,
-    E_MEMCHK = -12
+    E_MEMCHK = -12,
+    E_UNFREE = -13,
+    E_EOF = -14
 };
 
 struct _errordesc {

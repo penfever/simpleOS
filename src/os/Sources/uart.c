@@ -35,10 +35,7 @@
 /********************************************************************/
 /*
  * Initialize the specified UART in 8-N-1 mode with interrupts disabled
- * and with no hardware flow-control.Flow control is defined, in its broad sense, 
- * as a synchronization protocol that dictates the advance of information from a 
- * sender to a receiver. Flow control determines how resources in a network are 
- * allocated to packets traversing the network.
+ * and with no hardware flow-control
  *
  * Note: This routine *does* enable the appropriate UART and PORT clocks
  *

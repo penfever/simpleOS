@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 
 #ifndef _SIMPLE_SHELL_H
 #define _SIMPLE_SHELL_H
@@ -9,8 +8,7 @@
 #endif 
 #ifndef FALSE
 #define FALSE 0
-#endif
-#define DELAYCOUNT = 200000
+#endif 
 #ifndef MAXLEN
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
@@ -27,7 +25,13 @@
                   "free frees memory. \n"\
                   "memset sets an allocated memory region to a value. \n"\
                   "memchk checks that an allocated memory region is set to a value. \n"\
-                  "memorymap prints a map of all allocated memory. \n"
+                  "memorymap prints a map of all allocated memory. \n"\
+                  "fopen opens a file or device. \n"\
+                  "fclose closes a file or device. \n"\
+                  "fgetc and fgets retrieve characters or strings from a file or device. \n"\
+                  "fputc and fputs send characters or strings to a file or device. \n"\
+                  "fseek sets the file cursor to a particular position in a file. \n"
+
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
@@ -36,6 +40,14 @@
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
 #define BACKSLASH 92
+#ifndef CONSOLEIO
+#define CONSOLEIO 0
+#endif
+#ifndef UARTIO
+#define UARTIO 1
+#endif
+
+extern int g_noFS;
 
 struct date_time {
   char* month;
@@ -74,21 +86,21 @@ int cmd_memchk(int argc, char *argv[]);
 int cmd_memorymap(int argc, char *argv[]);
 int cmd_fopen(int argc, char *argv[]);
 int cmd_fclose(int argc, char *argv[]);
-int cmd_fgetc(int argc, char *argv[]);
-int cmd_fputc(int argc, char *argv[]);
 int cmd_create(int argc, char *argv[]);
 int cmd_delete(int argc, char *argv[]);
+int cmd_fgetc(int argc, char *argv[]);
+int cmd_fgets(int argc, char *argv[]);
+int cmd_fputc(int argc, char *argv[]);
+int cmd_fputs(int argc, char *argv[]);
+int cmd_seek(int argc, char *argv[]);
+int cmd_ls(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;
   int (*functionp)(int argc, char *argv[]);
 };
 
-char uart_getchar(void);
-
-void uart_launch(void);
-
-void uart_printf(char* string);
+int shell(void);
 
 int check_digit(char c);
 
@@ -104,8 +116,6 @@ int isleapyear(int inyear);
 
 size_t hex_dec_oct(char* str);
 
-void print_time(const struct date_time curr_date, const struct timeval my_time);
-
-struct date_time get_time(time_t sec_now);
+void check_overflow(unsigned long my_num);
 
 #endif
