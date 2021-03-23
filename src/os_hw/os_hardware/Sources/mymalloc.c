@@ -74,7 +74,7 @@ struct mem_region* first_fit(struct mem_region* temp, int size){
         }
         else{ //walk the list
         	temp = walk_struct(temp);
-            if (temp <= 0){
+            if (temp == NULL){
             	walk_struct_err();
             }
         }
@@ -115,8 +115,8 @@ uint8_t getCurrentPid(){
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
 struct mem_region* walk_struct(struct mem_region* this_region){
-	if (this_region > g_upper_bound || this_region < g_lower_bound){
-		return E_MALLOC;
+	if (this_region->data + this_region->size > g_upper_bound || this_region->data + this_region->size < g_lower_bound){
+		return NULL;
 	}
     char* char_region = (char *)(this_region->data + this_region->size);
     return (struct mem_region*)char_region;
@@ -149,7 +149,7 @@ void memoryMap(void){
     	uartPutsNL(UART2_BASE_PTR, output2);
         myFree(memDisplay);
         temp = walk_struct(temp);
-        if (temp <= 0){
+        if (temp == NULL){
         	walk_struct_err();
         }
     }
@@ -185,7 +185,7 @@ uint32_t bounds(void* ptr){
             prev = temp;
             if (i < node_count - 1){
                 temp = walk_struct(temp);
-                if (temp <= 0){
+                if (temp == NULL){
                 	walk_struct_err();
                 }
             }
@@ -233,9 +233,9 @@ int free_match(struct mem_region* temp, void* ptr){
         else {
         prev = temp; //previous gets current
         temp = walk_struct(temp);  //current gets next.
-        if (temp <= 0){
-        	walk_struct_err();
-        }
+			if (temp == NULL){
+				walk_struct_err();
+			}
         }
     }
     return E_FREE;
