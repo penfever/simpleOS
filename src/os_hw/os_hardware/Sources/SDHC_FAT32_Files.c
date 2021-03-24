@@ -47,7 +47,7 @@ struct pcb* currentPCB = &op_sys;
  */
 int file_structure_mount(void){
     if(MOUNT == 0){
-        MOUNT = malloc(sizeof(struct myfat_mount));
+        MOUNT = myMalloc(sizeof(struct myfat_mount));
         if(MOUNT == NULL){
         	if (MYFAT_DEBUG){
                 printf("could not malloc\n");
@@ -67,7 +67,7 @@ int file_structure_mount(void){
     	if (MYFAT_DEBUG){
             printf("Error, card not detected. \n");
     	}
-        free(MOUNT);
+        myFree(MOUNT);
         return E_NOINPUT; //TODO: errcheck
     }
     microSDCardDisableCardDetectARMPullDownResistor();
@@ -95,7 +95,7 @@ int file_structure_umount(void){
     	}
         return E_NOINPUT; //TODO: errcheck
     }
-    //myFree(MOUNT); TODO: attempt to free causes bkpt
+    myFree(MOUNT); //TODO: attempt to free causes bkpt?
     return 0;
 }
 

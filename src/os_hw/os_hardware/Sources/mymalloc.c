@@ -32,7 +32,7 @@ init_struct then fills in the correct values for 'free', 'size' and 'pid' for th
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
     if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-    	char* output = "K70 malloc fail ... \n";
+    	char* output = "K70 malloc fail \n";
     	uartPutsNL(UART2_BASE_PTR, output);
         return NULL;
     }
@@ -105,15 +105,6 @@ void compact_next(struct mem_region* curr){ //CURR on REGION boundary
         node_count -= 1; 
     }
 }
-//
-//void compact_next(struct mem_region* curr){
-//    struct mem_region* next = walk_struct(curr);
-//    if (next->free != FALSE){
-//        curr->size += MEMSTRUCT; //expand previous free block to include newly freed one
-//        curr->size += next->size;
-//        node_count -= 1; 
-//    }
-//}
 
 /* You should implement an accessor function named getCurrentPID that returns the PID contained
 in the PCB of the current process (i.e., in the PCB pointed to by currentPCB). */
@@ -132,22 +123,13 @@ struct mem_region* walk_struct(struct mem_region* this_region){ //REGION boundar
     return (struct mem_region*)char_region;
 }
 
-//struct mem_region* walk_struct(struct mem_region* this_region){
-//	uint32_t datSize = this_region->data + this_region->size - MEMSTRUCT;
-//	if (datSize > (uint32_t)g_upper_bound || datSize < (uint32_t)g_lower_bound){
-//		return NULL;
-//	}
-//    char* char_region = (char *)(this_region->data + this_region->size - MEMSTRUCT);
-//    return (struct mem_region*)char_region;
-//}
-
 /*memoryMap prints the contents of memory in their entirety. If memory is empty, it prints NULL.*/
 void memoryMap(void){
-	char* output = "-------------MEMORYMAP--------- \n\n";
+	char* output = 						"-------------------MEMORYMAP--------------- \n\n";
 	uartPutsNL(UART2_BASE_PTR, output);
-    output = "| ENTRY # | FREE | SIZE | PID | \n";
+    output = 							"|    ENTRY ADDR    | FREE |   SIZE   | PID | \n";
 	uartPutsNL(UART2_BASE_PTR, output);
-	output = "------------------------------- \n";
+	output = 							"------------------------------------------- \n";
 	uartPutsNL(UART2_BASE_PTR, output);
     struct mem_region* temp = first;
     int total_size = 0;
@@ -162,9 +144,9 @@ void memoryMap(void){
             bool_str = "True ";
         }
         char* memDisplay = myMalloc(256); //uart gets a map of all used and free regions in the 128M byte region of memory.
-        sprintf(memDisplay, "|   %d   |  %s  |  %d  | %d |\n", i+1, bool_str, temp->size, temp->pid);
+        sprintf(memDisplay, 			"|   %p   |  %s  |  %05d  | %d |\n", temp, bool_str, temp->size, temp->pid);
     	uartPutsNL(UART2_BASE_PTR, memDisplay);
-    	char* output2 = "------------------------------- \n";
+    	char* output2 = 				"-------------------------------------------- \n";
     	uartPutsNL(UART2_BASE_PTR, output2);
         myFree(memDisplay);
         temp = walk_struct(temp);
@@ -263,36 +245,6 @@ int free_match(struct mem_region* temp, void* ptr){ //PTR is on data boundary. T
     }
     return E_FREE;
 }
-//
-//int free_match(struct mem_region* temp, void* ptr){
-//    struct mem_region* prev;
-//    for (int i = 0; i < node_count; i++){
-//        if (ptr == temp->data){ // is ptr identical to this address?
-//            if (temp->free == FALSE){ // throws error on attempt to free an already freed region
-//                temp->free = TRUE;
-//                if ((uint32_t)temp == (uint32_t)g_lower_bound){ //if at first block, check ahead only
-//                    compact_next(temp);
-//                }
-//                else if ((uint32_t)(&temp->data[0] + temp->size) >= (uint32_t)g_upper_bound){ // if at last block, check behind only
-//                    compact_prev(prev, temp->size);
-//                }
-//                else {
-//                    compact_next(temp);
-//                    compact_prev(prev, temp->size); // compacts next and prior regions of memory
-//                }
-//                return 0;
-//            }
-//        }
-//        else {
-//        prev = temp; //previous gets current
-//        temp = walk_struct(temp);  //current gets next.
-//			if (temp == NULL){
-//				walk_struct_err();
-//			}
-//        }
-//    }
-//    return E_FREE;
-//}
 
 /*The myMalloc function is declared as taking an unsigned int as its
 only parameter and returning a pointer to void. The "size" parameter 
