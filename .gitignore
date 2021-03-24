@@ -10,6 +10,9 @@
 *.d
 *.cpp
 *.7z
+**/fsInfo*
+**/led.h
+**/led.c
 **/bootsector*
 **/breakpoint*
 **/delay*
