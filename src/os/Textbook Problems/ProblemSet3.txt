@@ -25,8 +25,6 @@ argv[1] -> a char* array, a pointer to a string.
 (int *)argv[1] -> a char* array cast to a pointer to an integer
 *(int *)argv[1] -> Give me the dereferenced value of the pointer (IE its memory address)
 
-
-
 On computer A, which has a Digital Equipment Corporation (DEC) Alpha
 processor, it produces this output:
 
@@ -43,11 +41,7 @@ Hex: 6D6F7265 6C657373
   Exactly how does this difference affect the output?
 
   This program produces different outputs on different machines because the memory address
-  of the int pointer which the code prints differs on different computers. It will in fact differ 
-  every time the program is run!
-
-  The IBM 360 is modifying the program on the fly as it loads into memory using a technique known as
-static relocation.
+  of the int pointer which the code prints differs on each computer.
 
   b. (2 Points) What command line argument was used in both cases?
 
@@ -56,6 +50,7 @@ static relocation.
   computers would the printf output be correct (i.e., the printf
   ourput would be a true statement)?
 
+The IBM System/360
 
   #include <stdio.h>
 
@@ -65,11 +60,6 @@ static relocation.
 	   argv[1], before ? "before" : "not before", argv[2]);
     return 0;
   }
-
-  DEC Alpha
-
-For 32-bit signed integers, the minimum value is 0x80000000 (-2147483648) 
-and the maximum value is 0x7fffffff (2147483647).
 
 2. (12 Points) Memory Allocation.  Tanenbaum 4/e 3.4 (Tanenbaum 3/e
 3.4, Tanenbaum 2/e 4.5)
