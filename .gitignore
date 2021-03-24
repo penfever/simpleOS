@@ -10,6 +10,20 @@
 *.d
 *.cpp
 *.7z
+**/bootsector*
+**/breakpoint*
+**/delay*
+**/derivative*
+**/directory for students*
+**/FAT.h
+**/FAT.c
+**/microSD.h
+**/microSD.c
+**/pushbutton*
+**/MK70F12*
+**/SDCardReader*
+**/uart*
+**/util*
 .vscode/
 build/
 ps0/
