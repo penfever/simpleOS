@@ -229,9 +229,10 @@ int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
   }
-  close_all_devices();
-  file_structure_umount();
-  //TODO: turn off all LEDs?
+  close_all_devices();   //TODO: turn off all LEDs?
+  if (!g_noFS){
+	  file_structure_umount();
+  }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
       myFree(argv[i]);

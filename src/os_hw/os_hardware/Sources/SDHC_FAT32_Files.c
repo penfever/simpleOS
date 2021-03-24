@@ -653,7 +653,7 @@ int dir_delete_file(char *filename){
 	g_deleteFlag = TRUE;
 	if ((myCluster = dir_find_file(filename, &myCluster)) != 0){ //if file is not found
 		g_deleteFlag = FALSE;
-		return E_NOINPUT;
+		return E_SEARCH;
 	}
 	int err;
 	MOUNT->dirty = TRUE;
@@ -672,26 +672,6 @@ int dir_delete_file(char *filename){
 }
 
 /**
- * Create a new empty directory in the cwd with name filename
- * Returns an error code if there is no more space to create the directory
- * Implementing this function is optional
- */
-int dir_create_dir(char *filename){
-    ;
-}
-
-/**
- * Delete a directory in the cwd with name filename
- * Returns an error code if a file with this name does not exist
- * Returns an error code if a directory with this filename contains any files
- * or directories
- * Returns an error code if the file with this name is not a directory
- * Implementing this function is optional
- */
-int dir_delete_dir(char *filename){
-    ;
-}
-/**
  * Search for filename in the cwd and, if successful, store a file descriptor
  * for that file into *descrp
  * Returns an error code if filename is not in the cwd
@@ -702,7 +682,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	uint32_t fileCluster;
 	int err;
 	if (((err = dir_find_file(filename, &fileCluster))) != 0){
-		if (err == -20 && MYFAT_DEBUG){
+		if (err == E_DIRENTRY && MYFAT_DEBUG){
 			printf("Opening directories has not yet been implemented. \n");
 		}
 		return err;
@@ -751,7 +731,7 @@ int find_curr_stream(struct stream* fileptr){
 int file_close(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
+		return E_FREE_PERM;
 	}
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		if (userptr == &(currentPCB->openFiles[i])){ //match found, release the file
@@ -776,13 +756,13 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	struct stream* userptr = (struct stream*)descr;
 	*charsreadp = 0;
 	if (find_curr_stream(userptr) == FALSE || buflen <= 0 || userptr->clusterAddr == 0){
-		return E_NOINPUT;
+		return E_FREE_PERM;
 	}
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset
 	if (buflen > (userptr->fileSize - userptr->cursor)){ //Prevent attempts to read past EOF
-		return E_NOINPUT;
+		return E_EOF;
 	}
 	int pos = userptr->cursor;
 	const int end = buflen + userptr->cursor;
@@ -848,6 +828,7 @@ int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t
  * Returns an error code if the file is not writeable
  * (See DIR_ENTRY_ATTR_READ_ONLY), optional to implement read-only
  * Returns an error code if there is no more space to write the character
+ * This function shares the file cursor with file_getbuf
  */
 int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	if (buflen <= 0){ //Negative or zero chars entered
@@ -855,54 +836,54 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_NOINPUT; //File is not open, or wrong type, or does not belong to this PID
+		return E_FREE_PERM; //File is not open, or wrong type, or does not belong to this PID
 	}
 	if (userptr->mode == 'r' || userptr->mode == 'R'){
-		return E_NOINPUT; //TODO: error handling
+		return E_FREE_PERM; //TODO: error handling
 	}
 	if (userptr->mode == 'a' || userptr->mode == 'A'){
 		userptr->cursor = userptr->fileSize; //TODO: append mode -- move cursor to EOF before writing
 	}
     int dirLogicalSector = 0;
     int* dirLogSecPtr = &dirLogicalSector;
-    int err = 0;
+    int err = -1;
     uint8_t dirData[BLOCK];
-    struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
-	int charsread = 0;
-	int *charsreadp = &charsread;
     err = dir_get_cwd(dirLogSecPtr, dirData);
     if (err != 0){
     	return err;
     }
-    if ((err = read_all(dirData, *dirLogSecPtr, userptr->fileName)) != 0){ //get logicalSector for dir of current file
+    struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
+	int charsread = 0;
+	int *charsreadp = &charsread;
+    if ((err = read_all(dirData, *dirLogSecPtr, userptr->fileName)) != 0){ //update dirLogicalSector with sector of file to be edited
     	return err;
     }
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read next block into memory
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read correct dir_entry into memory
     	return E_IO;
     }
     if (userptr->clusterAddr == 0){ //Assign first cluster
     	uint32_t numCluster = find_free_cluster();
     	if (numCluster == 0){
-    	 	return E_FREE; //TODO: check error number
+    	 	return E_FREE;
     	}
-    	int err = 0;
+    	int err = -1;
     	if ((err == dir_set_attr_firstwrite(buflen, dir_entry, numCluster)) != 0){
     	    return err; //file entry not found in directory?
     	    //TODO: undo all the writing?
     	}
-    	memcpy(&MOUNT->data, &dirData, BLOCK);
-    	MOUNT->writeSector = dirLogicalSector;
-    	MOUNT->dirty = TRUE;
-    	if ((err = write_cache()) != 0){
-    		return err;
-    	}
+//    	memcpy(&MOUNT->data, &dirData, BLOCK);
+//    	MOUNT->writeSector = dirLogicalSector;
+//    	MOUNT->dirty = TRUE;
+//    	if ((err = write_cache()) != 0){
+//    		return err;
+//    	}
     	userptr->clusterAddr = numCluster;
     }
 	uint32_t travelCluster;
 	int pos = userptr->cursor;
 	const int end = buflen + userptr->cursor; //TODO: errcheck on end? Too large?
     uint32_t clusJump = pos / 512; //Skip ahead this many clusters
-    uint32_t clusReq = end / 512; //TODO: note that the read_cursor and write_cursor are shared
+    uint32_t clusReq = end / 512;
     if (end % 512 != 0){
     	clusReq += 1;
     }
@@ -914,7 +895,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	if (travelCluster == 0){ //TODO: make sure clusterAddr is always zeroed out in dir_file_attr
     		int err = find_and_assign_clusters(clusReq - i, userptr, travelCluster, dir_entry);
     		if (err != 0){
-    			return E_NOINPUT; //TODO: errcheck
+    			return E_UNFREE;
     		}
     		break;
     	}
@@ -959,8 +940,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 			*charsreadp += blockDiff;
 			offBlock = 0;
 	    }
-	    //TODO: what if amt to write is larger or smaller than 512 bytes? This shouldn't matter, I think?
-    	MOUNT->writeSector = fileLogicalSector;
+    	MOUNT->writeSector = fileLogicalSector; //cache flushed to file
     	MOUNT->dirty = TRUE;
     	if ((err = write_cache()) != 0){
     		return err;
@@ -972,7 +952,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	if ((err = dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
 	    return err; //file entry not found in directory?
 	}
-	memcpy(&MOUNT->data, &dirData, BLOCK);
+	memcpy(&MOUNT->data, &dirData, BLOCK); //cache loaded with udpated dir_entry
 	MOUNT->writeSector = dirLogicalSector;
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
@@ -984,9 +964,9 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 /*Gets clusReq new clusters from the FAT and assigns them to the file pointed to at userptr.*/
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry){
 	while (clusReq > 0){
-    	uint32_t numCluster = find_free_cluster(); 	//TODO: read_FAT_entry on numCluster
+    	uint32_t numCluster = find_free_cluster(); 
     	if (numCluster == 0){
-    	 	return E_FREE; //TODO: check error number
+    	 	return E_FREE;
     	}
     	write_FAT_entry(MOUNT->rca, numCluster, FAT_ENTRY_ALLOCATED_AND_END_OF_FILE);
 		clusReq --;
@@ -998,13 +978,13 @@ int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCl
 int file_set_cursor(file_descriptor descr, uint32_t pos){
 	struct stream* userptr = (struct stream*) descr;
 	if (find_curr_stream(userptr) != TRUE){
-		return E_NOINPUT;
+		return E_FREE_PERM;
 		if(MYFAT_DEBUG){
 			printf("This user does not have this file open. \n");
 		}
 	}
 	if (userptr->deviceType != FAT32){
-		return E_NOINPUT;
+		return E_DEV;
 		if(MYFAT_DEBUG){
 			printf("This is not a FAT32 device. \n");
 		}
@@ -1013,7 +993,7 @@ int file_set_cursor(file_descriptor descr, uint32_t pos){
 		if(MYFAT_DEBUG){
 			printf("Requested position is larger than file size. \n");
 		}
-		return E_NOINPUT;
+		return E_EOF;
 	}
 	userptr->cursor = pos;
 	return 0;

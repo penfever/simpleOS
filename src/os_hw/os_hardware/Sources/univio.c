@@ -288,7 +288,7 @@ char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return int
 }
 
 int myfputc (file_descriptor descr, char bufp){
-	int err;
+	int err = -1;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
