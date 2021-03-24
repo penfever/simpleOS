@@ -53,7 +53,9 @@ ls expects one argument, either 0 or an 1. If 0, it will print the directory con
 
 ## FOPEN
 fopen is case insensitive -- you can type either lowercase or uppercase. You can ignore trailing spaces when entering a filename. You can include the period before the file extension or exclude it.
-fopen accepts a ‘w’ flag for write access, and an ‘r’ flag for read-only access. 
+
+fopen accepts a ‘w’ flag for write access, an ‘r’ flag for read-only access, and an 'a' flag for append access, which is recognized only by fputc/fputs.
+
 If the file open is successful, fopen will print a file pointer to the uart. type this pointer value into the console (including 0x for hexadecimal values) in order to access the file.
 fopen also opens devices, including pushbuttons and LEDs, and returns a file pointer which allows you to pass input to those devices.
 
@@ -87,6 +89,7 @@ Create and delete are case insensitive -- you can type either lowercase or upper
 
 ## FGETC AND FPUTC
 fgetc takes one argument – a pointer to a file descriptor. If the device is enabled for fgetc, it will then perform the appropriate action for that device.
+
 fputc takes two arguments – a pointer to a file descriptor, and a character to be ‘put’. If the device is enabled for fgetc, it will then perform the appropriate action for that device.
 
 ## FGETS AND FPUTS
