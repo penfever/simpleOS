@@ -24,13 +24,12 @@ static int pid = 0; //temporarily set everything to OS
 
 /*Devices to support: pushbuttons, LEDs, FAT32*/
 
-/*fopen returns 0 in case of error. Enable MYFAT_DEBUG for more information. */
+/*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
+ * to open file filename, log it in the current PID's PCB, and return a pointer
+ * handler. It returns an error code on failure.*/
 
 int myfopen (file_descriptor* descr, char* filename, char mode){
 	int len = strlen(filename);
-	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
-	}
 	int err;
 	/*CASE: device*/
 	if (strncmp("dev_", filename, 4) != 0){
@@ -42,15 +41,18 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			if (MYFAT_DEBUG){
 				printf("Invalid device name \n");
 			}
-			return E_NOINPUT; //TODO: errcheck
+			return E_DEV;
 		}
 		err = add_device_to_PCB(devicePtr, descr);
 		return err;
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
-	if (g_noFS || len > 12 || filename[len-4] != '.'){
-		return E_NOINPUT; //TODO: errcheck E_NOFS and improper file names
+	if (g_noFS){
+		return E_NOFS;
+	}
+	if (len > 12 || filename[len-4] != '.'){
+		return E_NOINPUT;
 	}
 	//string processing to ensure FAT32 compliance
 	char* fileProc = "           ";
@@ -61,7 +63,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 	}
 	struct stream* userptr = (struct stream *)*descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT; //TODO: errcheck
+		return E_UNFREE;
 	}
 	userptr->mode = mode;
 	return 0;
@@ -127,7 +129,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		if (MYFAT_DEBUG){
 			printf("Invalid device name \n");
 		}
-		return E_NOINPUT;
+		return E_DEV;
 	}
 	userptr->minorId = devicePtr; //This should macro to the correct minorId
 	*fd = (file_descriptor *)userptr; //device pointer becomes user pointer
@@ -166,17 +168,17 @@ file_descriptor check_dev_table(char* filename){
 
 int myfclose (file_descriptor descr){
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
+		return E_UNFREE;
 	}
 	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == LED){
 		return remove_device_from_PCB(descr);
 	}
 	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+		return E_NOFS; //TODO: errcheck E_NOFS
 	}
 	//treat as FAT32	
 	return file_close(descr);
@@ -185,7 +187,7 @@ int myfclose (file_descriptor descr){
 int remove_device_from_PCB(file_descriptor fd){
 	struct stream* userptr = (struct stream*)fd;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
+		return E_UNFREE;
 	}
 	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;
@@ -196,11 +198,11 @@ int remove_device_from_PCB(file_descriptor fd){
 int myfgetc (file_descriptor descr, char* bufp){
 	int err = -5;
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
+		return E_UNFREE;
 	}
 	if (userptr->deviceType == FAT32){
 		if (userptr->cursor >= userptr->fileSize){
@@ -216,7 +218,7 @@ int myfgetc (file_descriptor descr, char* bufp){
 	}
 	else{ //CASE: FAT32
 		if (g_noFS){
-			return E_NOINPUT; //TODO: errcheck E_NOFS
+			return E_NOFS;
 		}
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
 	}
@@ -265,7 +267,7 @@ int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
 
 char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
 	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+		return E_NOFS;
 	}
 	int err;
 	if (pid != currentPCB->pid){
@@ -288,14 +290,14 @@ char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return int
 int myfputc (file_descriptor descr, char bufp){
 	int err;
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
 	}
 	if (userptr->deviceType == PUSHBUTTON){
-		return E_NOINPUT;
+		return E_DEV;
 	}
 	if (userptr->deviceType == LED){
 		err = led_fputc(descr);
@@ -306,7 +308,7 @@ int myfputc (file_descriptor descr, char bufp){
 	//CASE: FAT32
 	else{
 		if (g_noFS){
-			return E_NOINPUT; //TODO: errcheck E_NOFS
+			return E_NOFS;
 		}
 		err = file_putbuf(descr, &bufp, 1);
 	}
@@ -335,14 +337,14 @@ int led_fputc(file_descriptor descr){
 
 int myfputs (char* bufp, file_descriptor descr, int buflen){ //TODO: fix this
 	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+		return E_NOFS; //TODO: errcheck E_NOFS
 	}
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_NOINPUT;
+		return E_UNFREE;
 	}
 	int err;
 	err = file_putbuf(descr, &bufp[0], buflen);
@@ -351,16 +353,16 @@ int myfputs (char* bufp, file_descriptor descr, int buflen){ //TODO: fix this
 
 int mycreate(char* filename){
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
 	else{
-		return E_NOINPUT;
+		return E_DEV;
 	}
 	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+		return E_NOFS; //TODO: errcheck E_NOFS
 	}
 	//filename processing for FAT32 compliance
 	char* fileProc = "           ";
@@ -370,16 +372,16 @@ int mycreate(char* filename){
 
 int mydelete(char* filename){
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
 	else{
-		return E_NOINPUT;
+		return E_DEV;
 	}
 	if (g_noFS){
-		return E_NOINPUT; //TODO: errcheck E_NOFS
+		return E_NOFS; //TODO: errcheck E_NOFS
 	}
 	char* fileProc = "           ";
 	process_strname(fileProc, filename);
@@ -388,11 +390,11 @@ int mydelete(char* filename){
 
 int myseek(file_descriptor descr, uint32_t pos){
 	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
+		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_NOINPUT;
+		return E_UNFREE;
 	}
 	return file_set_cursor(descr, pos);
 }

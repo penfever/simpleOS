@@ -17,10 +17,15 @@ struct _errordesc errordesc[] = {
     { E_INF, "End of infinite loop reached \n" },
     { E_FREE, "Free: Invalid pointer \n" },
     { E_EMPTYMEM, "There is no memory allocated. Freeing block. \n"},
-    { E_FREE_PERM, "Your PID does not have permission to free this block \n"},
+    { E_FREE_PERM, "Your PID does not have permission \n"},
     { E_MEMCHK, "memchk failed \n"},
     { E_UNFREE, "There is no free slot for this request \n"},
-    { E_EOF, "End of file reached \n"}
+    { E_EOF, "End of file reached \n"},
+    { E_DEV, "Device handling error \n"},
+    { E_NOFS, "No file system found \n"},
+    { E_IO, "I/O error \n"},
+    { E_SEARCH, "Search was unsuccessful \n"},
+    { E_DIRENTRY, "This is a directory entry \n"}
 };
 
 #ifndef BUFFER_SIZE

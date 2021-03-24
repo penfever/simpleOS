@@ -52,7 +52,7 @@ int file_structure_mount(void){
         	if (MYFAT_DEBUG){
                 printf("could not malloc\n");
         	}
-            exit(1); //TODO: desired behavior?
+            return E_NOFS;
         }
     }
     else{
@@ -68,12 +68,11 @@ int file_structure_mount(void){
             printf("Error, card not detected. \n");
     	}
         myFree(MOUNT);
-        return E_NOINPUT; //TODO: errcheck
+        return E_NOFS;
     }
     microSDCardDisableCardDetectARMPullDownResistor();
     MOUNT->rca = sdhc_initialize();
-    dir_set_cwd_to_root();
-    return 0;
+    return dir_set_cwd_to_root();
 }
 
 /**
@@ -93,9 +92,9 @@ int file_structure_umount(void){
     	if (MYFAT_DEBUG){
             printf("Could not re-enable resistor.\n");
     	}
-        return E_NOINPUT; //TODO: errcheck
+        return E_NOFS;
     }
-    myFree(MOUNT); //TODO: attempt to free causes bkpt?
+    myFree(MOUNT);
     return 0;
 }
 
@@ -110,16 +109,16 @@ int dir_set_cwd_to_root(void){
         return 0;
     }
     if (MYFAT_DEBUG){
-        printf("Card not mounted\n");
+        printf("Failed to set CWD to root\n");
     }
-    return E_NOINPUT; //TODO: errcheck
+    return E_NOFS;
 }
 
 /*write_cache writes the contents of the cache to disk and sets the dirty flag to clean, or returns an error in case of write failure.*/
 int write_cache(){
 	if (MOUNT->dirty == TRUE){
 	    if(SDHC_SUCCESS != sdhc_write_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){
-	    	return E_NOINPUT; //TODO: create new error message
+	    	return E_IO;
 	    }
 		MOUNT->dirty = FALSE;
 	}
@@ -128,8 +127,7 @@ int write_cache(){
 }
 
 /**
- * Prints the cwd's filenames (full == 0) or all directory
- * information (full == 1);
+ * Prints additional directory attributes
  */
 
 void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
@@ -174,7 +172,7 @@ int dir_get_cwd(int* logicalSector, uint8_t data[BLOCK]){
     	printf("First sector of cluster: %d\n", *logicalSector);
     }
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, *logicalSector, &card_status, data)){
-    	return E_NOINPUT; //TODO: create new error message
+    	return E_IO; //TODO: create new error message
     }
     return 0;
 }
@@ -190,7 +188,7 @@ int dir_ls(int full){
     int err;
     //check if file system is mounted
     if (0 == MOUNT){
-    	return E_NOINPUT; //TODO: create new error message
+    	return E_NOFS;
     }
     int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     int* lsptr = &logicalSector;
@@ -207,7 +205,7 @@ int dir_ls(int full){
 }
 
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
-	int finished = 1;
+	int finished = LOOP_CONTD;
 	int numSector = 0;
 	g_numSector = &numSector;
 	int totalSector = 0;
@@ -216,13 +214,13 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	if (g_unusedSeek == FOUND_AND_RETURNING){
 		return 0;
 	}
-	    while (finished == 1){
+	    while (finished == LOOP_CONTD){
 	        if (numSector < sectors_per_cluster){
 	        	totalSector ++;
 	        	numSector ++;
 	        	logicalSector ++; //advance logicalsector pointer
 	            if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
-	            	__BKPT();
+	            	return E_IO;
 	            }
 	        }
 	        else{
@@ -257,7 +255,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
 	    		//we've reached the end of the directory
 	    		if (search != NULL){
-	    			return E_NOINPUT; //TODO: file not found error
+	    			return E_SEARCH;
 	    		}
 	    		if (g_unusedSeek == TRUE){
 	    	    	memcpy(&MOUNT->data, &data, BLOCK);
@@ -328,9 +326,11 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		continue;
 	    	}
 			int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
-	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){ //TODO: enable for console IO
-	    		char output[64] = {' '};
-    			sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
+    		char output[64] = {' '};
+    		char* dirname = dir_entry->DIR_Name;
+    		//dirname = filename_clean(dirname);
+			sprintf(output, "%.8s%c%.3s\n", dirname, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
+	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){
     			uartPutsNL(UART2_BASE_PTR, output);
 				if(g_printAll){
 	    			uartPutsNL(UART2_BASE_PTR, "Attributes: ");
@@ -338,22 +338,30 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			uartPutsNL(UART2_BASE_PTR, "\n");
 				}
 	    	}
+	    	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    		printf("%s \n", output);
+				if(g_printAll){
+	    			printf("Attributes: ");
+					dir_entry_print_attributes(dir_entry);
+	    			printf("\n");
+				}
+	    	}
 			uint32_t firstCluster = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
 			if(MYFAT_DEBUG){
 				printf(" First Cluster: %lu\n", firstCluster);
-				printf("First sector of cluster: %d\n", first_sector_of_cluster(firstCluster));
+				printf("First sector of cluster: %lu\n", first_sector_of_cluster(firstCluster));
 			}
 			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 	    	if(!noMatch){
 	    		if (g_deleteFlag == TRUE){
 	    			MOUNT->writeSector = logicalSector; //updates writeSector
 	    		    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-	    		    	return E_NOINPUT; //TODO: error checking
+	    		    	return E_IO;
 	    		    }
 	    			dir_entry->DIR_Name[0] = DIR_ENTRY_UNUSED;
 	    			memcpy(MOUNT->data, data, BLOCK);
 	    		}
-	    		uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
+	    		//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
     			if(UARTIO){
     	    		char output[64] = {' '};
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
@@ -364,74 +372,39 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		latest = dir_entry;
 	    		if (dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY){
-	    			return -20; //TODO: label this as E_DIRENTRY
+	    			return E_DIRENTRY;
 	    		}
-	    		return 0;//TODO: I shouldn't need the cluster address. I should be able to get it from latest
+	    		return 0;
 	    	}
-    		char output[64] = {' '};
-			sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
+    		char output2[64] = {' '};
+			sprintf(output2, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 			if (g_printAll){
-    			uartPutsNL(UART2_BASE_PTR, output);
+    			uartPutsNL(UART2_BASE_PTR, output2);
 			}
 			else if (MYFAT_DEBUG){
-    			printf(output);
+    			printf(output2);
     		}
 	    }
-	    return 1; //return 1 if end of sector reached without end of directory being reached
+	    return LOOP_CONTD; //end of sector reached, continue loop in read_all
 }
 
 int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
 	MOUNT->writeSector = logicalSector; //updates writeSector
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-    	return E_NOINPUT; //TODO: error checking
+    	return E_IO;
     }
 	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
     return 0;
 }
-/**
- * Start an iterator at the beginning of the cwd's filenames
- * Returns in *statepp a pointer to a malloc'ed struct that contains necessary
- * state for the iterator
- * Optional with dir_ls_next
- * The idea of this is that when you're trying to do an LS of the directory
- * This mallocs storage for a struct including everything that this dir_ls_next needs to iterate
- * through the directory entry by entry.
- * It initializes the memory and puts a bunch of stuff there that says, I haven't read any entries yet.
- * The first time you call dir_ls_next, it will return the next file in the directory.
- * 
- */
-int dir_ls_init(void **statepp){
-    ;
-}
 
 /**
- * Uses statep as a pointer to a struct malloc'ed and initialized by
- * dir_ls_init that contains iterator state
- * Returns in filename the malloc'ed name of the next filename in the cwd; 
- * Caller is responsible to free the memory
- * Returns NULL for filename if at end of the directory; If returning NULL,
- * the malloc'ed struct pointed to by statep is free'd
- * Optional with dir_ls_init
- * This gives you each entry, but as a filename only. But this could be expanded
- * so that it gives you a pointer to a struct that contained all the info from that
- * entry.
- */
-int dir_ls_next(void *statep, char *filename){
-    ;
-}
-
-/**
- * Search for filename in cwd and return its first cluster number in
- * firstCluster
+ * Search for filename in cwd and return its first cluster number in firstCluster
  * Returns an error code if filename is not in the cwd
  * Returns an error code if the filename is a directory
  */
-int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: this function should return error codes, it doesn't. It should be taking a cluster as an arg, it doesn't.
-    //if (temp->pid != getCurrentPid()){ //case: PIDs do not match
-    //    return E_FREE_PERM;
-    //}
+int dir_find_file(char *filename, uint32_t *firstCluster){
     if (0 == MOUNT){
-    	return E_NOINPUT; //TODO: create new error message
+    	return E_NOFS;
     }
     uint8_t data[BLOCK];
     int logicalSector = 0;
@@ -454,18 +427,6 @@ int dir_find_file(char *filename, uint32_t *firstCluster){ //TODO: this function
 }
 
 /**
- * Search for filename in cwd and, if it is a directory, set the cwd to that
- * filename
- * Returns an error code if filename is not in the cwd
- * Returns an error code if the filename is not a directory
- * Implementing this function is optional
- */
-int dir_set_cwd_to_filename(char *filename){
-	//calls find_file
-    ;
-}
-
-/**
  * Create a new empty regular file in the cwd with name filename
  * Returns an error code if a regular file or directory already exists with
  * this filename
@@ -479,18 +440,18 @@ int dir_create_file(char *filename){
 	}
 	uint32_t myCluster;
 	if (dir_find_file(filename, &myCluster) == 0){
-		return E_NOINPUT; //if file is found to exist, return error -- cannot create
+		return E_SEARCH;
 	}
 	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
 		g_unusedSeek = TRUE;
 		dir_ls(0); //fills unused slot and copies data to MOUNT->data
 		if (unused == NULL){
-			return E_NOINPUT; //no free dir_entry could be created (out of space)
+			return E_FREE; //no free dir_entry could be created (out of space)
 		}
 		g_unusedSeek = FALSE;
 	}
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //verify cache is correct
-    	return E_NOINPUT; //TODO: error checking
+    	return E_IO;
     }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
@@ -524,9 +485,9 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 	    
 		uint8_t nextData[512]; //load next sector in cluster
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector + 1, &card_status, nextData)){
-	    	return E_NOINPUT;
+	    	return E_IO;
 	    }
-	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)nextData[512];
+	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)nextData;
 	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
 	    MOUNT->writeSector += 1;
     	memcpy(&MOUNT->data, &nextData, BLOCK);
@@ -536,17 +497,17 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
 		MOUNT->dirty = TRUE;
 	    write_cache();
-	    uint32_t nextCluster;
+	    uint32_t nextCluster = 0;
 		write_FAT_entry(MOUNT->rca, currCluster, nextCluster);
 		if(nextCluster == 0){ //TODO: check slides. Is this correct error checking?
 			if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 				printf("No free cluster found. The disk may be full \n");
 			}
-			return E_NOINPUT; //disk is probably full
+			return E_FREE; //disk is probably full
 		}
 		MOUNT->writeSector = first_sector_of_cluster(nextCluster);
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){
-	    	return E_NOINPUT;
+	    	return E_IO;
 	    }
 	    struct dir_entry_8_3* nextDirEntry = (struct dir_entry_8_3*)MOUNT->data;
 	    nextDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
@@ -630,6 +591,29 @@ int filename_verify(char* filename, int len){
 	return 0;
 }
 
+char* filename_clean(char* filename){
+	for (int i = 0; i < strlen(filename); ++i){
+		char c = filename[i];
+		if (c < 0x20 || c == 0x22 || c == 0x7C){
+			c = 0x20;
+		}
+		if (c >= 0x2A && c <= 0x2F){
+			c = 0x20;
+		}
+		if (c >= 0x3A && c <= 0x3F){
+			c = 0x20;
+		}
+		if (c >= 0x5B && c <= 0x5D){
+			c = 0x20;
+		}
+		if (c >= 0x61 && c <= 0x7A) {
+			c = 0x20;
+		}
+		filename[i] = c;
+	}
+	return filename;
+}
+
 uint32_t find_free_cluster(){
 	uint32_t numCluster = 2;
 	uint32_t returnCluster = 1;
@@ -661,8 +645,8 @@ uint32_t find_free_cluster(){
 int dir_delete_file(char *filename){
 	//For current PCB only
 	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
-		if (strncmp(&currentPCB->openFiles[i].fileName, filename, 11) == 0){
-			return E_NOINPUT; //TODO: error, file already open
+		if (strncmp(&currentPCB->openFiles[i].fileName, filename, 11) == 0){ //TODO: check comparison validity
+			return E_FREE_PERM; 
 		}
 	}
 	uint32_t myCluster = 0;
@@ -814,7 +798,7 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
         	numSector = 0;
 	    }
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //read next block into memory
-	    	return E_NOINPUT;
+	    	return E_IO;
 	    }
 	    if (diff <= blockDiff){ //if fewer than 512 chars remain and last sector has been read
 	    	memcpy(&bufp[*charsreadp], &data[offBlock], diff);
@@ -894,14 +878,14 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     	return err;
     }
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read next block into memory
-    	return E_NOINPUT;
+    	return E_IO;
     }
     if (userptr->clusterAddr == 0){ //Assign first cluster
     	uint32_t numCluster = find_free_cluster();
     	if (numCluster == 0){
     	 	return E_FREE; //TODO: check error number
     	}
-    	int err;
+    	int err = 0;
     	if ((err == dir_set_attr_firstwrite(buflen, dir_entry, numCluster)) != 0){
     	    return err; //file entry not found in directory?
     	    //TODO: undo all the writing?
@@ -940,7 +924,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
     uint32_t numSector = curr_sector_from_offset(userptr, &fileLogicalSector, numCluster); //how many sectors to offset (also changes logicalSector)
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, MOUNT->data)){ //read next block into memory
-    	return E_NOINPUT;
+    	return E_IO;
     }
     //offset of bufp will be tracked by charsreadp
 	while (pos < end){
