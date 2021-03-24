@@ -69,7 +69,7 @@ the required size, in bytes. Finally, it returns a pointer to the region it has 
 region, it returns NULL. */
 struct mem_region* first_fit(struct mem_region* temp, int size){
     for (int i = 0; i < node_count; i++){
-        if ((temp->size >= size + MEMSTRUCT + SHELL_RESERVE) && (temp->free != FALSE)){ // if it's a fit, return it
+        if ((temp->size >= size + MEMSTRUCT) && (temp->free != FALSE)){ // if it's a fit and is free, return it
             return temp;
         }
         else{ //walk the list
@@ -116,8 +116,8 @@ uint8_t getCurrentPid(){
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
 struct mem_region* walk_struct(struct mem_region* this_region){ //REGION boundary
-	if (this_region > g_upper_bound || this_region < g_lower_bound){
-		return E_MALLOC;
+	if ((char*)this_region > g_upper_bound || (char*)this_region < g_lower_bound){
+		return NULL;
 	}
     char* char_region = (char *)(this_region->data + this_region->size);
     return (struct mem_region*)char_region;
