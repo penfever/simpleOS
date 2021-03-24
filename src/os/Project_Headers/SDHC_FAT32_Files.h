@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "directory for students.h"
 
+#define LOOP_CONTD 101
 #define FOUND_AND_RETURNING 2
 #define BLOCK 512
 
@@ -186,6 +187,8 @@ struct stream* find_open_stream();
 int find_curr_stream(struct stream* fileptr);
 
 int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t numCluster);
+
+char* filename_clean(char* filename);
 
 uint32_t find_free_cluster();
 

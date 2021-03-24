@@ -6,7 +6,7 @@
 #endif
 
 #define MYFAT_DEBUG 0
-#define MYFAT_DEBUG_LITE 1
+#define MYFAT_DEBUG_LITE 0
 #define DEBUG_CODE 3
 
 typedef enum _os_error error_t;
@@ -27,7 +27,12 @@ enum _os_error
     E_FREE_PERM = -11,
     E_MEMCHK = -12,
     E_UNFREE = -13,
-    E_EOF = -14
+    E_EOF = -14,
+    E_DEV = -15,
+    E_NOFS = -16,
+    E_IO = -17,
+    E_SEARCH = -18,
+    E_DIRENTRY = -19
 };
 
 struct _errordesc {

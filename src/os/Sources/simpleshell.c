@@ -229,6 +229,10 @@ int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
   }
+  close_all_devices();   //TODO: turn off all LEDs?
+  if (!g_noFS){
+	  file_structure_umount();
+  }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
       myFree(argv[i]);
@@ -237,9 +241,6 @@ int cmd_exit(int argc, char *argv[]){
   myFree(argv);
   myFree(first);
   first = NULL;
-  //TODO: turn off all LEDs?
-  close_all_devices();
-  file_structure_umount();
   exit(0);
 }
 
@@ -281,10 +282,9 @@ int cmd_malloc(int argc, char *argv[]){
     return E_MALLOC;
   }
   else{
-	char* output = myMalloc(32);
+	char output[32];
 	sprintf(output, "%p \n", mal_val);
 	uartPutsNL(UART2_BASE_PTR, output);
-	myFree(output);
     return 0;
   }
 }
@@ -393,7 +393,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = myMalloc(64);
-	sprintf(output, "fopen success \n FILE* is 0x%x \n", myfile);
+	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
 	myFree(output);
 	return 0;
@@ -487,14 +487,11 @@ int cmd_seek(int argc, char *argv[]){
 	if (argc != 3){
 		return E_NUMARGS;
 	}
-	if (check_digit_all(argv[1]) != TRUE){
+	file_descriptor descr;
+	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	if (check_digit_all(argv[2]) != TRUE){
-		return E_NOINPUT;
-	}
-	unsigned long descr = strtoul(argv[1], NULL, 10);
-	unsigned long pos = strtoul(argv[2], NULL, 10);
+	unsigned long pos = hex_dec_oct(argv[2]);
 	return myseek(descr, pos);
 }
 
@@ -516,14 +513,14 @@ int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
 	uart_init(115200);
     int error = file_structure_mount();
-    if (0 != error) { //TODO: error check
+    if (0 != error) {
     	uartPutsNL(UART2_BASE_PTR, "SDHC card could not be mounted. File commands unavailable. \n");
     }
     else{
     	uartPutsNL(UART2_BASE_PTR, "SDHC card mounted. \n");
         g_noFS = FALSE;
     }
-    if (CONSOLEIO){
+    if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
         setvbuf(stdout, NULL, _IONBF, 0);	
     }

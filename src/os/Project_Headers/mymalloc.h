@@ -32,8 +32,10 @@ void myFree(void *ptr);
 
 int myFreeErrorCode(void *ptr);
 
+int free_match(struct mem_region* temp, void* ptr);
+
 struct mem_region* walk_struct(struct mem_region* this_region);
 
-//TODO add func declarations
+void walk_struct_err();
 
 #endif
