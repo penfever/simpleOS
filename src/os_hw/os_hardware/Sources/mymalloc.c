@@ -37,8 +37,8 @@ struct mem_region* init_struct(struct mem_region* first){
         return NULL;
     }
     else{
-    	g_lower_bound = (char*)&first[0];
-    	g_upper_bound = (char*)&first[MAX-1];
+    	g_lower_bound = (char *)&first[0]; //pointers to lower and upper memory bounds
+    	g_upper_bound = g_lower_bound + MAX - 1;
         node_count += 1;
         first->free = TRUE;
         first->size = MAX - MEMSTRUCT;
@@ -59,8 +59,8 @@ struct mem_region* subdivide(struct mem_region* mem, int size){
     next->size = size;
     next->pid = getCurrentPid();
     node_count += 1;
-    mem->size -= size + MEMSTRUCT; //shrink the size of the first block
-    return next->data;
+    mem->size -= (size + MEMSTRUCT); //shrink the size of the first block
+    return next;
 }
 
 /*first_fit accepts as a parameter a struct representing a region of memory and a size in bytes to be 
@@ -305,7 +305,7 @@ void* insert_at_tail(struct mem_region* first, int size){
     else{
         my_ptr = subdivide(my_ptr, size);
     }
-    return (void*)&my_ptr->data;
+    return (void*)my_ptr->data;
 }
 
 /*The myMalloc function is declared as taking an unsigned int as its
