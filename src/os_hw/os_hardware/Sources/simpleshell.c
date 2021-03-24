@@ -281,10 +281,9 @@ int cmd_malloc(int argc, char *argv[]){
     return E_MALLOC;
   }
   else{
-	char* output = myMalloc(32);
+	char output[32];
 	sprintf(output, "%p \n", mal_val);
 	uartPutsNL(UART2_BASE_PTR, output);
-	myFree(output);
     return 0;
   }
 }

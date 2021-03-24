@@ -231,11 +231,11 @@ int cmd_exit(int argc, char *argv[]){
   }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
-      free(argv[i]);
+      myFree(argv[i]);
     }
   }
-  free(argv);
-  free(first);
+  myFree(argv);
+  myFree(first);
   first = NULL;
   //TODO: turn off all LEDs?
   close_all_devices();
@@ -277,14 +277,14 @@ int cmd_malloc(int argc, char *argv[]){
   }
   void* mal_val = NULL;
   long long unsigned int my_size = hex_dec_oct(argv[1]);
-  if ((mal_val = malloc(my_size)) == NULL){
+  if ((mal_val = myMalloc(my_size)) == NULL){
     return E_MALLOC;
   }
   else{
-	char* output = malloc(32);
+	char* output = myMalloc(32);
 	sprintf(output, "%p \n", mal_val);
 	uartPutsNL(UART2_BASE_PTR, output);
-	free(output);
+	myFree(output);
     return 0;
   }
 }
@@ -309,8 +309,8 @@ int cmd_memorymap(int argc, char *argv[]){
     return E_NUMARGS;
   }
   if (first == NULL){ //Initialize
-      void* ptr = malloc(8);
-      free(ptr);
+      void* ptr = myMalloc(8);
+      myFree(ptr);
   }
   memoryMap();
   return 0;
@@ -392,10 +392,10 @@ int cmd_fopen(int argc, char *argv[]){
 	if (err != 0){
 		return err;
 	}
-	char* output = malloc(256);
+	char* output = myMalloc(64);
 	sprintf(output, "fopen success \n FILE* is 0x%x \n", myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
-	free(output);
+	myFree(output);
 	return 0;
 }
 
@@ -539,7 +539,7 @@ int shell(void){
         }
         uartPutsNL(UART2_BASE_PTR, "\n");
         int argc = arg_len[MAXARGS+1];
-        char** argv = (char **)malloc((argc + 1) * sizeof(char *));
+        char** argv = (char **)myMalloc((argc + 1) * sizeof(char *));
         if (argv == NULL) {
           error_checker(E_MALLOC);
           return E_MALLOC;
@@ -548,7 +548,7 @@ int shell(void){
         int user_cmd_offset = 0;
         //parse string into argv
         for (int i = 0; i < argc; i++){
-          argv[i]=(char*)malloc(sizeof(char)*(arg_len[i]+1));
+          argv[i]=(char*)myMalloc(sizeof(char)*(arg_len[i]+1));
           if (argv[i] == NULL) {
             error_checker(E_MALLOC);
             return E_MALLOC;
@@ -577,10 +577,10 @@ int shell(void){
         //free memory and repeat
         for (int i = 0; i <= argc; i ++){
           if (argv[i] != NULL){
-            free(argv[i]);
+            myFree(argv[i]);
           }
         }
-        free(argv);
+        myFree(argv);
     }
     error_t err_code = E_INF;
     error_checker(err_code);
