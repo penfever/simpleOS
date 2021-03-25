@@ -57,3 +57,5 @@ src/os/Project_Settings
 src/os/ReferencedRSESystems.xml
 src/os/.settings/com.freescale.core.ide.cdt.toolchain.prefs
 src/os/.settings/com.freescale.core.ide.newprojectwizard.prefs
+ps3/*
+src/os_hw/
