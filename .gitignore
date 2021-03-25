@@ -29,8 +29,9 @@
 **/util*
 .vscode/
 build/
-ps0/
-ps2/
+ps*/
+os_hw/
+Backup/
 src/fix-this-program
 src/word-count
 src/word-count-old
@@ -52,9 +53,7 @@ src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
 src/os/mymalloc/main.exe
 src/os/RAM
 src/os/Project_Settings
-ps3/
-os_hw/
-Backup/
+
 src/os/ReferencedRSESystems.xml
 src/os/.settings/com.freescale.core.ide.cdt.toolchain.prefs
 src/os/.settings/com.freescale.core.ide.newprojectwizard.prefs
