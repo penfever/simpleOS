@@ -2,16 +2,12 @@
 #define _MYMALLOC_H
 #define TRUE 1
 #define FALSE 0
-#define MAX 134217728
+#define MAX 48000
+#define SHELL_RESERVE 512
 #define DOUBLE_WORD 8
 #define MEMSTRUCT sizeof(struct mem_region)
 
 extern struct mem_region* first;
-
-struct pcb {
-    char* proc_name;
-    uint8_t pid;
-};
 
 struct mem_region {
     int free : 1;
@@ -36,8 +32,10 @@ void myFree(void *ptr);
 
 int myFreeErrorCode(void *ptr);
 
+int free_match(struct mem_region* temp, void* ptr);
+
 struct mem_region* walk_struct(struct mem_region* this_region);
 
-//TODO add func declarations
+void walk_struct_err();
 
 #endif
