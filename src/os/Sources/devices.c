@@ -30,15 +30,16 @@ struct pcb op_sys =
 		}
 };
 
-char *devTable[] = {
-	"dev_null",
-	"dev_sw1",
-	"dev_sw2",
-	"dev_E1",
-	"dev_E2",
-	"dev_E3",
-	"dev_E4",
-	"dev_UART2"
+dev_id_t devTable[] = {
+	{dev_null, "dev_null"},
+	{dev_sdhc, "dev_sdhc"},
+	{dev_sw1, "dev_sw1"},
+	{dev_sw2, "dev_sw2"},
+	{dev_E1, "dev_E1"},
+	{dev_E2, "dev_E2"},
+	{dev_E3, "dev_E3"},
+	{dev_E4, "dev_E4"},
+	{dev_UART2, "dev_UART2"}
 };
 
 int uart_init(int baud){

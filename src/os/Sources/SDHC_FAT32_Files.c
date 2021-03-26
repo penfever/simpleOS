@@ -694,7 +694,7 @@ int file_open(char *filename, file_descriptor *descrp){
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
 	userptr->deviceType = FAT32;
-	userptr->minorId = sdhc;
+	userptr->minorId = dev_sdhc;
 	userptr->fileName = filename;
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
