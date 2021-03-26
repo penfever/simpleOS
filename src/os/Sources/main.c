@@ -11,7 +11,7 @@
 int main(void){
 	if (UARTIO){
 		file_descriptor descr;
-		myfopen(&descr, "dev_UART2", w);
+		myfopen(&descr, "dev_UART2", 'w');
 	}
     if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "myerror.h"
+#include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
 

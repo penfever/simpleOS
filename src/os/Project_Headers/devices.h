@@ -6,6 +6,7 @@
  */
 
 #include <stdint.h>
+#include "univio.h"
 
 #ifndef DEVICES_H_
 #define DEVICES_H_
@@ -25,7 +26,7 @@
 
 extern struct pcb* currentPCB;
 extern struct pcb op_sys;
-extern char *devTable[7];
+extern char* devTable[DEV];
 
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs
