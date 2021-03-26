@@ -32,7 +32,8 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 		UNUSED = 0,
 		FAT32 = 1,
 		PUSHBUTTON = 2,
-		LED = 3
+		LED = 3,
+		IO = 4
 	}deviceType; //Major ID
 	enum minor_id{
 		dev_null = 0,
@@ -42,7 +43,8 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 		dev_E1 = 0x00EF0000,
 		dev_E2 = 0x00EF0001,
 		dev_E3 = 0x00EF0002,
-		dev_E4 = 0x00EF0003
+		dev_E4 = 0x00EF0003,
+		dev_UART2 = 0x01EF0000
 	}minorId;
 	int mode;  //rw mode	
 	//FAT32 specific entries

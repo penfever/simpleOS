@@ -102,6 +102,19 @@ char mytoupper(char c){
 }
 
 int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
+	if (devicePtr == dev_UART2){
+		struct stream * userptr = currentPCB->openFiles[0]; //STDIN
+		userptr->deviceType = IO;
+		userptr->minorId = dev_UART2;
+		struct stream * userptr = currentPCB->openFiles[1]; //STDOUT
+		userptr->deviceType = IO;
+		userptr->minorId = dev_UART2;
+		struct stream * userptr = currentPCB->openFiles[2]; //STDERR
+		userptr->deviceType = IO;
+		userptr->minorId = dev_UART2;
+		uart_init(115200);
+		return 0;
+	}
 	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){
 		if (MYFAT_DEBUG){

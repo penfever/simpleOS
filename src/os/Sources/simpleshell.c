@@ -229,10 +229,6 @@ int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
   }
-  close_all_devices();   //TODO: turn off all LEDs?
-  if (!g_noFS){
-	  file_structure_umount();
-  }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
       myFree(argv[i]);
@@ -511,19 +507,6 @@ int cmd_ls(int argc, char *argv[]){
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
-	uart_init(115200);
-    int error = file_structure_mount();
-    if (0 != error) {
-    	uartPutsNL(UART2_BASE_PTR, "SDHC card could not be mounted. File commands unavailable. \n");
-    }
-    else{
-    	uartPutsNL(UART2_BASE_PTR, "SDHC card mounted. \n");
-        g_noFS = FALSE;
-    }
-    if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-        setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
-        setvbuf(stdout, NULL, _IONBF, 0);	
-    }
     while(TRUE){
     	uartPutsNL(UART2_BASE_PTR, "$ ");
         int arg_len[MAXARGS+2] = {0};

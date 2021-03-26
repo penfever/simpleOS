@@ -42,7 +42,12 @@ int error_checker(int return_value){
     }
     char* output = myMalloc(64);
     sprintf(output, "error %d: %s \n", return_value, buffer);
-	uartPutsNL(UART2_BASE_PTR, output);
+    if (currentPCB->openFiles[2].minorId == dev_UART2){
+    	uartPutsNL(UART2_BASE_PTR, output);
+    }
+    else if (MYFAT_DEBUG){
+    	printf(output);
+    }
 	myFree(output);
     if (return_value == E_NUMARGS){
       return E_NUMARGS;
