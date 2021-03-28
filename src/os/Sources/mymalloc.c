@@ -8,6 +8,7 @@
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "sdram.h"
 
 static int node_count = 0;
 
@@ -31,19 +32,18 @@ allocated to myMalloc, attempts to call malloc to acquire the necessary memory, 
 init_struct then fills in the correct values for 'free', 'size' and 'pid' for the initial struct. Finally, it updates the
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
-    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-    	char* output = "K70 malloc fail \n";
-    	uartPutsNL(UART2_BASE_PTR, output);
-        return NULL;
-    }
-    else{
-    	g_lower_bound = (char *)&first[0]; //pointers to lower and upper memory bounds
-    	g_upper_bound = g_lower_bound + MAX - 1;
-        node_count += 1;
-        first->free = TRUE;
-        first->size = MAX - MEMSTRUCT;
-        first->pid = getCurrentPid();
-    }
+	first = (struct mem_region*)SDRAM_START;
+//    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
+//    	char* output = "K70 malloc fail \n";
+//    	uartPutsNL(UART2_BASE_PTR, output);
+//        return NULL;
+//    }
+    g_lower_bound = SDRAM_START; //pointers to lower and upper memory bounds
+    g_upper_bound = SDRAM_END;
+    node_count += 1;
+    first->free = TRUE;
+    first->size = MAX - MEMSTRUCT;
+    first->pid = getCurrentPid();
     return first;
     //subdivide memory
 }
