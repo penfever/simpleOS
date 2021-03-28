@@ -11,6 +11,8 @@
 #include <string.h>
 #include "devices.h"
 #include "uart.h"
+#include "mcg.h"
+#include "sdram.h"
 
 struct pcb* currentPCB;
 struct pcb op_sys;
@@ -48,5 +50,19 @@ int uart_init(int baud){
 	const int moduleClock = FLL_Factor*IRC;
 	const int KHzInHz = 1000;
 	uartInit(UART2_BASE_PTR, moduleClock/KHzInHz, baud);
+	return 0;
+}
+
+
+int init_clocks_sdram(){
+	mcgInit();
+	  /* So now,
+	   *  Core clock = 120 MHz
+	   *  Bus (peripheral) clock = 60 MHz
+	   *  FlexBus clock = 40 MHz
+	   *  FLASH clock = 20 MHz
+	   *  DDR clock = 150 MHz
+	   *  MCGIRCLK (internal reference clock) is inactive */
+	sdramInit();
 	return 0;
 }

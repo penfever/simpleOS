@@ -10,6 +10,12 @@
 
 int main(void){
 	int error;
+	if ((error = init_clocks_sdram()) != 0){
+		if (MYFAT_DEBUG){
+			printf("sdram/MCG error \n");
+		}
+		exit(-4);
+	}
 	if (UARTIO){
 		file_descriptor descr;
 		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){

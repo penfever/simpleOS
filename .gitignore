@@ -27,6 +27,11 @@
 **/SDCardReader*
 **/uart*
 **/util*
+**/mcg*
+**/priv*
+**/sdram*
+**/svc*
+**/switchcmd*
 .vscode/
 build/
 ps*/
