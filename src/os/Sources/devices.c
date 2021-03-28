@@ -44,10 +44,18 @@ dev_id_t devTable[DEV] = {
 	{dev_UART2, "dev_UART2"}
 };
 
-int uart_init(int baud){
+int uart_init_noMCG(int baud){
 	const int IRC = 32000;					/* Internal Reference Clock */
 	const int FLL_Factor = 640;
 	const int moduleClock = FLL_Factor*IRC;
+	const int KHzInHz = 1000;
+	uartInit(UART2_BASE_PTR, moduleClock/KHzInHz, baud);
+	return 0;
+}
+
+int uart_init(int baud){
+	const uint32_t moduleClock = 60000000; /*in hz. Per Table 5-2 on labeled page 225 (PDF page 232) of the K70 Sub-Family
+	 * Reference Manual, Rev. 4, Oct 2015 */
 	const int KHzInHz = 1000;
 	uartInit(UART2_BASE_PTR, moduleClock/KHzInHz, baud);
 	return 0;
