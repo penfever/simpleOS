@@ -10,9 +10,8 @@
 
 #ifndef DEVICES_H_
 #define DEVICES_H_
-
+#define DEV 9
 #define MAXOPEN 32
-#define DEV sizeof(devTable)/sizeof(devTable[0])
 #define PUSHB_MIN 0x00FF0000
 #define PUSHB_MAX 0x00FF0001
 #define LED_MIN 0x00EF0000
@@ -75,7 +74,7 @@ enum minor_id{
 extern struct pcb* currentPCB;
 extern struct pcb op_sys;
 typedef struct dev_id dev_id_t;
-extern dev_id_t devTable[];
+extern dev_id_t devTable[DEV];
 
 int uart_init(int baud);
 

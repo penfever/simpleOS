@@ -151,32 +151,11 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		char* test_str = devTable[i];
-		if (strncmp(test_str, filename, strlen(filename)) != 0){
+		if (strncmp(devTable[i].dev_name, filename, strlen(filename)) != 0){
 			continue;
 		}
 		else{
-			if (i == 1){
-				return dev_sw1;
-			}
-			if (i == 2){
-				return dev_sw2;
-			}
-			if (i == 3){
-				return dev_E1;
-			}
-			if (i == 4){
-				return dev_E2;
-			}
-			if (i == 5){
-				return dev_E3;
-			}
-			if (i == 6){
-				return dev_E4;
-			}
-			if (i == 7){
-				return dev_UART2;
-			}
+			return devTable[i].minorId;
 		}
 	}
 	return 0;

@@ -30,7 +30,7 @@ struct pcb op_sys =
 		}
 };
 
-dev_id_t devTable[] = {
+dev_id_t devTable[DEV] = {
 	{dev_null, "dev_null"},
 	{dev_sdhc, "dev_sdhc"},
 	{dev_sw1, "dev_sw1"},

@@ -9,16 +9,21 @@
 #include "univio.h"
 
 int main(void){
+	int error;
 	if (UARTIO){
 		file_descriptor descr;
-		myfopen(&descr, "dev_UART2", 'w');
+		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
+			if (MYFAT_DEBUG){
+				printf("UART initialization error \n");
+			}
+			exit(-4);
+		}
 	}
     if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
         setvbuf(stdout, NULL, _IONBF, 0);	
     }
-    int error = file_structure_mount();
-    if (0 != error) {
+    if ((error = file_structure_mount()) != 0){
     	uartPutsNL(UART2_BASE_PTR, "SDHC card could not be mounted. File commands unavailable. \n");
     }
     else{
