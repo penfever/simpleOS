@@ -385,7 +385,9 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
-	err = svc_fopen(&myfile, filename, m);
+	svcInit_SetSVCPriority(7);
+	//SVCEndive();
+	err = SVC_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
 	}

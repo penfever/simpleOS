@@ -20,11 +20,11 @@
 #define SVC_PriorityShift 4
 
 // Implemented SVC numbers
-
 #define SVC_ENDIVE 0
 #define SVC_BROCCOLIRABE 1
 #define SVC_JICAMA 2
 #define SVC_ARTICHOKE 3
+#define SVC_FOPEN 4
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);

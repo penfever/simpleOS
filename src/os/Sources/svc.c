@@ -68,8 +68,9 @@
 #include <derivative.h>
 #include <stdio.h>
 #include "svc.h"
-#include "SDHC_FAT32_Files.h"
 #include "univio.h"
+#include "SDHC_FAT32_Files.h"
+#include "myerror.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -79,14 +80,17 @@ struct frame {
 		int r0;
 		int arg0;
 		int returnVal;
+		file_descriptor* descr;
 	};
 	union {
 		int r1;
 		int arg1;
+		char* filename;
 	};
 	union {
 		int r2;
 		int arg2;
+		char mode;
 	};
 	union {
 		int r3;
@@ -103,41 +107,42 @@ struct frame {
 
 /* Issue the SVC (Supervisor Call) instruction (See A7.7.175 on page A7-503 of the
  * ARM®v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
-//#ifdef __GNUC__
-//void __attribute__((naked)) __attribute__((noinline)) SVCEndive(void) {
-//	__asm("svc %0" : : "I" (SVC_ENDIVE));
-//	__asm("bx lr");
-//}
-//#else
-//void __attribute__((never_inline)) SVCEndive(void) {
-//	__asm("svc %0" : : "I" (SVC_ENDIVE));
-//}
-//#endif
-//
-//#ifdef __GNUC__
-//void __attribute__((naked)) __attribute__((noinline)) SVCBroccoliRabe(int arg0) {
-//	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
-//	__asm("bx lr");
-//}
-//#else
-//void __attribute__((never_inline)) SVCBroccoliRabe(int arg0) {
-//	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
-//}
-//#endif
-//
-//#ifdef __GNUC__
-//#pragma GCC diagnostic push
-//#pragma GCC diagnostic ignored "-Wreturn-type"
-//int __attribute__((naked)) __attribute__((noinline)) SVCJicama(int arg0) {
-//	__asm("svc %0" : : "I" (SVC_JICAMA));
-//	__asm("bx lr");
-//}
-//#pragma GCC diagnostic pop
-//#else
-//int __attribute__((never_inline)) SVCJicama(int arg0) {
-//	__asm("svc %0" : : "I" (SVC_JICAMA));
-//}
-//#endif
+#ifdef __GNUC__
+void __attribute__((naked)) __attribute__((noinline)) SVCEndive(void) {
+	__asm("svc %0" : : "I" (SVC_ENDIVE));
+	__asm("bx lr");
+}
+#else
+void __attribute__((never_inline)) SVCEndive(void) {
+	__asm("svc %0" : : "I" (SVC_ENDIVE));
+}
+#endif
+
+#ifdef __GNUC__
+void __attribute__((naked)) __attribute__((noinline)) SVCBroccoliRabe(int arg0) {
+	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
+	__asm("bx lr");
+}
+#else
+void __attribute__((never_inline)) SVCBroccoliRabe(int arg0) {
+	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
+}
+#endif
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVCJicama(int arg0) {
+	__asm("svc %0" : : "I" (SVC_JICAMA));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVCJicama(int arg0) {
+	__asm("svc %0" : : "I" (SVC_JICAMA));
+}
+#endif
+
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
@@ -154,11 +159,15 @@ int __attribute__((never_inline)) SVCArtichoke(int arg0, int arg1, int arg2, int
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) svc_fopen(file_descriptor* descr, char* filename, char mode) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_fopen(file_descriptor* descr, char* filename, char mode) {
 	__asm("svc %0" : : "I" (SVC_FOPEN));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_fopen(file_descriptor* descr, char* filename, char mode) {
+	__asm("svc %0" : : "I" (SVC_FOPEN));
+}
 #endif
 
 int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
@@ -284,19 +293,41 @@ void svcHandlerInC(struct frame *framePtr) {
 				((unsigned char *)framePtr->returnAddr)[-2]);
 	}
 	switch(((unsigned char *)framePtr->returnAddr)[-2]) {
-	case SVC_ARTICHOKE:
-		framePtr->returnVal = SVCArtichokeImpl(framePtr->arg0,
-				framePtr->arg1, framePtr->arg2, framePtr->arg3);
-		break;
-	case SVC_FOPEN:
-		framePtr->returnVal = myfopen(framePtr->descr,
-				framePtr->filename, framePtr->mode);
-		break;
-	default:
-		if (MYFAT_DEBUG){
-			printf("Unknown SVC has been called\n");
+		case SVC_ENDIVE:
+			printf("ENDIVE\n");
+	
+			//printf("xPSR = 0x%08x\n", framePtr->xPSR);
+			if(framePtr->xPSR & XPSR_FRAME_ALIGNED_MASK) {
+				//printf("Padding added to frame\n");
+			} else {
+				//printf("No padding added to frame\n");
+			}
+			break;
+		case SVC_BROCCOLIRABE:
+			printf("BROCCOLIRABE\n");
+			//printf("Only parameter is %d\n", framePtr->arg0);
+			break;
+		case SVC_JICAMA:
+			printf("JICAMA\n");
+			//printf("Only parameter is %d\n", framePtr->arg0);
+			framePtr->returnVal = framePtr->arg0*2;
+			//printf("Returning %d\n", framePtr->returnVal);
+			break;
+		case SVC_ARTICHOKE:
+			printf("ARTICHOKE\n");
+			framePtr->returnVal = SVCArtichokeImpl(framePtr->arg0,
+					framePtr->arg1, framePtr->arg2, framePtr->arg3);
+			break;
+		case SVC_FOPEN:
+			printf("FOPEN\n");
+			framePtr->returnVal = myfopen(framePtr->descr,
+					framePtr->filename, framePtr->mode);
+			break;
+		default:
+			if (MYFAT_DEBUG){
+				printf("Unknown SVC has been called\n");
+			}
 		}
-	}
 	if (MYFAT_DEBUG){
 		printf("Exiting svcHandlerInC\n");
 	}
