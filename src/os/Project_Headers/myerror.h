@@ -5,8 +5,8 @@
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
 
-#define MYFAT_DEBUG 1
-#define MYFAT_DEBUG_LITE 0
+#define MYFAT_DEBUG FALSE
+#define MYFAT_DEBUG_LITE FALSE
 #define DEBUG_CODE 3
 
 typedef enum _os_error error_t;

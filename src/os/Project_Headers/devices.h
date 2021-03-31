@@ -20,7 +20,7 @@
 #define CONSOLEIO 0
 #endif
 #ifndef UARTIO
-#define UARTIO 1
+#define UARTIO TRUE
 #endif
 
 struct stream { //Abstraction: what device is this, and how do I talk to it?
