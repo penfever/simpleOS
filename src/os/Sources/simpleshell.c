@@ -11,6 +11,7 @@
 #include "delay.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "svc.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -384,7 +385,7 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
-	err = myfopen(&myfile, filename, m);
+	err = svc_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
 	}

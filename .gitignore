@@ -30,7 +30,6 @@
 **/mcg*
 **/priv*
 **/sdram*
-**/svc*
 **/switchcmd*
 .vscode/
 build/
