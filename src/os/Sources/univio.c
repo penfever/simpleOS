@@ -238,10 +238,12 @@ int myfgetc (file_descriptor descr, char* bufp){
 		err = led_fgetc(descr);
 	}
 	else if (userptr->deviceType == ADC){
-		err = adc_fgetc(descr);
+		*bufp = adc_fgetc(descr);
+		err = 0;
 	}
 	else if (userptr->deviceType == TSI){
-		err = tsi_fgetc(descr);
+		*bufp = tsi_fgetc(descr);
+		err = 0;
 	}
 	else{ //CASE: FAT32
 		if (g_noFS){

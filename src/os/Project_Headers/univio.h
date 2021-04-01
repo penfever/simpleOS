@@ -39,4 +39,8 @@ char mytoupper(char c);
 
 void process_strname(char* fileProc, char* filename);
 
+int tsi_fgetc(file_descriptor descr);
+
+int adc_fgetc(file_descriptor descr);
+
 #endif /* UNIVIO_H_ */

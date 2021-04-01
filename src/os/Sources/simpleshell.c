@@ -14,6 +14,7 @@
 #include "svc.h"
 #include "led.h"
 #include "pushbutton.h"
+#include "util.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -65,7 +66,9 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"seek", cmd_seek},
                 {"ls", cmd_ls},
                 {"touch2led", cmd_touch2led},
-                {"pot2ser", cmd_pot2ser}
+                {"pot2ser", cmd_pot2ser},
+                {"therm2ser", cmd_therm2ser}
+
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -569,12 +572,15 @@ int cmd_touch2led(int argc, char* argv[]){
 	return 0;
 }
 /*
-4. pot2ser: Continuously output the value of the analog
+pot2ser: Continuously output the value of the analog
    potentiomemter to the serial device as a decimal or
    hexadecimal number followed by a newline.  End when SW1 is
    depressed.*/
 
 int cmd_pot2ser(int argc, char* argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
 	svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
@@ -587,26 +593,56 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
+	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+	char* myOutput = SVC_malloc(16); //string output
 	while (!sw1In()){
-		int c;
-		err = SVC_fgetc(pot, (char)&c);
+		err = SVC_fgetc(pot, (char *)i);
 		if (err != 0){
 			return err;
 		}
-		uartPutchar(UART2_BASE_PTR, c);
+		longInt2hex(i, myOutput);
+		uartPutsNL(UART2_BASE_PTR, myOutput);
 	}
-	err = SVC_fclose(sw1);
-	if (err != 0){
-		return err;
-	}
-
+	SVC_free(i);
+	SVC_free(myOutput);
+	return SVC_fclose(sw1);
 }
 
 /*
-5. therm2ser: Continuously output the value of the thermistor to
+therm2ser: Continuously output the value of the thermistor to
    the serial device as a decimal or hexadecimal number followed
    by a newline.  End when SW1 is depressed.
 */
+int cmd_therm2ser(int argc, char* argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	svcInit_SetSVCPriority(7);
+	int err;
+	file_descriptor sw1;
+	err = SVC_fopen(&sw1, "dev_sw1", 'r');
+	if (err != 0){
+		return err;
+	}
+	file_descriptor thm;
+	err = SVC_fopen(&thm, "dev_temp", 'r');
+	if (err != 0){
+		return err;
+	}
+	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+	char* myOutput = SVC_malloc(16); //string output
+	while (!sw1In()){
+		err = SVC_fgetc(pot, (char *)i);
+		if (err != 0){
+			return err;
+		}
+		longInt2hex(i, myOutput);
+		uartPutsNL(UART2_BASE_PTR, myOutput);
+	}
+	SVC_free(i);
+	SVC_free(myOutput);
+	return SVC_fclose(sw1);
+}
 
 //command line shell accepts user input and executes basic commands
 int shell(void){

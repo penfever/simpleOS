@@ -109,6 +109,10 @@ void adc_init(void);
 
 unsigned int adc_read(uint8_t channel);
 
-int touch2led();
+int electrode_in(int electrodeNumber);
+
+void TSI_Calibrate(void);
+
+void TSI_Init(void);
 
 #endif
