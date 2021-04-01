@@ -30,7 +30,9 @@
                   "fclose closes a file or device. \n"\
                   "fgetc and fgets retrieve characters or strings from a file or device. \n"\
                   "fputc and fputs send characters or strings to a file or device. \n"\
-                  "fseek sets the file cursor to a particular position in a file. \n"
+                  "fseek sets the file cursor to a particular position in a file. \n"\
+                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
+                  "pot2ser continuously outputs the potentiometer value to STDOUT"
 
 #define SECYEAR 31536000
 #define SECDAY 86400
@@ -94,6 +96,8 @@ int cmd_fputc(int argc, char *argv[]);
 int cmd_fputs(int argc, char *argv[]);
 int cmd_seek(int argc, char *argv[]);
 int cmd_ls(int argc, char *argv[]);
+int cmd_touch2led(int argc, char* argv[]);
+int cmd_pot2ser(int argc, char* argv[]);
 
 struct commandEntry {
   char *name;

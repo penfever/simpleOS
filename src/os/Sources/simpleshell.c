@@ -62,7 +62,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"delete", cmd_delete},
                 {"seek", cmd_seek},
                 {"ls", cmd_ls},
-                {"touch2led", cmd_touch2led}
+                {"touch2led", cmd_touch2led},
+                {"pot2ser", cmd_pot2ser}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -514,6 +515,9 @@ int cmd_ls(int argc, char *argv[]){
 	return dir_ls(1);
 }
 
+/*touch2led: Continuously copy from each touch sensor to the
+        corresponding LED.  End when all four touch sensors are
+        "depressed."*/
 int cmd_touch2led(int argc, char* argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
@@ -561,6 +565,45 @@ int cmd_touch2led(int argc, char* argv[]){
 	}
 	return 0;
 }
+/*
+4. pot2ser: Continuously output the value of the analog
+   potentiomemter to the serial device as a decimal or
+   hexadecimal number followed by a newline.  End when SW1 is
+   depressed.*/
+
+int cmd_pot2ser(int argc, char* argv[]){
+	svcInit_SetSVCPriority(7);
+	int err;
+	file_descriptor sw1;
+	err = SVC_fopen(&sw1, "dev_sw1", m);
+	if (err != 0){
+		return err;
+	}
+	file_descriptor pot;
+	err = SVC_fopen(&pot, "dev_pot", m);
+	if (err != 0){
+		return err;
+	}
+	while (!sw1In()){
+		int c;
+		err = SVC_fgetc(pot, (char)&c);
+		if (err != 0){
+			return err;
+		}
+		uartPutchar(UART2_BASE_PTR, c);
+	}
+	err = SVC_fclose(sw1);
+	if (err != 0){
+		return err;
+	}
+
+}
+
+/*
+5. therm2ser: Continuously output the value of the thermistor to
+   the serial device as a decimal or hexadecimal number followed
+   by a newline.  End when SW1 is depressed.
+*/
 
 //command line shell accepts user input and executes basic commands
 int shell(void){
