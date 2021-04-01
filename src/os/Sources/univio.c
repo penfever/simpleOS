@@ -145,6 +145,13 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			uartPutsNL(UART2_BASE_PTR, "LED initialized. \n");
 		}
 	}
+	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
+		userptr->deviceType = ADC;
+		adc_init();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "ADC initialized. \n");
+		}
+	}
 	else{
 		if (MYFAT_DEBUG){
 			printf("Invalid device name \n");
@@ -176,7 +183,7 @@ int myfclose (file_descriptor descr){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_UNFREE;
 	}
-	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == LED){
+	if (userptr->deviceType != FAT32){
 		return remove_device_from_PCB(descr);
 	}
 	if (g_noFS){
@@ -206,13 +213,14 @@ int myfgetc (file_descriptor descr, char* bufp){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_UNFREE;
 	}
-	if (userptr->minorId == dev_UART2){
-		return uartGetchar(UART2_BASE_PTR);
-	}
 	if (userptr->deviceType == FAT32){
 		if (userptr->cursor >= userptr->fileSize){
 			return E_EOF;
 		}
+	}
+	//device type checks
+	if (userptr->minorId == dev_UART2){
+		return uartGetchar(UART2_BASE_PTR);
 	}
 	int charsreadp = 0;
 	if (userptr->deviceType == PUSHBUTTON){
@@ -221,6 +229,9 @@ int myfgetc (file_descriptor descr, char* bufp){
 	else if (userptr->deviceType == LED){
 		err = led_fgetc(descr);
 	}
+	else if (userptr->deviceType == ADC){
+		err = adc_fgetc(descr);
+	}
 	else{ //CASE: FAT32
 		if (g_noFS){
 			return E_NOFS;
@@ -228,6 +239,17 @@ int myfgetc (file_descriptor descr, char* bufp){
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
 	}
 	return err;
+}
+
+int adc_fgetc(file_descriptor descr) {
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_pot){
+		return adc_read(ADC_CHANNEL_POTENTIOMETER);
+	}
+	if (userptr->minorId == dev_temp){
+		return adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+	}
+	return E_DEV;
 }
 
 int pushb_fgetc(file_descriptor descr){
@@ -304,7 +326,7 @@ int myfputc (file_descriptor descr, char bufp){
 	if (userptr->minorId == dev_UART2){
 		return uartPutchar(UART2_BASE_PTR, bufp);
 	}
-	if (userptr->deviceType == PUSHBUTTON){
+	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC){
 		return E_DEV;
 	}
 	if (userptr->deviceType == LED){
