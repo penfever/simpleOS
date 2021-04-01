@@ -34,7 +34,9 @@
                   "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
                   "pot2ser continuously outputs the potentiometer value to STDOUT \n"\ 
 				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
-				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"
+				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
+				  "cat prints the contents of a file to STDOUT \n"\
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
 				  
 #define SECYEAR 31536000
 #define SECDAY 86400
@@ -50,6 +52,7 @@
 #ifndef UARTIO
 #define UARTIO 1
 #endif
+#define EOT 4
 
 extern int g_noFS;
 
@@ -102,6 +105,8 @@ int cmd_touch2led(int argc, char* argv[]);
 int cmd_pot2ser(int argc, char* argv[]);
 int cmd_therm2ser(int argc, char* argv[]);
 int cmd_pb2led(int argc, char* argv[]);
+int cmd_cat(int argc, char* argv[]);
+int cmd_cat2file(int argc, char* argv[]);
 
 struct commandEntry {
   char *name;

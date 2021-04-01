@@ -69,7 +69,9 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"touch2led", cmd_touch2led},
                 {"pot2ser", cmd_pot2ser},
                 {"therm2ser", cmd_therm2ser},
-                {"pb2led", cmd_pb2led}
+                {"pb2led", cmd_pb2led},
+                {"cat", cmd_cat},
+                {"cat2file", cmd_cat2file}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -526,7 +528,7 @@ int cmd_ls(int argc, char *argv[]){
         "depressed."*/
 int cmd_touch2led(int argc, char* argv[]){
 	int err;
-	if (argc != 2){
+	if (argc != 1){
 		return E_NUMARGS;
 	}
 	file_descriptor myTS1 = 0;
@@ -562,6 +564,10 @@ int cmd_touch2led(int argc, char* argv[]){
 			ledBlueOff();
 		}
 	}
+	ledOrangeOff();
+	ledBlueOff();
+	ledGreenOff();
+	ledYellowOff();
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		return err;
@@ -579,7 +585,7 @@ pot2ser: Continuously output the value of the analog
    depressed.*/
 
 int cmd_pot2ser(int argc, char* argv[]){
-	if (argc != 2){
+	if (argc != 1){
 		return E_NUMARGS;
 	}
 	svcInit_SetSVCPriority(7);
@@ -616,7 +622,7 @@ therm2ser: Continuously output the value of the thermistor to
    by a newline.  End when SW1 is depressed.
 */
 int cmd_therm2ser(int argc, char* argv[]){
-	if (argc != 2){
+	if (argc != 1){
 		return E_NUMARGS;
 	}
 	svcInit_SetSVCPriority(7);
@@ -634,7 +640,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	while (!sw1In()){
-		err = SVC_fgetc(pot, (char *)i);
+		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
 			return err;
 		}
@@ -650,8 +656,8 @@ int cmd_therm2ser(int argc, char* argv[]){
 /* 6. pb2led: Continuously copy from SW1 to orange LED and SW2 to
         yellow LED.  End when both SW1 and SW2 are depressed.*/
 
-int cmd_pb2led(){
-	if (argc != 2){
+int cmd_pb2led(int argc, char* argv[]){
+	if (argc != 1){
 		return E_NUMARGS;
 	}
 	svcInit_SetSVCPriority(7);
@@ -710,7 +716,54 @@ int cmd_pb2led(){
 	}
 	return SVC_fclose(sw2);
 }
+/*Display the contents of the specified <file> in
+        the root directory.
+ * */
+int cmd_cat(int argc, char* argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	int err = 0;
+	char* filename = argv[1];
+	file_descriptor descr;
+	err = SVC_fopen(&descr, filename, 'r');
+	if (err != 0){
+		return err;
+	}
+	struct stream* userptr = (struct stream *) descr;
+	char contents[userptr->fileSize];
+	for (int i = 0; i < userptr->fileSize; ++i){
+		err = SVC_fputc(descr, contents[i]);
+		if (err != 0){
+			return err;
+		}
+	}
+	uartPutsNL(UART2_BASE_PTR, contents);
+	return SVC_fclose(descr);
+}
 
+/*Continuously copy characters from serial
+  input to the specified <file> in the root directory.  End on a
+  ^D (control-D) input character.
+ * */
+int cmd_cat2file(int argc, char* argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	int err = 0;
+	char* filename = argv[1];
+	file_descriptor descr;
+	err = SVC_fopen(&descr, filename, 'w');
+	if (err != 0){
+		return err;
+	}
+	char c;
+	while(c != EOT){ //end of transmission is ctrl-D
+		c = uartGetchar(UART2_BASE_PTR);
+		SVC_fputc(descr, c);
+	}
+	return SVC_fclose(descr);
+}
 
 //command line shell accepts user input and executes basic commands
 int shell(void){
