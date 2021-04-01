@@ -34,7 +34,8 @@
                   "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
                   "pot2ser continuously outputs the potentiometer value to STDOUT \n"\ 
 				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
-
+				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"
+				  
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
@@ -100,6 +101,7 @@ int cmd_ls(int argc, char *argv[]);
 int cmd_touch2led(int argc, char* argv[]);
 int cmd_pot2ser(int argc, char* argv[]);
 int cmd_therm2ser(int argc, char* argv[]);
+int cmd_pb2led(int argc, char* argv[]);
 
 struct commandEntry {
   char *name;

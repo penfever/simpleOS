@@ -15,6 +15,7 @@
 #include "led.h"
 #include "pushbutton.h"
 #include "util.h"
+#include "switchcmd.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -67,8 +68,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"ls", cmd_ls},
                 {"touch2led", cmd_touch2led},
                 {"pot2ser", cmd_pot2ser},
-                {"therm2ser", cmd_therm2ser}
-
+                {"therm2ser", cmd_therm2ser},
+                {"pb2led", cmd_pb2led}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -605,6 +606,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	}
 	SVC_free(i);
 	SVC_free(myOutput);
+	SVC_fclose(pot);
 	return SVC_fclose(sw1);
 }
 
@@ -641,8 +643,74 @@ int cmd_therm2ser(int argc, char* argv[]){
 	}
 	SVC_free(i);
 	SVC_free(myOutput);
+	SVC_fclose(thm);
 	return SVC_fclose(sw1);
 }
+
+/* 6. pb2led: Continuously copy from SW1 to orange LED and SW2 to
+        yellow LED.  End when both SW1 and SW2 are depressed.*/
+
+int cmd_pb2led(){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	svcInit_SetSVCPriority(7);
+	int err;
+	file_descriptor sw1;
+	err = SVC_fopen(&sw1, "dev_sw1", 'r');
+	if (err != 0){
+		return err;
+	}
+	file_descriptor sw2;
+	err = SVC_fopen(&sw2, "dev_sw2", 'r');
+	if (err != 0){
+		return err;
+	}
+	unsigned long int delayCount = 25000;
+	while (!(sw1In() && sw2In())){
+		delay(delayCount);
+		int switchState = switchScan();
+		if (switchState == noChange){
+			continue;
+		}
+		else if (switchState == switch1Down){
+			ledOrangeOn();
+		}
+		else if (switchState == switch2Down){
+			ledYellowOn();
+		}
+		else if (switchState == switch1Up){
+			ledOrangeOff();
+		}
+		else if (switchState == switch2Up){
+			ledYellowOff();
+		}
+	}
+	file_descriptor E1;
+	err = SVC_fopen(&E1, "dev_E1", 'r'); //TODO: check color is correct
+	if (err != 0){
+		return err;
+	}
+	file_descriptor E2;
+	err = SVC_fopen(&E2, "dev_E2", 'r');
+	if (err != 0){
+		return err;
+	}
+	err = SVC_fclose(E1);
+	if (err != 0){
+		return err;
+	}
+	err = SVC_fclose(E2);
+	if (err != 0){
+		return err;
+	}
+	err = SVC_fclose(sw1);
+	if (err != 0){
+		return err;
+	}
+	return SVC_fclose(sw2);
+}
+
 
 //command line shell accepts user input and executes basic commands
 int shell(void){
