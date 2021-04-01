@@ -710,6 +710,8 @@ int cmd_pb2led(int argc, char* argv[]){
 			ledYellowOff();
 		}
 	}
+	ledYellowOff();
+	ledOrangeOff();
 	err = SVC_fclose(E1);
 	if (err != 0){
 		return err;
