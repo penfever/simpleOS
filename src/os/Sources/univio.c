@@ -323,25 +323,26 @@ int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
  * A terminating null byte (\0) is stored after the last character in the buffer. */
 
 char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
-	if (g_noFS){
-		return E_NOFS;
-	}
-	int err;
-	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
-	}
-	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_NOINPUT;
-	}
-	if (userptr->cursor + buflen >= userptr->fileSize){
-		return E_EOF;
-	}
-	int charsreadp;
-	char bufp[buflen];
-	err = file_getbuf(descr, bufp, buflen, &charsreadp);
-	bufp[buflen] = '\0';
-	return bufp;
+	;
+//	if (g_noFS){
+//		return E_NOFS;
+//	}
+//	int err;
+//	if (pid != currentPCB->pid){
+//		return E_NOINPUT; //TODO: error checking
+//	}
+//	struct stream* userptr = (struct stream*)descr;
+//	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
+//		return E_NOINPUT;
+//	}
+//	if (userptr->cursor + buflen >= userptr->fileSize){
+//		return E_EOF;
+//	}
+//	int charsreadp;
+//	char bufp[buflen];
+//	err = file_getbuf(descr, bufp, buflen, &charsreadp);
+//	bufp[buflen] = '\0';
+//	return bufp;
 }
 
 int myfputc (file_descriptor descr, char bufp){
