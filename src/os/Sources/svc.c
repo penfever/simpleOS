@@ -81,6 +81,9 @@ struct frame {
 		int arg0;
 		int returnVal;
 		file_descriptor* descr;
+		file_descriptor descrf;
+		unsigned int unsInt;
+		void* vptr;
 	};
 	union {
 		int r1;
@@ -167,6 +170,97 @@ int __attribute__((naked)) __attribute__((noinline)) SVC_fopen(file_descriptor* 
 #else
 int __attribute__((never_inline)) SVC_fopen(file_descriptor* descr, char* filename, char mode) {
 	__asm("svc %0" : : "I" (SVC_FOPEN));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_fclose(file_descriptor descrf) {
+	__asm("svc %0" : : "I" (SVC_FCLOSE));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_fclose(file_descriptor descrf) {
+	__asm("svc %0" : : "I" (SVC_FCLOSE));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_create(char* filename) {
+	__asm("svc %0" : : "I" (SVC_CREATE));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_create(char* filename) {
+	__asm("svc %0" : : "I" (SVC_CREATE));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_delete(char* filename) {
+	__asm("svc %0" : : "I" (SVC_DELETE));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_delete(char* filename) {
+	__asm("svc %0" : : "I" (SVC_DELETE));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_fgetc(file_descriptor descrf, char* bufp) {
+	__asm("svc %0" : : "I" (SVC_FGETC));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_fgetc(file_descriptor descrf, char* bufp) {
+	__asm("svc %0" : : "I" (SVC_FGETC));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_fputc(file_descriptor descrf, char bufp) {
+	__asm("svc %0" : : "I" (SVC_FPUTC));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_fputc(file_descriptor descrf, char bufp) {
+	__asm("svc %0" : : "I" (SVC_FPUTC));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_malloc(unsigned int size) {
+	__asm("svc %0" : : "I" (SVC_MALLOC));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_malloc(unsigned int size) {
+	__asm("svc %0" : : "I" (SVC_MALLOC));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_free(void* ptr) {
+	__asm("svc %0" : : "I" (SVC_FREE));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_free(void* ptr) {
+	__asm("svc %0" : : "I" (SVC_FREE));
 }
 #endif
 
@@ -322,6 +416,34 @@ void svcHandlerInC(struct frame *framePtr) {
 			printf("FOPEN\n");
 			framePtr->returnVal = myfopen(framePtr->descr,
 					framePtr->filename, framePtr->mode);
+			break;
+		case SVC_FCLOSE:
+			printf("FCLOSE\n");
+			framePtr->returnVal = myfclose(framePtr->descrf);
+			break;
+		case SVC_CREATE:
+			printf("CREATE\n");
+			framePtr->returnVal = mycreate(framePtr->filename);
+			break;
+		case SVC_DELETE:
+			printf("DELETE\n");
+			framePtr->returnVal = mydelete(framePtr->filename);
+			break;
+		case SVC_FGETC:
+			printf("FGETC\n");
+			framePtr->returnVal = myfgetc(framePtr->descrf, framePtr->filename);
+			break;
+		case SVC_FPUTC:
+			printf("FPUTC\n");
+			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->mode);
+			break;
+		case SVC_MALLOC:
+			printf("MALLOC\n");
+			framePtr->returnVal = myMalloc(framePtr->unsInt);
+			break;
+		case SVC_FREE:
+			printf("FREE\n");
+			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
 			break;
 		default:
 			if (MYFAT_DEBUG){

@@ -25,6 +25,13 @@
 #define SVC_JICAMA 2
 #define SVC_ARTICHOKE 3
 #define SVC_FOPEN 4
+#define SVC_FCLOSE 5
+#define SVC_CREATE 6
+#define SVC_DELETE 7
+#define SVC_FGETC 8
+#define SVC_FPUTC 9
+#define SVC_MALLOC 10
+#define SVC_FREE 11
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -34,5 +41,12 @@ void SVCBroccoliRabe(int arg0);
 int SVCJicama(int arg0);
 int SVCArtichoke(int arg0, int arg1, int arg2, int arg3);
 int SVC_fopen(file_descriptor* descr, char* filename, char mode);
+int SVC_fclose(file_descriptor descrf);
+int SVC_create(char* filename);
+int SVC_delete(char* filename);
+int SVC_fgetc (file_descriptor descrf, char* bufp);
+int SVC_fputc (file_descriptor descrf, char bufp);
+void* SVC_malloc(unsigned int size);
+void SVC_free(void *ptr);
 
 #endif /* ifndef _SVC_H */

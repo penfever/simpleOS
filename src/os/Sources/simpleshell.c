@@ -275,7 +275,8 @@ int cmd_malloc(int argc, char *argv[]){
   }
   void* mal_val = NULL;
   long long unsigned int my_size = hex_dec_oct(argv[1]);
-  if ((mal_val = myMalloc(my_size)) == NULL){
+  svcInit_SetSVCPriority(7);
+  if ((mal_val = SVC_malloc(my_size)) == NULL){
     return E_MALLOC;
   }
   else{
@@ -294,7 +295,8 @@ int cmd_free(int argc, char *argv[]){
   int err_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
   check_overflow(ptr_val);
-  err_val = myFreeErrorCode((void *)ptr_val);
+  svcInit_SetSVCPriority(7);
+  err_val = SVC_free((void *)ptr_val);
   if (err_val == 0){
 	uartPutsNL(UART2_BASE_PTR, "Free successful \n");
   }
@@ -386,7 +388,6 @@ int cmd_fopen(int argc, char *argv[]){
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
 	svcInit_SetSVCPriority(7);
-	//SVCEndive();
 	err = SVC_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
@@ -403,11 +404,12 @@ int cmd_fclose(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	file_descriptor descr;
-	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
+	file_descriptor descrf;
+	if ((descrf = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	int err = myfclose(descr);
+	svcInit_SetSVCPriority(7);
+	int err = SVC_myfclose(descrf);
 	if (err == 0){
 		uartPutsNL(UART2_BASE_PTR, "File close successful. \n");
 	}
@@ -419,7 +421,8 @@ int cmd_create(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	return mycreate(argv[1]);
+	svcInit_SetSVCPriority(7);
+	return SVC_create(argv[1]);
 }
 
 /*shell interface for univio delete (char* filename)*/
@@ -427,7 +430,8 @@ int cmd_delete(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	return mydelete(argv[1]);
+	svcInit_SetSVCPriority(7);
+	return SVC_delete(argv[1]);
 }
 
 /*shell interface for fgetc (file_descriptor descr, char bufp).
@@ -442,7 +446,8 @@ int cmd_fgetc(int argc, char *argv[]){
 	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	err = myfgetc(descr, &bufp);
+	svcInit_SetSVCPriority(7);
+	err = SVC_fgetc(descr, &bufp);
 	if (err < 0){
 		return err;
 	}
@@ -473,7 +478,8 @@ int cmd_fputc(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	char m = argv[2][0];
-	return myfputc(descr, m);
+	svcInit_SetSVCPriority(7);
+	return SVC_fputc(descr, m);
 }
 
 /*shell interface for fputs*/
