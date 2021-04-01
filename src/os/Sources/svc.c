@@ -71,6 +71,8 @@
 #include "univio.h"
 #include "SDHC_FAT32_Files.h"
 #include "myerror.h"
+#include "simpleshell.h"
+#include "mymalloc.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -240,13 +242,13 @@ int __attribute__((never_inline)) SVC_fputc(file_descriptor descrf, char bufp) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVC_malloc(unsigned int size) {
+void* __attribute__((naked)) __attribute__((noinline)) SVC_malloc(unsigned int size) {
 	__asm("svc %0" : : "I" (SVC_MALLOC));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
 #else
-int __attribute__((never_inline)) SVC_malloc(unsigned int size) {
+void* __attribute__((never_inline)) SVC_malloc(unsigned int size) {
 	__asm("svc %0" : : "I" (SVC_MALLOC));
 }
 #endif

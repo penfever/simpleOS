@@ -47,6 +47,6 @@ int SVC_delete(char* filename);
 int SVC_fgetc (file_descriptor descrf, char* bufp);
 int SVC_fputc (file_descriptor descrf, char bufp);
 void* SVC_malloc(unsigned int size);
-void SVC_free(void *ptr);
+int SVC_free(void *ptr);
 
 #endif /* ifndef _SVC_H */

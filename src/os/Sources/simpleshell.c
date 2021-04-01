@@ -12,6 +12,8 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "svc.h"
+#include "led.h"
+#include "pushbutton.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -519,17 +521,18 @@ int cmd_ls(int argc, char *argv[]){
         corresponding LED.  End when all four touch sensors are
         "depressed."*/
 int cmd_touch2led(int argc, char* argv[]){
+	int err;
 	if (argc != 2){
 		return E_NUMARGS;
 	}
 	file_descriptor myTS1 = 0;
 	svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
-	err = SVC_fopen(&myTS1, "dev_TSI1", m);
+	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
 	if (err != 0){
 		return err;
 	}
 	file_descriptor myE1 = 0;
-	err = SVC_fopen(&myE1, "dev_E1", m);
+	err = SVC_fopen(&myE1, "dev_E1", 'r');
 	if (err != 0){
 		return err;
 	}
@@ -575,12 +578,12 @@ int cmd_pot2ser(int argc, char* argv[]){
 	svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
-	err = SVC_fopen(&sw1, "dev_sw1", m);
+	err = SVC_fopen(&sw1, "dev_sw1", 'r');
 	if (err != 0){
 		return err;
 	}
 	file_descriptor pot;
-	err = SVC_fopen(&pot, "dev_pot", m);
+	err = SVC_fopen(&pot, "dev_pot", 'r');
 	if (err != 0){
 		return err;
 	}

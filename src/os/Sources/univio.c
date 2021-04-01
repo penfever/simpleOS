@@ -352,15 +352,15 @@ int myfputc (file_descriptor descr, char bufp){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		return uartPutchar(UART2_BASE_PTR, bufp);
+		uartPutchar(UART2_BASE_PTR, bufp);
 	}
-	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
+	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
 		return E_DEV;
 	}
-	if (userptr->deviceType == LED){
+	else if (userptr->deviceType == LED){
 		err = led_fputc(descr);
-		if (err == 0 && UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+		if (err == 0 && MYFAT_DEBUG){
+			printf("fputc success\n");
 		}
 	}
 	//CASE: FAT32

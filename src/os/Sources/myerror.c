@@ -5,6 +5,7 @@
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "simpleshell.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },

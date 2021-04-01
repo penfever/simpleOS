@@ -18,6 +18,8 @@
 #define LED_MAX 0x00EF0003
 #define ADC_MIN 0x02EF0000
 #define ADC_MAX 0x02EF0001
+#define TSI_MIN 0x03EF0000
+#define TSI_MAX 0x03EF0003
 #ifndef CONSOLEIO
 #define CONSOLEIO 0
 #endif
