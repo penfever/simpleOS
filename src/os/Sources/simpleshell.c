@@ -607,8 +607,9 @@ int cmd_pot2ser(int argc, char* argv[]){
 		if (err != 0){
 			return err;
 		}
-		longInt2hex(i, myOutput);
+		longInt2hex(*i, myOutput);
 		uartPutsNL(UART2_BASE_PTR, myOutput);
+		uartPutsNL(UART2_BASE_PTR, "\n");
 	}
 	SVC_free(i);
 	SVC_free(myOutput);
@@ -646,6 +647,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 		}
 		longInt2hex(i, myOutput);
 		uartPutsNL(UART2_BASE_PTR, myOutput);
+		uartPutsNL(UART2_BASE_PTR, "\n");
 	}
 	SVC_free(i);
 	SVC_free(myOutput);

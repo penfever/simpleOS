@@ -415,36 +415,52 @@ void svcHandlerInC(struct frame *framePtr) {
 					framePtr->arg1, framePtr->arg2, framePtr->arg3);
 			break;
 		case SVC_FOPEN:
-			printf("FOPEN\n");
+			if (MYFAT_DEBUG){
+				printf("FOPEN\n");
+			}
 			framePtr->returnVal = myfopen(framePtr->descr,
 					framePtr->filename, framePtr->mode);
 			break;
 		case SVC_FCLOSE:
+			if (MYFAT_DEBUG){
 			printf("FCLOSE\n");
+			}
 			framePtr->returnVal = myfclose(framePtr->descrf);
 			break;
 		case SVC_CREATE:
+			if (MYFAT_DEBUG){
 			printf("CREATE\n");
+			}
 			framePtr->returnVal = mycreate(framePtr->filename);
 			break;
 		case SVC_DELETE:
+			if (MYFAT_DEBUG){
 			printf("DELETE\n");
+			}
 			framePtr->returnVal = mydelete(framePtr->filename);
 			break;
 		case SVC_FGETC:
+			if (MYFAT_DEBUG){
 			printf("FGETC\n");
+			}
 			framePtr->returnVal = myfgetc(framePtr->descrf, framePtr->filename);
 			break;
 		case SVC_FPUTC:
+			if (MYFAT_DEBUG){
 			printf("FPUTC\n");
+			}
 			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->mode);
 			break;
 		case SVC_MALLOC:
+			if (MYFAT_DEBUG){
 			printf("MALLOC\n");
+			}
 			framePtr->returnVal = myMalloc(framePtr->unsInt);
 			break;
 		case SVC_FREE:
+			if (MYFAT_DEBUG){
 			printf("FREE\n");
+			}
 			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
 			break;
 		default:
