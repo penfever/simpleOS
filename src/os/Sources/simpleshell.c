@@ -542,7 +542,9 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
+	unsigned long delayCount = 1000;
 	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
+		delay(delayCount);
 		if(electrode_in(0)) {
 			ledOrangeOn();
 		} else {
@@ -602,7 +604,9 @@ int cmd_pot2ser(int argc, char* argv[]){
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
+	unsigned long delayCount = 1000;
 	while (!sw1In()){
+		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)i);
 		if (err != 0){
 			return err;
@@ -640,12 +644,14 @@ int cmd_therm2ser(int argc, char* argv[]){
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
+	unsigned long delayCount = 1000;
 	while (!sw1In()){
+		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
 			return err;
 		}
-		longInt2hex(i, myOutput);
+		longInt2hex(*i, myOutput);
 		uartPutsNL(UART2_BASE_PTR, myOutput);
 		uartPutsNL(UART2_BASE_PTR, "\n");
 	}
@@ -674,7 +680,17 @@ int cmd_pb2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	unsigned long int delayCount = 25000;
+	file_descriptor E1;
+	err = SVC_fopen(&E1, "dev_E1", 'r'); //red
+	if (err != 0){
+		return err;
+	}
+	file_descriptor E4;
+	err = SVC_fopen(&E4, "dev_E4", 'r'); //yellow
+	if (err != 0){
+		return err;
+	}
+	unsigned long int delayCount = 2500;
 	while (!(sw1In() && sw2In())){
 		delay(delayCount);
 		int switchState = switchScan();
@@ -694,21 +710,11 @@ int cmd_pb2led(int argc, char* argv[]){
 			ledYellowOff();
 		}
 	}
-	file_descriptor E1;
-	err = SVC_fopen(&E1, "dev_E1", 'r'); //TODO: check color is correct
-	if (err != 0){
-		return err;
-	}
-	file_descriptor E2;
-	err = SVC_fopen(&E2, "dev_E2", 'r');
-	if (err != 0){
-		return err;
-	}
 	err = SVC_fclose(E1);
 	if (err != 0){
 		return err;
 	}
-	err = SVC_fclose(E2);
+	err = SVC_fclose(E4);
 	if (err != 0){
 		return err;
 	}

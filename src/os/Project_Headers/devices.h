@@ -85,10 +85,10 @@ enum minor_id{
 		dev_sdhc = 0x99FF0000,
 		dev_sw1 = 0x00FF0000,
 		dev_sw2 = 0x00FF0001,
-		dev_E1 = 0x00EF0000,
-		dev_E2 = 0x00EF0001,
-		dev_E3 = 0x00EF0002,
-		dev_E4 = 0x00EF0003,
+		dev_E1 = 0x00EF0000, //red
+		dev_E2 = 0x00EF0001, //blue
+		dev_E3 = 0x00EF0002, //green
+		dev_E4 = 0x00EF0003, //yellow
 		dev_UART2 = 0x01EF0000,
 		dev_pot = 0x02EF0000,
 		dev_temp = 0x02EF0001,
@@ -104,6 +104,8 @@ typedef struct dev_id dev_id_t;
 extern dev_id_t devTable[DEV];
 
 int uart_init(int baud);
+
+int init_clocks_sdram();
 
 void adc_init(void);
 

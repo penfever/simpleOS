@@ -309,7 +309,7 @@ int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
         ledBlueOn();
 	}
 	if (userptr->minorId == dev_E3){
-        ledOrangeOn();
+        ledGreenOn();
 	}
 	if (userptr->minorId == dev_E4){
         ledYellowOn();

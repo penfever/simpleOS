@@ -7,6 +7,9 @@
 #include "devices.h"
 #include "myerror.h"
 #include "univio.h"
+#include "uart.h"
+#include "uartNL.h"
+#include "mymalloc.h"
 
 int main(void){
 	int error;

@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mymalloc.h"
 #include "myerror.h"
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
 #include "simpleshell.h"
+#include "svc.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
@@ -59,7 +61,7 @@ int error_checker(int return_value){
     return 0;
   }
   else{
-	char* output = myMalloc(64);
+	char* output = SVC_malloc(64);
 	sprintf(output, "Unknown error %d: \n", return_value);
 	uartPutsNL(UART2_BASE_PTR, output);
 	myFree(output);

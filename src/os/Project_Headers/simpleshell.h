@@ -32,7 +32,7 @@
                   "fputc and fputs send characters or strings to a file or device. \n"\
                   "fseek sets the file cursor to a particular position in a file. \n"\
                   "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
-                  "pot2ser continuously outputs the potentiometer value to STDOUT \n"\ 
+                  "pot2ser continuously outputs the potentiometer value to STDOUT \n"\
 				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
 				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
 				  "cat prints the contents of a file to STDOUT \n"\
