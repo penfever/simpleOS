@@ -103,24 +103,24 @@ char mytoupper(char c){
 
 int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	if (devicePtr == dev_UART2){
-		struct stream userptr = currentPCB->openFiles[0]; 
-		if (userptr.minorId == dev_UART2){
-			struct stream * userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
+//		struct stream userptr = currentPCB->openFiles[0]; 
+//		if (currentPCB->openFiles[0].minorId == dev_UART2){
+			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
 			*fd = (file_descriptor *)userptr;
+			uart_init(115200);
 			return 0;
-		}
-		userptr.deviceType = IO; //STDIN
-		userptr.minorId = dev_UART2;
-		userptr = currentPCB->openFiles[1]; 
-		userptr.deviceType = IO; //STDOUT
-		userptr.minorId = dev_UART2;
-		userptr = currentPCB->openFiles[2]; 
-		userptr.deviceType = IO; //STDERR
-		userptr.minorId = dev_UART2;
-		uart_init(115200);
-		return 0;
+//		}
+//		userptr.deviceType = IO; //STDIN
+//		userptr.minorId = dev_UART2;
+//		userptr = currentPCB->openFiles[1]; 
+//		userptr.deviceType = IO; //STDOUT
+//		userptr.minorId = dev_UART2;
+//		userptr = currentPCB->openFiles[2]; 
+//		userptr.deviceType = IO; //STDERR
+//		userptr.minorId = dev_UART2;
+//		return 0;
 	}
 	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){

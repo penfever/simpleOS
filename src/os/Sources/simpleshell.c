@@ -31,6 +31,7 @@ struct escape_chars escapechars[] = {
 };
 
 int g_noFS = TRUE;
+file_descriptor io_dev;
 
 struct months months[] = {{"January", 0, 31}, 
               {"February", 1, 28}, 
@@ -248,6 +249,7 @@ int cmd_exit(int argc, char *argv[]){
   SVC_free(argv);
   SVC_free(first);
   first = NULL;
+  SVC_fclose(io_dev);
   exit(0);
 }
 
@@ -778,8 +780,15 @@ int cmd_cat2file(int argc, char* argv[]){
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
+	if (UARTIO){
+		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
+	}
     while(TRUE){
-    	uartPutsNL(UART2_BASE_PTR, "$ ");
+    	char c = '$';
+    	SVC_fputc(io_dev, c);
+    	c = ' ';
+    	SVC_fputc(io_dev, c);
+    	//uartPutsNL(UART2_BASE_PTR, "$ ");
         int arg_len[MAXARGS+2] = {0};
         char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
     	while(!uartGetcharPresent(UART2_BASE_PTR)) {

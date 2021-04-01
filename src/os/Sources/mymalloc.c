@@ -9,6 +9,7 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "sdram.h"
+#include "simpleshell.h"
 
 static int node_count = 0;
 
@@ -167,7 +168,7 @@ void walk_struct_err(){
 	else if (MYFAT_DEBUG){
 		printf("walk_struct error (check memory bounds)\n");
 	}
-	exit(E_MALLOC);
+	cmd_exit(1, NULL);
 }
 
 /*bounds accepts as a parameter a void* ptr. It then finds the appropriate

@@ -91,6 +91,7 @@ struct frame {
 		int r1;
 		int arg1;
 		char* filename;
+		char bufp;
 	};
 	union {
 		int r2;
@@ -449,7 +450,7 @@ void svcHandlerInC(struct frame *framePtr) {
 			if (MYFAT_DEBUG){
 			printf("FPUTC\n");
 			}
-			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->mode);
+			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->bufp);
 			break;
 		case SVC_MALLOC:
 			if (MYFAT_DEBUG){

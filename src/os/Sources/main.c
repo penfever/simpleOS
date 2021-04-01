@@ -10,6 +10,7 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "mymalloc.h"
+#include "priv.h"
 
 int main(void){
 	int error;
@@ -19,26 +20,30 @@ int main(void){
 		}
 		exit(-4);
 	}
-	if (UARTIO){
-		file_descriptor descr;
-		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
-			if (MYFAT_DEBUG){
-				printf("UART initialization error \n");
-			}
-			exit(-4);
-		}
-	}
+//	if (UARTIO){
+//		file_descriptor descr;
+//		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
+//			if (MYFAT_DEBUG){
+//				printf("UART initialization error \n");
+//			}
+//			exit(-4);
+//		}
+//	}
     if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
         setvbuf(stdout, NULL, _IONBF, 0);	
     }
-    if ((error = file_structure_mount()) != 0){
-    	uartPutsNL(UART2_BASE_PTR, "SDHC card could not be mounted. File commands unavailable. \n");
+    if ((error = file_structure_mount()) != 0 && MYFAT_DEBUG){
+    	printf("SDHC card could not be mounted. File commands unavailable. \n");
     }
-    else{
-    	uartPutsNL(UART2_BASE_PTR, "SDHC card mounted. \n");
+    else if (MYFAT_DEBUG){
+    	printf("SDHC card mounted. \n");
         g_noFS = FALSE;
     }
+    else{
+        g_noFS = FALSE;
+    }
+    privUnprivileged();
     int err = shell();
     if (MYFAT_DEBUG){
     	printf("Shell exits with code %d \n", err);
