@@ -103,14 +103,21 @@ char mytoupper(char c){
 
 int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	if (devicePtr == dev_UART2){
-		struct stream userptr = currentPCB->openFiles[0]; //STDIN
-		userptr.deviceType = IO;
+		struct stream userptr = currentPCB->openFiles[0]; 
+		if (userptr.minorId == dev_UART2){
+			struct stream * userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
+			userptr->deviceType = IO;
+			userptr->minorId = devicePtr;
+			*fd = (file_descriptor *)userptr;
+			return 0;
+		}
+		userptr.deviceType = IO; //STDIN
 		userptr.minorId = dev_UART2;
-		userptr = currentPCB->openFiles[1]; //STDOUT
-		userptr.deviceType = IO;
+		userptr = currentPCB->openFiles[1]; 
+		userptr.deviceType = IO; //STDOUT
 		userptr.minorId = dev_UART2;
-		userptr = currentPCB->openFiles[2]; //STDERR
-		userptr.deviceType = IO;
+		userptr = currentPCB->openFiles[2]; 
+		userptr.deviceType = IO; //STDERR
 		userptr.minorId = dev_UART2;
 		uart_init(115200);
 		return 0;
@@ -198,6 +205,9 @@ int myfgetc (file_descriptor descr, char* bufp){
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_UNFREE;
+	}
+	if (userptr->minorId == dev_UART2){
+		return uartGetchar(UART2_BASE_PTR);
 	}
 	if (userptr->deviceType == FAT32){
 		if (userptr->cursor >= userptr->fileSize){
@@ -290,6 +300,9 @@ int myfputc (file_descriptor descr, char bufp){
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
+	}
+	if (userptr->minorId == dev_UART2){
+		return uartPutchar(UART2_BASE_PTR, bufp);
 	}
 	if (userptr->deviceType == PUSHBUTTON){
 		return E_DEV;
