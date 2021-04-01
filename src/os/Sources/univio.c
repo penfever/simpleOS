@@ -152,6 +152,14 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			uartPutsNL(UART2_BASE_PTR, "ADC initialized. \n");
 		}
 	}
+	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
+		userptr->deviceType = TSI;
+		TSI_Init();
+		TSI_Calibrate();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "TSI initialized. \n");
+		}
+	}
 	else{
 		if (MYFAT_DEBUG){
 			printf("Invalid device name \n");
@@ -232,6 +240,9 @@ int myfgetc (file_descriptor descr, char* bufp){
 	else if (userptr->deviceType == ADC){
 		err = adc_fgetc(descr);
 	}
+	else if (userptr->deviceType == TSI){
+		err = tsi_fgetc(descr);
+	}
 	else{ //CASE: FAT32
 		if (g_noFS){
 			return E_NOFS;
@@ -239,6 +250,23 @@ int myfgetc (file_descriptor descr, char* bufp){
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
 	}
 	return err;
+}
+
+int tsi_fgetc(file_descriptor descr) {
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_TSI1 && electrode_in(0)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI2 && electrode_in(1)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI3 && electrode_in(2)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI4 && electrode_in(3)){
+		return TRUE;
+	}
+	return FALSE;
 }
 
 int adc_fgetc(file_descriptor descr) {
@@ -326,7 +354,7 @@ int myfputc (file_descriptor descr, char bufp){
 	if (userptr->minorId == dev_UART2){
 		return uartPutchar(UART2_BASE_PTR, bufp);
 	}
-	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC){
+	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
 		return E_DEV;
 	}
 	if (userptr->deviceType == LED){

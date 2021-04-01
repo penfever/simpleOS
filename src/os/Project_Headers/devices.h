@@ -10,7 +10,7 @@
 
 #ifndef DEVICES_H_
 #define DEVICES_H_
-#define DEV 11
+#define DEV 15
 #define MAXOPEN 32
 #define PUSHB_MIN 0x00FF0000
 #define PUSHB_MAX 0x00FF0001
@@ -25,6 +25,21 @@
 #define UARTIO TRUE
 #endif
 
+#define ADC_CHANNEL_POTENTIOMETER   	0x14
+#define ADC_CHANNEL_TEMPERATURE_SENSOR  0x1A
+
+#define ADC_CFG1_MODE_8_9_BIT       0x0
+#define ADC_CFG1_MODE_12_13_BIT     0x1
+#define ADC_CFG1_MODE_10_11_BIT     0x2
+#define ADC_CFG1_MODE_16_BIT        0x3
+#define ADC_SC3_AVGS_32_SAMPLES     0x3
+
+#define PORT_PCR_MUX_ANALOG 0
+#define PORT_PCR_MUX_GPIO 1
+
+#define ELECTRODE_COUNT 4
+#define THRESHOLD_OFFSET 0x200
+
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs
 		UNUSED = 0,
@@ -32,7 +47,8 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 		PUSHBUTTON = 2,
 		LED = 3,
 		IO = 4,
-		ADC = 5
+		ADC = 5,
+		TSI = 6
 	}deviceType; //Major ID
 	int minorId;
 	int mode;  //rw mode	
@@ -73,7 +89,11 @@ enum minor_id{
 		dev_E4 = 0x00EF0003,
 		dev_UART2 = 0x01EF0000,
 		dev_pot = 0x02EF0000,
-		dev_temp = 0x02EF0001
+		dev_temp = 0x02EF0001,
+		dev_TSI1 = 0x03EF0000,
+		dev_TSI2 = 0x03EF0001,
+		dev_TSI3 = 0x03EF0002,
+		dev_TSI4 = 0x03EF0003
 };
 
 extern struct pcb* currentPCB;
@@ -86,5 +106,7 @@ int uart_init(int baud);
 void adc_init(void);
 
 unsigned int adc_read(uint8_t channel);
+
+int touch2led();
 
 #endif

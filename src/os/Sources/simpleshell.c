@@ -61,7 +61,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"create", cmd_create},
                 {"delete", cmd_delete},
                 {"seek", cmd_seek},
-                {"ls", cmd_ls}
+                {"ls", cmd_ls},
+                {"touch2led", cmd_touch2led}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -232,11 +233,11 @@ int cmd_exit(int argc, char *argv[]){
   }
   for (int i = 0; i <= argc; i ++){
     if (argv[i] != NULL){
-      myFree(argv[i]);
+      SVC_free(argv[i]);
     }
   }
-  myFree(argv);
-  myFree(first);
+  SVC_free(argv);
+  SVC_free(first);
   first = NULL;
   exit(0);
 }
@@ -308,8 +309,8 @@ int cmd_memorymap(int argc, char *argv[]){
     return E_NUMARGS;
   }
   if (first == NULL){ //Initialize
-      void* ptr = myMalloc(8);
-      myFree(ptr);
+      void* ptr = SVC_malloc(8);
+      SVC_free(ptr);
   }
   memoryMap();
   return 0;
@@ -392,10 +393,10 @@ int cmd_fopen(int argc, char *argv[]){
 	if (err != 0){
 		return err;
 	}
-	char* output = myMalloc(64);
+	char* output = SVC_malloc(64);
 	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
 	uartPutsNL(UART2_BASE_PTR, output);
-	myFree(output);
+	SVC_free(output);
 	return 0;
 }
 
@@ -409,7 +410,7 @@ int cmd_fclose(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	svcInit_SetSVCPriority(7);
-	int err = SVC_myfclose(descrf);
+	int err = SVC_fclose(descrf);
 	if (err == 0){
 		uartPutsNL(UART2_BASE_PTR, "File close successful. \n");
 	}
@@ -513,6 +514,54 @@ int cmd_ls(int argc, char *argv[]){
 	return dir_ls(1);
 }
 
+int cmd_touch2led(int argc, char* argv[]){
+	if (argc != 2){
+		return E_NUMARGS;
+	}
+	file_descriptor myTS1 = 0;
+	svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
+	err = SVC_fopen(&myTS1, "dev_TSI1", m);
+	if (err != 0){
+		return err;
+	}
+	file_descriptor myE1 = 0;
+	err = SVC_fopen(&myE1, "dev_E1", m);
+	if (err != 0){
+		return err;
+	}
+	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
+		if(electrode_in(0)) {
+			ledOrangeOn();
+		} else {
+			ledOrangeOff();
+		}
+		if(electrode_in(1)) {
+			ledYellowOn();
+		} else {
+			ledYellowOff();
+		}
+		if(electrode_in(2)) {
+			ledGreenOn();
+		} else {
+			ledGreenOff();
+		}
+		if(electrode_in(3)) {
+			ledBlueOn();
+		} else {
+			ledBlueOff();
+		}
+	}
+	err = SVC_fclose(myTS1);
+	if (err != 0){
+		return err;
+	}
+	err = SVC_fclose(myE1);
+	if (err != 0){
+		return err;
+	}
+	return 0;
+}
+
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
@@ -528,7 +577,7 @@ int shell(void){
         }
         uartPutsNL(UART2_BASE_PTR, "\n");
         int argc = arg_len[MAXARGS+1];
-        char** argv = (char **)myMalloc((argc + 1) * sizeof(char *));
+        char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
         if (argv == NULL) {
           error_checker(E_MALLOC);
           return E_MALLOC;
@@ -537,7 +586,7 @@ int shell(void){
         int user_cmd_offset = 0;
         //parse string into argv
         for (int i = 0; i < argc; i++){
-          argv[i]=(char*)myMalloc(sizeof(char)*(arg_len[i]+1));
+          argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
           if (argv[i] == NULL) {
             error_checker(E_MALLOC);
             return E_MALLOC;
@@ -566,10 +615,10 @@ int shell(void){
         //free memory and repeat
         for (int i = 0; i <= argc; i ++){
           if (argv[i] != NULL){
-            myFree(argv[i]);
+            SVC_free(argv[i]);
           }
         }
-        myFree(argv);
+        SVC_free(argv);
     }
     error_t err_code = E_INF;
     error_checker(err_code);
