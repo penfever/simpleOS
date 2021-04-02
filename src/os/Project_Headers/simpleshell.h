@@ -107,7 +107,7 @@ int cmd_touch2led(int argc, char* argv[]);
 int cmd_pot2ser(int argc, char* argv[]);
 int cmd_therm2ser(int argc, char* argv[]);
 int cmd_pb2led(int argc, char* argv[]);
-int cmd_cat(int argc, char* argv[]);
+int cmd_catfile(int argc, char* argv[]);
 int cmd_cat2file(int argc, char* argv[]);
 
 struct commandEntry {

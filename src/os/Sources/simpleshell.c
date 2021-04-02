@@ -71,7 +71,7 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"pot2ser", cmd_pot2ser},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
-                {"cat", cmd_cat},
+                {"catfile", cmd_catfile},
                 {"cat2file", cmd_cat2file}
 };
 
@@ -562,7 +562,7 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	unsigned long delayCount = 1000;
+	const unsigned long int delayCount = 0x7ffff;
 	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
 		delay(delayCount);
 		if(electrode_in(0)) {
@@ -624,7 +624,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
-	unsigned long delayCount = 1000;
+	const unsigned long int delayCount = 0x7ffff;
 	while (!sw1In()){
 		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)i);
@@ -665,7 +665,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
-	unsigned long delayCount = 1000;
+	const unsigned long int delayCount = 0x7ffff;
 	while (!sw1In()){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
@@ -712,7 +712,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	unsigned long int delayCount = 2500;
+	const unsigned long int delayCount = 0x7ffff;
 	while (!(sw1In() && sw2In())){
 		delay(delayCount);
 		int switchState = switchScan();
@@ -751,7 +751,7 @@ int cmd_pb2led(int argc, char* argv[]){
 /*Display the contents of the specified <file> in
         the root directory by sending to STDOUT.
  * */
-int cmd_cat(int argc, char* argv[]){
+int cmd_catfile(int argc, char* argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
@@ -784,6 +784,7 @@ int cmd_cat(int argc, char* argv[]){
   ^D (control-D) input character.
  * */
 int cmd_cat2file(int argc, char* argv[]){
+	const unsigned long int delayCount = 0x7ffff;
 	if (argc != 2){
 		return E_NUMARGS;
 	}
@@ -795,8 +796,14 @@ int cmd_cat2file(int argc, char* argv[]){
 		return err;
 	}
 	char c;
-	while(c != EOT){ //end of transmission is ctrl-D
+	while(TRUE){
+    	while(!SVC_ischar(io_dev)) {
+    		delay(delayCount);
+    	}
 	    SVC_fgetc(io_dev, &c);
+	    if (c == EOT){
+	    	break;
+	    }
 		SVC_fputc(descr, c);
 	}
 	return SVC_fclose(descr);
@@ -850,11 +857,14 @@ int shell(void){
           if (argv[0] == NULL){
             break;
           }
-          if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) == 0){
-            //execute command
-            int return_value = commands[i].functionp(argc, argv);
-            error_checker(return_value);
-            break;
+          if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
+        	  ;
+          }
+          else{
+              //execute command
+              int return_value = commands[i].functionp(argc, argv);
+              error_checker(return_value);
+              break;
           }
           if (i == NUMCOMMANDS - 1){
             error_checker(E_CMD_NOT_FOUND);
