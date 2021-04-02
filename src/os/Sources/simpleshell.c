@@ -78,14 +78,16 @@ struct commandEntry commands[] = {{"date", cmd_date},
 /*Takes as arguments a user command and the length of that command.
 It then compares the next character to a list of escape characters and processes it accordingly.*/
 char escape_char(char* user_cmd, int* str_len){
-  char c = uartGetchar(UART2_BASE_PTR);
+  char c;
+  SVC_fgetc(io_dev, &c);
   for (int i = 0; i < NUMESCAPES; i++){
     if (c == escapechars[i].c){
       char* user_cmd_ptr = user_cmd + *str_len;
       char escape = escapechars[i].ascii;
       sprintf(user_cmd_ptr, &escape);
       *str_len = *str_len + 1;
-      return uartGetchar(UART2_BASE_PTR);
+      SVC_fgetc(io_dev, &c);
+      return c;
     }
   }
   return c;
@@ -101,12 +103,12 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   char c = '"';
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  c = uartGetchar(UART2_BASE_PTR);
-  uartPutchar(UART2_BASE_PTR, c);
+  SVC_fgetc(io_dev, &c);
+  SVC_fputc(io_dev, c);
   while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
     if (c == '\r'){
-      c = uartGetchar(UART2_BASE_PTR);
-      uartPutchar(UART2_BASE_PTR, c);
+      SVC_fgetc(io_dev, &c);
+      SVC_fputc(io_dev, c);
       if (c == '\n'){
         return E_NOINPUT;
       }
@@ -114,8 +116,8 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     user_cmd_ptr = user_cmd + *str_len;
     sprintf(user_cmd_ptr, &c);
     *str_len = *str_len + 1;
-    c = uartGetchar(UART2_BASE_PTR);
-    uartPutchar(UART2_BASE_PTR, c);
+    SVC_fgetc(io_dev, &c);
+    SVC_fputc(io_dev, c);
   }
   *this_len = right_pos - left_pos;
   left_pos = right_pos;
@@ -123,7 +125,8 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   user_cmd_ptr = user_cmd + *str_len;
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
-  return uartGetchar(UART2_BASE_PTR);
+  SVC_fgetc(io_dev, &c);
+  return c;
 }
 
 /*Takes user input from stdin and sends it to a char* array representing the user's command, also 
@@ -182,7 +185,7 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[0] = c;
       while( buffer[0] == ' ' || buffer[0] == '\t' ){
         buffer[1] = buffer[0];
-        SVC_fgetc(io_dev, buffer[0]);
+        SVC_fgetc(io_dev, &buffer[0]);
         SVC_fputc(io_dev, buffer[0]);
       }
       c = buffer[0];
@@ -229,11 +232,13 @@ int cmd_echo(int argc, char *argv[]){
     return 0;
   }
   for (int i = 1; i < argc - 1; i++){
-	uartPutsNL(UART2_BASE_PTR, argv[i]);
-	uartPutsNL(UART2_BASE_PTR, "\n");
+	SVC_fputs(io_dev, argv[i], strlen(argv[i]));
+	SVC_fputc(io_dev, '\r');
+	SVC_fputc(io_dev, '\n');
   }
-  uartPutsNL(UART2_BASE_PTR, argv[argc - 1]);
-  uartPutsNL(UART2_BASE_PTR, "\n");
+  SVC_fputs(io_dev, argv[argc - 1], strlen(argv[argc - 1]));
+  SVC_fputc(io_dev, '\r');
+  SVC_fputc(io_dev, '\n');
   return 0;
 }
 
@@ -257,7 +262,7 @@ int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
   }
-  uartPutsNL(UART2_BASE_PTR, HELPBLOCK);
+  SVC_fputs(io_dev, HELPBLOCK, strlen(HELPBLOCK));
   return 0;
 }
 
@@ -294,7 +299,7 @@ int cmd_malloc(int argc, char *argv[]){
   else{
 	char output[32];
 	sprintf(output, "%p \n", mal_val);
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
     return 0;
   }
 }
@@ -310,7 +315,8 @@ int cmd_free(int argc, char *argv[]){
   svcInit_SetSVCPriority(7);
   err_val = SVC_free((void *)ptr_val);
   if (err_val == 0){
-	uartPutsNL(UART2_BASE_PTR, "Free successful \n");
+	char* msg = "Free successful \n";
+	SVC_fputs(io_dev, msg, strlen(msg));
   }
   return err_val;
 }
@@ -382,8 +388,9 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-  uartPutsNL(UART2_BASE_PTR, "memchk successful \n");
-  return 0;
+	char* msg = "memchk successful \n";
+	SVC_fputs(io_dev, msg, strlen(msg));
+	return 0;
 }
 
 /*shell interface for univio fopen (file_descriptor descr, char* filename, char mode)
@@ -406,7 +413,7 @@ int cmd_fopen(int argc, char *argv[]){
 	}
 	char* output = SVC_malloc(64);
 	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
 	SVC_free(output);
 	return 0;
 }
@@ -423,7 +430,8 @@ int cmd_fclose(int argc, char *argv[]){
 	svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
-		uartPutsNL(UART2_BASE_PTR, "File close successful. \n");
+		char* msg = "File close successful \n";
+		SVC_fputs(io_dev, msg, strlen(msg));
 	}
 	return err;
 }
@@ -467,7 +475,7 @@ int cmd_fgetc(int argc, char *argv[]){
 		char output[2];
 		output[0] = bufp;
 		output[1] = '\n';
-		uartPutsNL(UART2_BASE_PTR, output);
+		SVC_fputs(io_dev, output, strlen(output));
 	}
 	return err;
 }
@@ -762,7 +770,7 @@ int cmd_cat(int argc, char* argv[]){
 			return err;
 		}
 	}
-	uartPutsNL(UART2_BASE_PTR, contents);
+	SVC_fputs(io_dev, contents, strlen(contents));
 	return SVC_fclose(descr);
 }
 
@@ -783,7 +791,7 @@ int cmd_cat2file(int argc, char* argv[]){
 	}
 	char c;
 	while(c != EOT){ //end of transmission is ctrl-D
-		c = uartGetchar(UART2_BASE_PTR);
+	    SVC_fgetc(io_dev, &c);
 		SVC_fputc(descr, c);
 	}
 	return SVC_fclose(descr);
