@@ -749,7 +749,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	return SVC_fclose(sw2);
 }
 /*Display the contents of the specified <file> in
-        the root directory.
+        the root directory by sending to STDOUT.
  * */
 int cmd_cat(int argc, char* argv[]){
 	if (argc != 2){
@@ -765,12 +765,15 @@ int cmd_cat(int argc, char* argv[]){
 	struct stream* userptr = (struct stream *) descr;
 	char contents[userptr->fileSize];
 	for (int i = 0; i < userptr->fileSize; ++i){
-		err = SVC_fputc(descr, contents[i]);
+	    err = SVC_fgetc(descr, &contents[i]);
+		if (err != 0){
+			return err;
+		}
+		err = SVC_fputc(io_dev, contents[i]);
 		if (err != 0){
 			return err;
 		}
 	}
-	SVC_fputs(io_dev, contents, strlen(contents));
 	return SVC_fclose(descr);
 }
 

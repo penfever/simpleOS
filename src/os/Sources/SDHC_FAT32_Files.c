@@ -755,8 +755,11 @@ int file_close(file_descriptor descr){
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	struct stream* userptr = (struct stream*)descr;
 	*charsreadp = 0;
-	if (find_curr_stream(userptr) == FALSE || buflen <= 0 || userptr->clusterAddr == 0){
+	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
+	}
+	else if (buflen <= 0 || userptr->clusterAddr == 0){
+		return E_NOINPUT;
 	}
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file

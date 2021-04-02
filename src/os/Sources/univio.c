@@ -347,7 +347,7 @@ char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return int
 }
 
 int myfputc (file_descriptor descr, char bufp){
-	int err = -1;
+	int err = 0;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
@@ -374,8 +374,8 @@ int myfputc (file_descriptor descr, char bufp){
 		}
 		err = file_putbuf(descr, &bufp, 1);
 	}
-	if (err == 0 && UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+	if (err == 0 && MYFAT_DEBUG){
+		printf("fputc success\n");
 	}
 	return err;
 }
