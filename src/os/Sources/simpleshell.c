@@ -494,9 +494,21 @@ int cmd_fputc(int argc, char *argv[]){
 	return SVC_fputc(descr, m);
 }
 
-/*shell interface for fputs*/
+/*shell interface for fputs. argv[1] is file_descriptor, argv[2] is the string to be put.*/
 int cmd_fputs(int argc, char *argv[]){
-	return 0;
+	//TODO: errcheck, descr
+	if (argc != 3){
+		return E_NUMARGS;
+	}
+	file_descriptor descr;
+	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
+		return E_NOINPUT;
+	}
+	if (argv[1][0] != '"' && argv[2][strlen(argv[2])-1] != '"'){ //must use quotation marks
+		return E_NOINPUT;
+	}
+	svcInit_SetSVCPriority(7);
+	return SVC_fputs(descr, argv[2], strlen(argv[2]));
 }
 
 /*shell interface for seek (file_descriptor, position)*/
@@ -782,13 +794,13 @@ int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
 	if (UARTIO){
 		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
+		char output[64] = {'\0'};
+		sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
+		SVC_fputs(io_dev, output, strlen(output));
 	}
     while(TRUE){
-    	char c = '$';
-    	SVC_fputc(io_dev, c);
-    	c = ' ';
-    	SVC_fputc(io_dev, c);
-    	//uartPutsNL(UART2_BASE_PTR, "$ ");
+    	char output = "$ ";
+    	SVC_fputs(io_dev, output, strlen(output));
         int arg_len[MAXARGS+2] = {0};
         char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
     	while(!uartGetcharPresent(UART2_BASE_PTR)) {

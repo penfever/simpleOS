@@ -19,7 +19,7 @@ int led_fgetc(file_descriptor descr);
 
 int led_fputc(file_descriptor descr);
 
-int myfputs (char* bufp, file_descriptor descr, int buflen);
+int myfputs (file_descriptor descr, char* bufp, int buflen);
 
 int mycreate(char* filename);
 

@@ -396,19 +396,30 @@ int led_fputc(file_descriptor descr){
 	return 0;
 }
 
-int myfputs (char* bufp, file_descriptor descr, int buflen){ //TODO: fix this
-	if (g_noFS){
-		return E_NOFS; //TODO: errcheck E_NOFS
-	}
+int myfputs (file_descriptor descr, char* bufp, int buflen){
+	int err = -1;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_UNFREE;
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
 	}
-	int err;
-	err = file_putbuf(descr, &bufp[0], buflen);
+	if (userptr->minorId == dev_UART2){
+		uartPutsNL(UART2_BASE_PTR, bufp);
+	}
+	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI || userptr->deviceType == LED){
+		return E_DEV;
+	}
+	else{
+		if (g_noFS){
+			return E_NOFS;
+		}
+		err = file_putbuf(descr, &bufp, buflen);
+	}
+	if (err == 0 && UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+	}
 	return err;
 }
 
