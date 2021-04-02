@@ -774,6 +774,8 @@ int cmd_cat(int argc, char* argv[]){
 			return err;
 		}
 	}
+	SVC_fputc(io_dev, '\r');
+	SVC_fputc(io_dev, '\n');
 	return SVC_fclose(descr);
 }
 
