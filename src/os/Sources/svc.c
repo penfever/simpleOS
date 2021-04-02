@@ -73,6 +73,7 @@
 #include "myerror.h"
 #include "simpleshell.h"
 #include "mymalloc.h"
+#include "devices.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -279,6 +280,19 @@ int __attribute__((never_inline)) SVC_free(void* ptr) {
 	__asm("svc %0" : : "I" (SVC_FREE));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_ischar(file_descriptor descrf) {
+	__asm("svc %0" : : "I" (SVC_ISCHAR));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_ischar(file_descriptor descrf) {
+	__asm("svc %0" : : "I" (SVC_ISCHAR));
+}
+#endif
 
 int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
 	int sum;
@@ -294,6 +308,16 @@ int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
 	printf("Returning %d\n", sum);
 
 	return sum;
+}
+
+int SVC_ischarImpl(file_descriptor descrf){
+	struct stream* userptr = (struct stream*)descrf;
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
+	}
+	if (userptr->minorId == dev_UART2){
+		return uartGetcharPresent(UART2_BASE_PTR);
+	}
 }
 
 /* This function sets the priority at which the SVCall handler runs (See
@@ -482,6 +506,9 @@ void svcHandlerInC(struct frame *framePtr) {
 			printf("FREE\n");
 			}
 			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
+			break;
+		case SVC_ISCHAR:
+			framePtr->returnVal = SVC_ischarImpl(framePtr->descrf);
 			break;
 		default:
 			if (MYFAT_DEBUG){

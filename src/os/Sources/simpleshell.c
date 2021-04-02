@@ -142,8 +142,8 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[1] = NULLCHAR;
     }
     else{
-      c = uartGetchar(UART2_BASE_PTR);
-      uartPutchar(UART2_BASE_PTR, c);
+      SVC_fgetc(io_dev, c);
+      SVC_fputc(io_dev, c);
     }
 //    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
 //      if (str_len == 0){
@@ -154,7 +154,7 @@ int get_string(char* user_cmd, int arg_len[]){
 //      }
 //    }
     if (c == '\r'){
-      c = uartGetchar(UART2_BASE_PTR);
+      SVC_fgetc(io_dev, c);
       if (c == '\n'){
         break;
       }
@@ -163,7 +163,7 @@ int get_string(char* user_cmd, int arg_len[]){
       }
     }
     if (c == '\033'){       //attempt to handle special shell escape char
-      c = uartGetchar(UART2_BASE_PTR);
+    	SVC_fgetc(io_dev, c);
     }
     if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
       c = escape_char(user_cmd, &str_len);
@@ -172,7 +172,7 @@ int get_string(char* user_cmd, int arg_len[]){
     if (c == '"'){
       int* this_len = &arg_len[argc + 1];
       c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
-      uartPutchar(UART2_BASE_PTR, c);
+      SVC_fputc(io_dev, c);
       if (c == E_NOINPUT){
         return E_NOINPUT;
       }
@@ -182,8 +182,8 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[0] = c;
       while( buffer[0] == ' ' || buffer[0] == '\t' ){
         buffer[1] = buffer[0];
-        buffer[0] = uartGetchar(UART2_BASE_PTR);
-        uartPutchar(UART2_BASE_PTR, buffer[0]);
+        SVC_fgetc(io_dev, buffer[0]);
+        SVC_fputc(io_dev, buffer[0]);
       }
       c = buffer[0];
       arg_len[argc] = right_pos - left_pos;
@@ -195,7 +195,7 @@ int get_string(char* user_cmd, int arg_len[]){
       continue;
     }
     if (c == '\r'){
-      c = uartGetchar(UART2_BASE_PTR);
+      SVC_fgetc(io_dev, c);
       if (c == '\n'){
         break;
       }
@@ -799,17 +799,18 @@ int shell(void){
 		SVC_fputs(io_dev, output, strlen(output));
 	}
     while(TRUE){
-    	char output = "$ ";
-    	SVC_fputs(io_dev, output, strlen(output));
+    	char dollar[4] = {'\0'};
+    	sprintf(dollar, "$ ", io_dev);
+    	SVC_fputs(io_dev, dollar, strlen(dollar));
         int arg_len[MAXARGS+2] = {0};
         char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
-    	while(!uartGetcharPresent(UART2_BASE_PTR)) {
+    	while(!SVC_ischar(io_dev)) {
     		delay(delayCount);
     	}
         if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
           return -99;
         }
-        uartPutsNL(UART2_BASE_PTR, "\n");
+    	SVC_fputs(io_dev, "\n", 1);
         int argc = arg_len[MAXARGS+1];
         char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
         if (argv == NULL) {
