@@ -142,7 +142,7 @@ int get_string(char* user_cmd, int arg_len[]){
       buffer[1] = NULLCHAR;
     }
     else{
-      SVC_fgetc(io_dev, c);
+      SVC_fgetc(io_dev, &c);
       SVC_fputc(io_dev, c);
     }
 //    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling

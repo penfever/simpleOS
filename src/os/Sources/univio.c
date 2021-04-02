@@ -228,7 +228,8 @@ int myfgetc (file_descriptor descr, char* bufp){
 	}
 	//device type checks
 	if (userptr->minorId == dev_UART2){
-		return uartGetchar(UART2_BASE_PTR);
+		*bufp = uartGetchar(UART2_BASE_PTR);
+		return 0;
 	}
 	int charsreadp = 0;
 	if (userptr->deviceType == PUSHBUTTON){
