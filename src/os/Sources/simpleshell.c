@@ -538,9 +538,9 @@ int cmd_ls(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	else if (argv[1][0] == '0'){
-		return dir_ls(0);
+		return SVC_dir_ls(0);
 	}
-	return dir_ls(1);
+	return SVC_dir_ls(1);
 }
 
 /*touch2led: Continuously copy from each touch sensor to the
@@ -632,8 +632,9 @@ int cmd_pot2ser(int argc, char* argv[]){
 			return err;
 		}
 		longInt2hex(*i, myOutput);
-		uartPutsNL(UART2_BASE_PTR, myOutput);
-		uartPutsNL(UART2_BASE_PTR, "\n");
+		SVC_fputs(io_dev, myOutput, strlen(myOutput));
+		SVC_fputc(io_dev, '\r');
+		SVC_fputc(io_dev, '\n');
 	}
 	SVC_free(i);
 	SVC_free(myOutput);
@@ -672,8 +673,9 @@ int cmd_therm2ser(int argc, char* argv[]){
 			return err;
 		}
 		longInt2hex(*i, myOutput);
-		uartPutsNL(UART2_BASE_PTR, myOutput);
-		uartPutsNL(UART2_BASE_PTR, "\n");
+		SVC_fputs(io_dev, myOutput, strlen(myOutput));
+		SVC_fputc(io_dev, '\r');
+		SVC_fputc(io_dev, '\n');
 	}
 	SVC_free(i);
 	SVC_free(myOutput);

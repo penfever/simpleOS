@@ -293,6 +293,19 @@ int __attribute__((never_inline)) SVC_ischar(file_descriptor descrf) {
 	__asm("svc %0" : : "I" (SVC_ISCHAR));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_dir_ls(int full) {
+	__asm("svc %0" : : "I" (SVC_DIR_LS));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_dir_ls(int full) {
+	__asm("svc %0" : : "I" (SVC_DIR_LS));
+}
+#endif
 
 int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
 	int sum;
@@ -509,6 +522,9 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_ISCHAR:
 			framePtr->returnVal = SVC_ischarImpl(framePtr->descrf);
+			break;
+		case SVC_DIR_LS:
+			framePtr->returnVal = dir_ls(framePtr->arg0);
 			break;
 		default:
 			if (MYFAT_DEBUG){

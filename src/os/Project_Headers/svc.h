@@ -35,6 +35,7 @@
 #define SVC_FPUTS 12
 #define SVC_FGETS 13
 #define SVC_ISCHAR 14
+#define SVC_DIR_LS 15
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -54,5 +55,6 @@ int SVC_ischar(file_descriptor descrf);
 int SVC_ischarImpl(file_descriptor descrf);
 void* SVC_malloc(unsigned int size);
 int SVC_free(void *ptr);
+int SVC_dir_ls(int full);
 
 #endif /* ifndef _SVC_H */
