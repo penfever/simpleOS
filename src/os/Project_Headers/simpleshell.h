@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "SDHC_FAT32_Files.h"
 
 #ifndef _SIMPLE_SHELL_H
 #define _SIMPLE_SHELL_H
@@ -55,6 +56,7 @@
 #define EOT 4
 
 extern int g_noFS;
+extern file_descriptor io_dev;
 
 struct date_time {
   char* month;

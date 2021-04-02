@@ -157,7 +157,7 @@ int get_string(char* user_cmd, int arg_len[]){
 //      }
 //    }
     if (c == '\r'){
-      SVC_fgetc(io_dev, c);
+      SVC_fgetc(io_dev, &c);
       if (c == '\n'){
         break;
       }
@@ -166,7 +166,7 @@ int get_string(char* user_cmd, int arg_len[]){
       }
     }
     if (c == '\033'){       //attempt to handle special shell escape char
-    	SVC_fgetc(io_dev, c);
+        SVC_fgetc(io_dev, &c);
     }
     if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
       c = escape_char(user_cmd, &str_len);
@@ -198,7 +198,7 @@ int get_string(char* user_cmd, int arg_len[]){
       continue;
     }
     if (c == '\r'){
-      SVC_fgetc(io_dev, c);
+      SVC_fgetc(io_dev, &c);
       if (c == '\n'){
         break;
       }
@@ -292,7 +292,6 @@ int cmd_malloc(int argc, char *argv[]){
   }
   void* mal_val = NULL;
   long long unsigned int my_size = hex_dec_oct(argv[1]);
-  svcInit_SetSVCPriority(7);
   if ((mal_val = SVC_malloc(my_size)) == NULL){
     return E_MALLOC;
   }
@@ -312,7 +311,6 @@ int cmd_free(int argc, char *argv[]){
   int err_val = 0;
   ptr_val = hex_dec_oct(argv[1]);
   check_overflow(ptr_val);
-  svcInit_SetSVCPriority(7);
   err_val = SVC_free((void *)ptr_val);
   if (err_val == 0){
 	char* msg = "Free successful \n";
@@ -406,7 +404,7 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	err = SVC_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
@@ -427,7 +425,7 @@ int cmd_fclose(int argc, char *argv[]){
 	if ((descrf = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
 		char* msg = "File close successful \n";
@@ -441,7 +439,7 @@ int cmd_create(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	return SVC_create(argv[1]);
 }
 
@@ -450,7 +448,7 @@ int cmd_delete(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	return SVC_delete(argv[1]);
 }
 
@@ -466,7 +464,7 @@ int cmd_fgetc(int argc, char *argv[]){
 	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	err = SVC_fgetc(descr, &bufp);
 	if (err < 0){
 		return err;
@@ -498,7 +496,7 @@ int cmd_fputc(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	char m = argv[2][0];
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	return SVC_fputc(descr, m);
 }
 
@@ -515,7 +513,7 @@ int cmd_fputs(int argc, char *argv[]){
 	if (argv[1][0] != '"' && argv[2][strlen(argv[2])-1] != '"'){ //must use quotation marks
 		return E_NOINPUT;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	return SVC_fputs(descr, argv[2], strlen(argv[2]));
 }
 
@@ -554,7 +552,7 @@ int cmd_touch2led(int argc, char* argv[]){
 		return E_NUMARGS;
 	}
 	file_descriptor myTS1 = 0;
-	svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
+	//svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
 	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
 	if (err != 0){
 		return err;
@@ -612,7 +610,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -652,7 +650,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -690,7 +688,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	svcInit_SetSVCPriority(7);
+	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');

@@ -8,6 +8,7 @@
 #include "uartNL.h"
 #include "simpleshell.h"
 #include "svc.h"
+#include "SDHC_FAT32_Files.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
@@ -46,10 +47,8 @@ int error_checker(int return_value){
     }
     char* output = myMalloc(64);
     sprintf(output, "error %d: %s \n", return_value, buffer);
-    if (currentPCB->openFiles[2].minorId == dev_UART2){
-    	uartPutsNL(UART2_BASE_PTR, output);
-    }
-    else if (MYFAT_DEBUG){
+	SVC_fputs(io_dev, output, strlen(output));
+    if (MYFAT_DEBUG){
     	printf(output);
     }
 	myFree(output);

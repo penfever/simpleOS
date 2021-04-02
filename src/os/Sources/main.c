@@ -43,6 +43,7 @@ int main(void){
     else{
         g_noFS = FALSE;
     }
+    svcInit_SetSVCPriority(7);
     privUnprivileged();
     int err = shell();
     if (MYFAT_DEBUG){
