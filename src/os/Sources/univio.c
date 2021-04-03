@@ -102,6 +102,26 @@ char mytoupper(char c){
 }
 
 int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
+	if (devicePtr == dev_UART2){
+//		struct stream userptr = currentPCB->openFiles[0]; 
+//		if (currentPCB->openFiles[0].minorId == dev_UART2){
+			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
+			userptr->deviceType = IO;
+			userptr->minorId = devicePtr;
+			*fd = (file_descriptor *)userptr;
+			uart_init(115200);
+			return 0;
+//		}
+//		userptr.deviceType = IO; //STDIN
+//		userptr.minorId = dev_UART2;
+//		userptr = currentPCB->openFiles[1]; 
+//		userptr.deviceType = IO; //STDOUT
+//		userptr.minorId = dev_UART2;
+//		userptr = currentPCB->openFiles[2]; 
+//		userptr.deviceType = IO; //STDERR
+//		userptr.minorId = dev_UART2;
+//		return 0;
+	}
 	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){
 		if (MYFAT_DEBUG){
@@ -125,6 +145,21 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			uartPutsNL(UART2_BASE_PTR, "LED initialized. \n");
 		}
 	}
+	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
+		userptr->deviceType = ADC;
+		adc_init();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "ADC initialized. \n");
+		}
+	}
+	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
+		userptr->deviceType = TSI;
+		TSI_Init();
+		TSI_Calibrate();
+		if (UARTIO){
+			uartPutsNL(UART2_BASE_PTR, "TSI initialized. \n");
+		}
+	}
 	else{
 		if (MYFAT_DEBUG){
 			printf("Invalid device name \n");
@@ -138,29 +173,11 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		char* test_str = devTable[i];
-		if (strncmp(test_str, filename, strlen(filename)) != 0){
+		if (strncmp(devTable[i].dev_name, filename, strlen(filename)) != 0){
 			continue;
 		}
 		else{
-			if (i == 1){
-				return dev_sw1;
-			}
-			if (i == 2){
-				return dev_sw2;
-			}
-			if (i == 3){
-				return dev_E1;
-			}
-			if (i == 4){
-				return dev_E2;
-			}
-			if (i == 5){
-				return dev_E3;
-			}
-			if (i == 6){
-				return dev_E4;
-			}
+			return devTable[i].minorId;
 		}
 	}
 	return 0;
@@ -174,7 +191,7 @@ int myfclose (file_descriptor descr){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_UNFREE;
 	}
-	if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == LED){
+	if (userptr->deviceType != FAT32){
 		return remove_device_from_PCB(descr);
 	}
 	if (g_noFS){
@@ -196,7 +213,7 @@ int remove_device_from_PCB(file_descriptor fd){
 /* myfgetc() reads the next character from stream and 
  * passes it to a buffer. Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
-	int err = -5;
+	int err = 0;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM;
 	}
@@ -209,12 +226,25 @@ int myfgetc (file_descriptor descr, char* bufp){
 			return E_EOF;
 		}
 	}
+	//device type checks
+	if (userptr->minorId == dev_UART2){
+		*bufp = uartGetchar(UART2_BASE_PTR);
+		return 0;
+	}
 	int charsreadp = 0;
 	if (userptr->deviceType == PUSHBUTTON){
 		err = pushb_fgetc(descr);
 	}
 	else if (userptr->deviceType == LED){
 		err = led_fgetc(descr);
+	}
+	else if (userptr->deviceType == ADC){
+		*bufp = adc_fgetc(descr);
+		err = 0;
+	}
+	else if (userptr->deviceType == TSI){
+		*bufp = tsi_fgetc(descr);
+		err = 0;
 	}
 	else{ //CASE: FAT32
 		if (g_noFS){
@@ -223,6 +253,34 @@ int myfgetc (file_descriptor descr, char* bufp){
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
 	}
 	return err;
+}
+
+int tsi_fgetc(file_descriptor descr) {
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_TSI1 && electrode_in(0)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI2 && electrode_in(1)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI3 && electrode_in(2)){
+		return TRUE;
+	}
+	if (userptr->minorId == dev_TSI4 && electrode_in(3)){
+		return TRUE;
+	}
+	return FALSE;
+}
+
+int adc_fgetc(file_descriptor descr) {
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_pot){
+		return adc_read(ADC_CHANNEL_POTENTIOMETER);
+	}
+	if (userptr->minorId == dev_temp){
+		return adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+	}
+	return E_DEV;
 }
 
 int pushb_fgetc(file_descriptor descr){
@@ -252,7 +310,7 @@ int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
         ledBlueOn();
 	}
 	if (userptr->minorId == dev_E3){
-        ledOrangeOn();
+        ledGreenOn();
 	}
 	if (userptr->minorId == dev_E4){
         ledYellowOn();
@@ -266,29 +324,30 @@ int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
  * A terminating null byte (\0) is stored after the last character in the buffer. */
 
 char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
-	if (g_noFS){
-		return E_NOFS;
-	}
-	int err;
-	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
-	}
-	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_NOINPUT;
-	}
-	if (userptr->cursor + buflen >= userptr->fileSize){
-		return E_EOF;
-	}
-	int charsreadp;
-	char bufp[buflen];
-	err = file_getbuf(descr, bufp, buflen, &charsreadp);
-	bufp[buflen] = '\0';
-	return bufp;
+	;
+//	if (g_noFS){
+//		return E_NOFS;
+//	}
+//	int err;
+//	if (pid != currentPCB->pid){
+//		return E_NOINPUT; //TODO: error checking
+//	}
+//	struct stream* userptr = (struct stream*)descr;
+//	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
+//		return E_NOINPUT;
+//	}
+//	if (userptr->cursor + buflen >= userptr->fileSize){
+//		return E_EOF;
+//	}
+//	int charsreadp;
+//	char bufp[buflen];
+//	err = file_getbuf(descr, bufp, buflen, &charsreadp);
+//	bufp[buflen] = '\0';
+//	return bufp;
 }
 
 int myfputc (file_descriptor descr, char bufp){
-	int err = -1;
+	int err = 0;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
@@ -296,13 +355,16 @@ int myfputc (file_descriptor descr, char bufp){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
 	}
-	if (userptr->deviceType == PUSHBUTTON){
+	if (userptr->minorId == dev_UART2){
+		uartPutchar(UART2_BASE_PTR, bufp);
+	}
+	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
 		return E_DEV;
 	}
-	if (userptr->deviceType == LED){
+	else if (userptr->deviceType == LED){
 		err = led_fputc(descr);
-		if (err == 0 && UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+		if (err == 0 && MYFAT_DEBUG){
+			printf("fputc success\n");
 		}
 	}
 	//CASE: FAT32
@@ -312,8 +374,8 @@ int myfputc (file_descriptor descr, char bufp){
 		}
 		err = file_putbuf(descr, &bufp, 1);
 	}
-	if (err == 0 && UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+	if (err == 0 && MYFAT_DEBUG){
+		printf("fputc success\n");
 	}
 	return err;
 }
@@ -335,19 +397,30 @@ int led_fputc(file_descriptor descr){
 	return 0;
 }
 
-int myfputs (char* bufp, file_descriptor descr, int buflen){ //TODO: fix this
-	if (g_noFS){
-		return E_NOFS; //TODO: errcheck E_NOFS
-	}
+int myfputs (file_descriptor descr, char* bufp, int buflen){
+	int err = -1;
 	if (pid != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-		return E_UNFREE;
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
 	}
-	int err;
-	err = file_putbuf(descr, &bufp[0], buflen);
+	if (userptr->minorId == dev_UART2){
+		uartPutsNL(UART2_BASE_PTR, bufp);
+	}
+	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI || userptr->deviceType == LED){
+		return E_DEV;
+	}
+	else{
+		if (g_noFS){
+			return E_NOFS;
+		}
+		err = file_putbuf(descr, &bufp, buflen);
+	}
+	if (err == 0 && UARTIO){
+		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+	}
 	return err;
 }
 

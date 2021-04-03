@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "SDHC_FAT32_Files.h"
 
 #ifndef _SIMPLE_SHELL_H
 #define _SIMPLE_SHELL_H
@@ -30,8 +31,14 @@
                   "fclose closes a file or device. \n"\
                   "fgetc and fgets retrieve characters or strings from a file or device. \n"\
                   "fputc and fputs send characters or strings to a file or device. \n"\
-                  "fseek sets the file cursor to a particular position in a file. \n"
-
+                  "fseek sets the file cursor to a particular position in a file. \n"\
+                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
+                  "pot2ser continuously outputs the potentiometer value to STDOUT \n"\
+				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
+				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
+				  "catfile prints the contents of a file to STDOUT \n"\
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
+				  
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
@@ -46,8 +53,10 @@
 #ifndef UARTIO
 #define UARTIO 1
 #endif
+#define EOT 4
 
 extern int g_noFS;
+extern file_descriptor io_dev;
 
 struct date_time {
   char* month;
@@ -94,6 +103,12 @@ int cmd_fputc(int argc, char *argv[]);
 int cmd_fputs(int argc, char *argv[]);
 int cmd_seek(int argc, char *argv[]);
 int cmd_ls(int argc, char *argv[]);
+int cmd_touch2led(int argc, char* argv[]);
+int cmd_pot2ser(int argc, char* argv[]);
+int cmd_therm2ser(int argc, char* argv[]);
+int cmd_pb2led(int argc, char* argv[]);
+int cmd_catfile(int argc, char* argv[]);
+int cmd_cat2file(int argc, char* argv[]);
 
 struct commandEntry {
   char *name;

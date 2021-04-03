@@ -8,6 +8,8 @@
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "sdram.h"
+#include "simpleshell.h"
 
 static int node_count = 0;
 
@@ -31,19 +33,18 @@ allocated to myMalloc, attempts to call malloc to acquire the necessary memory, 
 init_struct then fills in the correct values for 'free', 'size' and 'pid' for the initial struct. Finally, it updates the
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
-    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-    	char* output = "K70 malloc fail \n";
-    	uartPutsNL(UART2_BASE_PTR, output);
-        return NULL;
-    }
-    else{
-    	g_lower_bound = (char *)&first[0]; //pointers to lower and upper memory bounds
-    	g_upper_bound = g_lower_bound + MAX - 1;
-        node_count += 1;
-        first->free = TRUE;
-        first->size = MAX - MEMSTRUCT;
-        first->pid = getCurrentPid();
-    }
+	first = (struct mem_region*)SDRAM_START;
+//    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
+//    	char* output = "K70 malloc fail \n";
+//    	uartPutsNL(UART2_BASE_PTR, output);
+//        return NULL;
+//    }
+    g_lower_bound = SDRAM_START; //pointers to lower and upper memory bounds
+    g_upper_bound = SDRAM_END;
+    node_count += 1;
+    first->free = TRUE;
+    first->size = MAX - MEMSTRUCT;
+    first->pid = getCurrentPid();
     return first;
     //subdivide memory
 }
@@ -126,11 +127,11 @@ struct mem_region* walk_struct(struct mem_region* this_region){ //REGION boundar
 /*memoryMap prints the contents of memory in their entirety. If memory is empty, it prints NULL.*/
 void memoryMap(void){
 	char* output = 						"-------------------MEMORYMAP--------------- \n\n";
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
     output = 							"|    ENTRY ADDR    | FREE |   SIZE   | PID | \n";
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
 	output = 							"------------------------------------------- \n";
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
     struct mem_region* temp = first;
     int total_size = 0;
     for (int i = 0; i < node_count; i++){
@@ -143,21 +144,21 @@ void memoryMap(void){
         else{
             bool_str = "True ";
         }
-        char* memDisplay = myMalloc(256); //uart gets a map of all used and free regions in the 128M byte region of memory.
+        char* memDisplay = SVC_malloc(256); //uart gets a map of all used and free regions in the 128M byte region of memory.
         sprintf(memDisplay, 			"|   %p   |  %s  |  %05d  | %d |\n", temp, bool_str, temp->size, temp->pid);
-    	uartPutsNL(UART2_BASE_PTR, memDisplay);
+		SVC_fputs(io_dev, memDisplay, strlen(memDisplay));
     	char* output2 = 				"-------------------------------------------- \n";
-    	uartPutsNL(UART2_BASE_PTR, output2);
-        myFree(memDisplay);
+    	SVC_fputs(io_dev, output2, strlen(output2));
+        SVC_free(memDisplay);
         temp = walk_struct(temp);
         if (temp <= 0){
         	walk_struct_err();
         }
     }
-    char* memDisplay2 = myMalloc(256);
+    char* memDisplay2 = SVC_malloc(256);
     sprintf(memDisplay2, "TOTAL MEMORY SIZE = %d \n", total_size);
-	uartPutsNL(UART2_BASE_PTR, memDisplay2);
-    myFree(memDisplay2); 
+	SVC_fputs(io_dev, memDisplay2, strlen(memDisplay2));
+    SVC_free(memDisplay2); 
 }
 
 void walk_struct_err(){
@@ -167,7 +168,7 @@ void walk_struct_err(){
 	else if (MYFAT_DEBUG){
 		printf("walk_struct error (check memory bounds)\n");
 	}
-	exit(E_MALLOC);
+	cmd_exit(1, NULL);
 }
 
 /*bounds accepts as a parameter a void* ptr. It then finds the appropriate

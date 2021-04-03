@@ -2,7 +2,7 @@
 #define _MYMALLOC_H
 #define TRUE 1
 #define FALSE 0
-#define MAX 48000
+#define MAX SDRAM_SIZE
 #define SHELL_RESERVE 512
 #define DOUBLE_WORD 8
 #define MEMSTRUCT sizeof(struct mem_region)

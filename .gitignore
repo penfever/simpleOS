@@ -27,6 +27,10 @@
 **/SDCardReader*
 **/uart*
 **/util*
+**/mcg*
+**/priv*
+**/sdram*
+**/switchcmd*
 .vscode/
 build/
 ps*/
@@ -52,8 +56,8 @@ src/toggle/ReferencedRSESystems.xml
 src/toggle/toggle_RAM_Segger J-Link_Trace.jlink
 src/os/mymalloc/main.exe
 src/os/RAM
-src/os/Project_Settings
-
+src/os/Project_Settings/Debugger
+src/os/Project_Settings/Linker_Files
 src/os/ReferencedRSESystems.xml
 src/os/.settings/com.freescale.core.ide.cdt.toolchain.prefs
 src/os/.settings/com.freescale.core.ide.newprojectwizard.prefs

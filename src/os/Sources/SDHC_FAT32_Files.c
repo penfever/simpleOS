@@ -235,13 +235,10 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	    	}
 			latestSector = logicalSector;
 	    }
-		int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
-		char output[64] = {' '};
-		sprintf(output, "Total entries in other sectors = %d. \n", entries);
-		if(UARTIO){
-			uartPutsNL(UART2_BASE_PTR, output);
-		}
-		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		if(MYFAT_DEBUG){
+			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
+			char output[64] = {'\0'};
+			sprintf(output, "Total entries in other sectors = %d. \n", entries);
 			printf(output);
 		}
 	    return finished;
@@ -362,7 +359,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			memcpy(MOUNT->data, data, BLOCK);
 	    		}
 	    		//uint32_t clusterAddr = dir_entry->DIR_FstClusLO | (dir_entry->DIR_FstClusHI << 16);
-    			if(UARTIO){
+    			if(MYFAT_DEBUG){
     	    		char output[64] = {' '};
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
         			uartPutsNL(UART2_BASE_PTR, output);
@@ -694,7 +691,7 @@ int file_open(char *filename, file_descriptor *descrp){
     //TODO: Do I need a dynamic array of which files are open? To prevent double opening? this is a PSET4 issue, right now we only have one proc open
 	//populate struct in PCB with file data
 	userptr->deviceType = FAT32;
-	userptr->minorId = sdhc;
+	userptr->minorId = dev_sdhc;
 	userptr->fileName = filename;
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =latest->DIR_FileSize;
@@ -755,8 +752,11 @@ int file_close(file_descriptor descr){
 int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	struct stream* userptr = (struct stream*)descr;
 	*charsreadp = 0;
-	if (find_curr_stream(userptr) == FALSE || buflen <= 0 || userptr->clusterAddr == 0){
+	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
+	}
+	else if (buflen <= 0 || userptr->clusterAddr == 0){
+		return E_NOINPUT;
 	}
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file

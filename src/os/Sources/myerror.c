@@ -1,9 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "mymalloc.h"
 #include "myerror.h"
+#include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "simpleshell.h"
+#include "svc.h"
+#include "SDHC_FAT32_Files.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
@@ -42,7 +47,10 @@ int error_checker(int return_value){
     }
     char* output = myMalloc(64);
     sprintf(output, "error %d: %s \n", return_value, buffer);
-	uartPutsNL(UART2_BASE_PTR, output);
+	SVC_fputs(io_dev, output, strlen(output));
+    if (MYFAT_DEBUG){
+    	printf(output);
+    }
 	myFree(output);
     if (return_value == E_NUMARGS){
       return E_NUMARGS;
@@ -52,7 +60,7 @@ int error_checker(int return_value){
     return 0;
   }
   else{
-	char* output = myMalloc(64);
+	char* output = SVC_malloc(64);
 	sprintf(output, "Unknown error %d: \n", return_value);
 	uartPutsNL(UART2_BASE_PTR, output);
 	myFree(output);
