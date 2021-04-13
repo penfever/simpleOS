@@ -10,27 +10,6 @@
 *.d
 *.cpp
 *.7z
-**/fsInfo*
-**/led.h
-**/led.c
-**/bootsector*
-**/breakpoint*
-**/delay*
-**/derivative*
-**/directory for students*
-**/FAT.h
-**/FAT.c
-**/microSD.h
-**/microSD.c
-**/pushbutton*
-**/MK70F12*
-**/SDCardReader*
-**/uart*
-**/util*
-**/mcg*
-**/priv*
-**/sdram*
-**/switchcmd*
 .vscode/
 build/
 ps*/
