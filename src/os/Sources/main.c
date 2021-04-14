@@ -11,15 +11,18 @@
 #include "uartNL.h"
 #include "mymalloc.h"
 #include "priv.h"
+#include "intSerialIO.h"
 
 int main(void){
 	int error;
+	error = intSerIoProj();
 	if ((error = init_clocks_sdram()) != 0){
 		if (MYFAT_DEBUG){
 			printf("sdram/MCG error \n");
 		}
 		exit(-4);
 	}
+	error = intSerIoProj();
 //	if (UARTIO){
 //		file_descriptor descr;
 //		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
