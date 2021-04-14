@@ -289,9 +289,10 @@ void putsIntoBuffer(char *s) {
 
 void putsNLIntoBuffer(char *s) {
 	while(*s) {
-		if(*s == '\n')
-		uartPutchar(uartChannel, '\r');
-		uartPutchar(uartChannel, *s++);
+		if(*s == '\n'){
+			putcharIntoBuffer('\r');
+		}
+		putcharIntoBuffer(*s++);
 	}
 }
 

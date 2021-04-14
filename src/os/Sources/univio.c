@@ -110,7 +110,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
 			*fd = (file_descriptor *)userptr;
-			uart_init(115200);
+			intSerialIOInit();
 			return 0;
 //		}
 //		userptr.deviceType = IO; //STDIN
@@ -408,7 +408,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		putsNLIntoBuffer(bufp);
+		putsIntoBuffer(bufp);
 	}
 	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI || userptr->deviceType == LED){
 		return E_DEV;
@@ -420,7 +420,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		err = file_putbuf(descr, &bufp, buflen);
 	}
 	if (err == 0 && UARTIO){
-		putsNLIntoBuffer("fputc success\n");
+		putsIntoBuffer("fputc success\r\n");
 	}
 	return err;
 }

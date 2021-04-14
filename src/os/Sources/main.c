@@ -10,6 +10,7 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "mymalloc.h"
+#include "svc.h"
 #include "priv.h"
 #include "intSerialIO.h"
 
@@ -22,7 +23,6 @@ int main(void){
 		}
 		exit(-4);
 	}
-	error = intSerIoProj();
 //	if (UARTIO){
 //		file_descriptor descr;
 //		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
@@ -32,6 +32,7 @@ int main(void){
 //			exit(-4);
 //		}
 //	}
+	//error = intSerIoProj();
     if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
         setvbuf(stdout, NULL, _IONBF, 0);	
@@ -46,7 +47,7 @@ int main(void){
     else{
         g_noFS = FALSE;
     }
-    svcInit_SetSVCPriority(7);
+    svcInit_SetSVCPriority(15);
     privUnprivileged();
     int err = shell();
     if (MYFAT_DEBUG){
