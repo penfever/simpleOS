@@ -15,7 +15,7 @@
 
 int main(void){
 	int error;
-	error = intSerIoProj();
+	//error = intSerIoProj();
 	if ((error = init_clocks_sdram()) != 0){
 		if (MYFAT_DEBUG){
 			printf("sdram/MCG error \n");
