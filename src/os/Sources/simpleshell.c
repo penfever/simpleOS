@@ -797,9 +797,9 @@ int cmd_cat2file(int argc, char* argv[]){
 	}
 	char c;
 	while(TRUE){
-    	while(!SVC_ischar(io_dev)) {
-    		delay(delayCount);
-    	}
+    	// while(!SVC_ischar(io_dev)) {
+    	// 	delay(delayCount);
+    	// }
 	    SVC_fgetc(io_dev, &c);
 	    if (c == EOT){
 	    	break;
@@ -824,9 +824,9 @@ int shell(void){
     	SVC_fputs(io_dev, dollar, strlen(dollar));
         int arg_len[MAXARGS+2] = {0};
         char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
-    	while(!SVC_ischar(io_dev)) {
-    		delay(delayCount);
-    	}
+    	// while(!SVC_ischar(io_dev)) {
+    	// 	delay(delayCount);
+    	// }
         if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
           return -99;
         }

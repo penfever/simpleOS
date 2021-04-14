@@ -287,6 +287,14 @@ void putsIntoBuffer(char *s) {
 	}
 }
 
+void putsNLIntoBuffer(char *s) {
+	while(*s) {
+		if(*s == '\n')
+		uartPutchar(uartChannel, '\r');
+		uartPutchar(uartChannel, *s++);
+	}
+}
+
 void intSerialIOInit(void) {
 	/* On reset (i.e., before calling mcgInit), the processor clocking
 	 * starts in FEI (FLL Engaged Internal) mode.  In FEI mode and with
