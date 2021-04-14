@@ -82,10 +82,7 @@ int uart_init_noMCG(int baud){
 }
 
 int uart_init(int baud){
-	const uint32_t moduleClock = 60000000; /*in hz. Per Table 5-2 on labeled page 225 (PDF page 232) of the K70 Sub-Family
-	 * Reference Manual, Rev. 4, Oct 2015 */
-	const int KHzInHz = 1000;
-	uartInit(UART2_BASE_PTR, moduleClock/KHzInHz, baud);
+	intSerialIOInit();
 	return 0;
 }
 

@@ -16,6 +16,7 @@
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "intSerialIO.h"
 
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
@@ -133,7 +134,7 @@ int write_cache(){
 void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_READ_ONLY){
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "READ_ONLY");
+			putsNLIntoBuffer("READ_ONLY");
 		}
 		else if (MYFAT_DEBUG_LITE){
 			printf("READ_ONLY");	
@@ -141,7 +142,7 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_HIDDEN){
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "Hidden");
+			putsNLIntoBuffer("Hidden");
 		}
 		else if (MYFAT_DEBUG_LITE){
 			printf("Hidden");	
@@ -149,7 +150,7 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_SYSTEM){
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "System");
+			putsNLIntoBuffer("System");
 		}
 		else if (MYFAT_DEBUG_LITE){
 			printf("System");	
@@ -157,7 +158,7 @@ void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_VOLUME_ID){
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "Volume ID");
+			putsNLIntoBuffer("Volume ID");
 		}
 		else if (MYFAT_DEBUG_LITE){
 			printf("Volume ID");	
@@ -272,7 +273,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			if(UARTIO){
     	    		char output[64] = {' '};
         			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
-        			uartPutsNL(UART2_BASE_PTR, output);
+        			putsNLIntoBuffer(output);
     			}
 	    	return 0;
 	    	}
@@ -305,7 +306,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		char output[64] = {' '};
     			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
     			if (g_printAll){
-        			uartPutsNL(UART2_BASE_PTR, output);
+        			putsNLIntoBuffer(output);
     			}
     			else if (MYFAT_DEBUG){
 	    			printf(output);
@@ -315,7 +316,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		char output[64] = {' '};
     			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
     			if (g_printAll){
-        			uartPutsNL(UART2_BASE_PTR, output);
+        			putsNLIntoBuffer(output);
     			}
     			else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf(output);
@@ -328,11 +329,11 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     		//dirname = filename_clean(dirname);
 			sprintf(output, "%.8s%c%.3s\n", dirname, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
 	    	if(UARTIO && search == NULL && g_deleteFlag == FALSE){
-    			uartPutsNL(UART2_BASE_PTR, output);
+    			putsNLIntoBuffer(output);
 				if(g_printAll){
-	    			uartPutsNL(UART2_BASE_PTR, "Attributes: ");
+	    			putsNLIntoBuffer("Attributes: ");
 					dir_entry_print_attributes(dir_entry);
-	    			uartPutsNL(UART2_BASE_PTR, "\n");
+	    			putsNLIntoBuffer("\n");
 				}
 	    	}
 	    	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
@@ -362,7 +363,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			if(MYFAT_DEBUG){
     	    		char output[64] = {' '};
         			sprintf(output, "Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
-        			uartPutsNL(UART2_BASE_PTR, output);
+        			putsNLIntoBuffer(output);
     			}
     			else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 	    			printf("Sector %d, entry %d is a match for %s\n", logicalSector, i, search);
@@ -376,7 +377,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     		char output2[64] = {' '};
 			sprintf(output2, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 			if (g_printAll){
-    			uartPutsNL(UART2_BASE_PTR, output2);
+    			putsNLIntoBuffer(output2);
 			}
 			else if (MYFAT_DEBUG){
     			printf(output2);
@@ -411,7 +412,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){
     	return err;
     }
     if (UARTIO){
-    	uartPutsNL(UART2_BASE_PTR, "Beginning file search. \n");
+    	putsNLIntoBuffer("Beginning file search. \n");
     }
     else if (CONSOLEIO){
     	printf("Beginning file search. \n");
@@ -456,7 +457,7 @@ int dir_create_file(char *filename){
 		return err;
 	}
 	else if (UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "File created. \n");
+		putsNLIntoBuffer("File created. \n");
 	}
 	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		printf("File created. \n");
@@ -659,7 +660,7 @@ int dir_delete_file(char *filename){
 		return err;
 	}
 	else if (UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "File deleted. \n");
+		putsNLIntoBuffer("File deleted. \n");
 	}
 	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		printf("File deleted. \n");

@@ -19,6 +19,7 @@
 #include "uartNL.h"
 #include "led.h"
 #include "pushbutton.h"
+#include "intSerialIO.h"
 
 static int pid = 0; //temporarily set everything to OS
 
@@ -135,21 +136,21 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "Pushbutton initialized. \n");
+			putsNLIntoBuffer("Pushbutton initialized. \n");
 		}
 	}
 	else if (devicePtr >= LED_MIN && devicePtr <= LED_MAX){
 		userptr->deviceType = LED;
 		ledInitAll();
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "LED initialized. \n");
+			putsNLIntoBuffer("LED initialized. \n");
 		}
 	}
 	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
 		userptr->deviceType = ADC;
 		adc_init();
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "ADC initialized. \n");
+			putsNLIntoBuffer("ADC initialized. \n");
 		}
 	}
 	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
@@ -157,7 +158,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		TSI_Init();
 		TSI_Calibrate();
 		if (UARTIO){
-			uartPutsNL(UART2_BASE_PTR, "TSI initialized. \n");
+			putsNLIntoBuffer("TSI initialized. \n");
 		}
 	}
 	else{
@@ -228,7 +229,7 @@ int myfgetc (file_descriptor descr, char* bufp){
 	}
 	//device type checks
 	if (userptr->minorId == dev_UART2){
-		*bufp = uartGetchar(UART2_BASE_PTR);
+		*bufp = getcharFromBuffer();
 		return 0;
 	}
 	int charsreadp = 0;
@@ -286,16 +287,16 @@ int adc_fgetc(file_descriptor descr) {
 int pushb_fgetc(file_descriptor descr){
 	if (UARTIO){
 		if (sw1In()){
-			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is pressed \n");
+			putsNLIntoBuffer("Pushbutton sw1 is pressed \n");
 		}
 		else{
-			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw1 is not pressed \n");
+			putsNLIntoBuffer("Pushbutton sw1 is not pressed \n");
 		}
 		if (sw2In()){
-			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is pressed \n");
+			putsNLIntoBuffer("Pushbutton sw2 is pressed \n");
 		}
 		else{
-			uartPutsNL(UART2_BASE_PTR, "Pushbutton sw2 is not pressed \n");
+			putsNLIntoBuffer("Pushbutton sw2 is not pressed \n");
 		}
 	}
 	return 0;
@@ -356,7 +357,7 @@ int myfputc (file_descriptor descr, char bufp){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		uartPutchar(UART2_BASE_PTR, bufp);
+		putcharIntoBuffer(bufp);
 	}
 	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
 		return E_DEV;
@@ -407,7 +408,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		uartPutsNL(UART2_BASE_PTR, bufp);
+		putsNLIntoBuffer(bufp);
 	}
 	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI || userptr->deviceType == LED){
 		return E_DEV;
@@ -419,7 +420,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		err = file_putbuf(descr, &bufp, buflen);
 	}
 	if (err == 0 && UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "fputc success\n");
+		putsNLIntoBuffer("fputc success\n");
 	}
 	return err;
 }

@@ -9,6 +9,7 @@
 #include "simpleshell.h"
 #include "svc.h"
 #include "SDHC_FAT32_Files.h"
+#include "intSerialIO.h"
 
 struct _errordesc errordesc[] = {
     { E_SUCCESS, "No error \n" },
@@ -62,7 +63,7 @@ int error_checker(int return_value){
   else{
 	char* output = SVC_malloc(64);
 	sprintf(output, "Unknown error %d: \n", return_value);
-	uartPutsNL(UART2_BASE_PTR, output);
+	putsNLIntoBuffer(output);
 	myFree(output);
   }
   return 0;
