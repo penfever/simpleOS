@@ -38,12 +38,7 @@
 				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
 				  "catfile prints the contents of a file to STDOUT \n"\
 				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
-				  
-#define SECYEAR 31536000
-#define SECDAY 86400
-#define SECHOUR 3600
-#define SECMIN 60
-#define TIMESTAMP "%02d:%02d:%02d.%06.ld"
+				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
 #define BACKSLASH 92
@@ -58,30 +53,12 @@
 extern int g_noFS;
 extern file_descriptor io_dev;
 
-struct date_time {
-  char* month;
-  int day;
-  int year;
-  int hour;
-  int minute;
-  int second;
-  char* clock;
-};
-
 struct escape_chars {
     char c;
     int ascii;
 };
 
 extern struct escape_chars escapechars[];
-
-struct months {
-  char *month;
-  int order;
-  int offset;
-};
-
-extern struct months months[];
 
 int cmd_date(int argc, char *argv[]);
 int cmd_echo(int argc, char *argv[]);

@@ -34,20 +34,6 @@ struct escape_chars escapechars[] = {
 int g_noFS = TRUE;
 file_descriptor io_dev;
 
-struct months months[] = {{"January", 0, 31}, 
-              {"February", 1, 28}, 
-              {"March", 2, 31},  
-              {"April", 3, 30},  
-              {"May", 4, 31},  
-              {"June", 5, 31},  
-              {"July", 6, 31}, 
-              {"August", 7, 31}, 
-              {"September", 8, 30}, 
-              {"October", 9, 31}, 
-              {"November", 10, 30}, 
-              {"December", 11, 31}, 
-              {"February", 12, 29}};
-
 struct commandEntry commands[] = {{"date", cmd_date},
                 {"echo", cmd_echo},
                 {"exit", cmd_exit},

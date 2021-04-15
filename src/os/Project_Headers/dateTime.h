@@ -1,3 +1,9 @@
+#define SECYEAR 31536000
+#define SECDAY 86400
+#define SECHOUR 3600
+#define SECMIN 60
+#define TIMESTAMP "%02d:%02d:%02d.%06.ld"
+
 /*Holds current system time in ms since the MS-DOS epoch, 00:00, Jan 1 1980, as given by user*/
 struct date_time {
   char* month;
@@ -16,11 +22,9 @@ struct months {
   int offset;
 };
 
-extern struct months months[];
+extern struct months allMonths[];
 
-void print_time(const struct date_time curr_date, const struct timeval my_time);
-
-struct date_time get_time(time_t sec_now);
+struct date_time get_time();
 
 extern long long curTime;
 
@@ -38,4 +42,4 @@ int isleapyear(int inyear);
    23, 2014 15:57:07.123456".  "date" will call the POSIX system call "gettimeofday" to determine the time and date.  "gettimeofday"
    returns the number of seconds and microseconds since midnight (zero
    hours) on January 1, 1980 -- this time is referred to as the MSDOS Epoch. */
-void print_time(const struct date_time curr_date);
+void print_time(struct date_time curr_date);
