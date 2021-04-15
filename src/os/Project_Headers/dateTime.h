@@ -1,5 +1,3 @@
-#include "dateTime.c"
-
 /*Holds current system time in ms since the MS-DOS epoch, 00:00, Jan 1 1980, as given by user*/
 extern long long curTime;
 

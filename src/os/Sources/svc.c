@@ -88,7 +88,7 @@ struct frame {
 		file_descriptor descrf;
 		unsigned int unsInt;
 		void* vptr;
-		long long thisTime;
+		long long newTime;
 	};
 	union {
 		int r1;
@@ -541,7 +541,7 @@ void svcHandlerInC(struct frame *framePtr) {
 		case SVC_DIR_LS:
 			framePtr->returnVal = dir_ls(framePtr->arg0);
 			break;
-		case SVC_SET_TIME:
+		case SVC_SETTIME:
 			framePtr->returnVal = set_time(framePtr->newTime);
 			break;
 		default:

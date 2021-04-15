@@ -73,9 +73,7 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
-                {"cat2file", cmd_cat2file},
-                {"settime", cmd_settime},
-                {"gettime", cmd_gettime}
+                {"cat2file", cmd_cat2file}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -270,16 +268,29 @@ int cmd_help(int argc, char *argv[]){
 }
 
 /*formats and prints a date and time from get_time -- "date" will output to stdout 
-the current date and time in the format "January 23, 2014 15:57:07.123456".  
-"date" will call the POSIX system call "gettimeofday" to determine the time and date.  
-"gettimeofday" returns the number of seconds and microseconds since midnight (zero
-hours) on January 1, 1970 -- this time is referred to as the Unix Epoch. */
+the current date and time in the format "January 23, 2014 15:57:07.123456". 
+If called with one argument, this command sets the system time 
+ * to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.
+ * Note: system time WILL NOT INCREMENT unless time is set using this command.
+ * This command will display the current date and time when invoked without any arguments.*/ 
 
 int cmd_date(int argc, char *argv[]){
-  if (argc != 1){
-    return E_NUMARGS;
+  if (argc == 1){
+	if (curTime == 0){
+		return E_NOINPUT;
+	}
+    sprintf("%ll", curTime); //TODO: proper date formatting
+    return 0;
   }
-  return 0;
+  if (argc != 2){
+  		return E_NUMARGS;
+  	}
+       long long thisTime;
+       if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0)
+       {
+  		return E_NOINPUT;
+  	}
+  return SVC_settime(thisTime);
 }
 
 int cmd_clockdate(int argc, char *argv[]){
@@ -809,30 +820,6 @@ int cmd_cat2file(int argc, char* argv[]){
 		SVC_fputc(descr, c);
 	}
 	return SVC_fclose(descr);
-}
-
-/*This sets the system time to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.*/
-int cmd_settime(int argc, char *argv[]){
-     if (argc != 2){
-		return E_NUMARGS;
-	}
-     long long thisTime;
-     if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0)
-     {
-		return E_NOINPUT;
-	}
-     return SVC_settime(thisTime);
-}
-
-/*Prints current system time to STDOUT (in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980*/
-int cmd_gettime(int argc, char *argv[]){
-     if (argc != 1){
-		return E_NUMARGS;
-	}
-     int error;
-     check argc argv
-     sprintf("%ll", curTime); //check reqd formatting
-     return 0;
 }
 
 //command line shell accepts user input and executes basic commands

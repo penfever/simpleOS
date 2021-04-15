@@ -36,7 +36,7 @@
 #define SVC_FGETS 13
 #define SVC_ISCHAR 14
 #define SVC_DIR_LS 15
-#define SVC_SET_TIME 16
+#define SVC_SETTIME 16
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
