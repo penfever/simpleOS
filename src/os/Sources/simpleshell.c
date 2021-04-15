@@ -827,7 +827,6 @@ int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
 	if (UARTIO){
 		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-		SVC_fputs(io_dev, "Test\r\n", 6);
 		char output[64] = {'\0'};
 		sprintf(output, "Your STDIN/STDOUT file is %x \r\n", io_dev);
 		SVC_fputs(io_dev, output, strlen(output));

@@ -88,7 +88,6 @@ struct frame {
 		file_descriptor descrf;
 		unsigned int unsInt;
 		void* vptr;
-		long long newTime;
 	};
 	union {
 		int r1;
@@ -542,7 +541,7 @@ void svcHandlerInC(struct frame *framePtr) {
 			framePtr->returnVal = dir_ls(framePtr->arg0);
 			break;
 		case SVC_SETTIME:
-			framePtr->returnVal = set_time(framePtr->newTime);
+			framePtr->returnVal = set_time(framePtr->arg0);
 			break;
 		default:
 			if (MYFAT_DEBUG){

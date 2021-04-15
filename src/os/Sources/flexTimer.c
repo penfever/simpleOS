@@ -17,6 +17,7 @@
 #include "derivative.h"
 #include "nvic.h"
 #include "flexTimer.h"
+#include "dateTime.h"
 
 /* For an overall description of the FlexTimer, see 43.4 on labeled
  * page 1251 (PDF page 1258) of the K70 Sub-Family Reference Manual,
@@ -33,7 +34,7 @@
  * for the FlexTimers by choosing it as the MCG FLL external reference
  * clock using the OSCSEL bit using the MCG Control 7 Register (MCG_C7).
  * Of course, this could not be done if the FLL clock were being used
- * for the MCGOUTCLK.  Once this clock were divided by 32768, it would
+ * for the MCGOUTCLK.  Once this clock was divided by 32768, it would
  * yield an accurate clock for a one second precision, but would not
  * help with a 1 msec precise timer. */
 
@@ -130,8 +131,8 @@ void flexTimer0Start(void) {
   /* Enable FTM overflow interrupts, Up counting mode,
    * Select the Fixed Frequency Clock, Prescaler to divide by 128 */
   FTM0_SC = FTM_SC_TOIE_MASK |
-    FTM_SC_CLKS(FTM_SC_CLKS_FIXED_FREQUENCY_CLOCK) |
-    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_128);
+    FTM_SC_CLKS(FTM_SC_CLKS_SYSTEM_CLOCK) |
+    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_32);
 }
 
 /**
@@ -177,9 +178,9 @@ void flexTimer0Isr(void) {
    * Up counting mode, Select the Fixed Frequency Clock, Prescaler to
    * divide by 128 */
   FTM0_SC = FTM_SC_TOIE_MASK |
-    FTM_SC_CLKS(FTM_SC_CLKS_FIXED_FREQUENCY_CLOCK) |
-    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_128);
+    FTM_SC_CLKS(FTM_SC_CLKS_SYSTEM_CLOCK) |
+    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_32);
 
-  /* Perform the user's action */
-  flexTimer0Action();
+  /* Increments system date and time by 1ms (see dateTime.c for implementation details) */
+  date_time_incr();
 }
