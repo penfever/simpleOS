@@ -279,7 +279,9 @@ int cmd_date(int argc, char *argv[]){
 	if (curTime == 0){
 		return E_NOINPUT;
 	}
-    sprintf("%ll", curTime); //TODO: proper date formatting
+	char output[64] = {'\0'};
+    sprintf(output, "%d \n", (int)curTime); //TODO: proper date formatting
+	SVC_fputs(io_dev, output, strlen(output));
     return 0;
   }
   if (argc != 2){
