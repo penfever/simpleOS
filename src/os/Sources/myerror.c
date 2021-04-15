@@ -47,7 +47,7 @@ int error_checker(int return_value){
       return E_TOO_LONG;
     }
     char* output = myMalloc(64);
-    sprintf(output, "error %d: %s \n", return_value, buffer);
+    sprintf(output, "error %d: %s \r\n", return_value, buffer);
 	SVC_fputs(io_dev, output, strlen(output));
     if (MYFAT_DEBUG){
     	printf(output);
@@ -62,7 +62,7 @@ int error_checker(int return_value){
   }
   else{
 	char* output = SVC_malloc(64);
-	sprintf(output, "Unknown error %d: \n", return_value);
+	sprintf(output, "Unknown error %d: \r\n", return_value);
 	putsNLIntoBuffer(output);
 	myFree(output);
   }

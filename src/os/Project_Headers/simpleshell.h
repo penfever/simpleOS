@@ -108,4 +108,6 @@ size_t hex_dec_oct(char* str);
 
 void check_overflow(unsigned long my_num);
 
+long long hex_dec_oct_ll(char* str);
+
 #endif

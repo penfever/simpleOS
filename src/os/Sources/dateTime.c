@@ -103,7 +103,7 @@ struct date_time get_time(){
 
 void print_time(struct date_time curr_date){
      char output[128] = {'\0'};
-     sprintf(output, "%s %d, %d " TIMESTAMP "\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
+     sprintf(output, "%s %d, %d " TIMESTAMP "\r\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
      SVC_fputs(io_dev, output, strlen(output));
 }
 

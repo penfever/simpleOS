@@ -271,11 +271,11 @@ int cmd_date(int argc, char *argv[]){
   if (argc != 2){
   	return E_NUMARGS;
   }
-  long long thisTime;
-  if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0){
+  long long setTime;
+  if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
   	return E_NOINPUT;
   }
-  return SVC_settime(thisTime);
+  return SVC_settime(setTime);
 }
 
 int cmd_clockdate(int argc, char *argv[]){
@@ -923,7 +923,7 @@ int check_hex_all(char* str){
 }
 
 /*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an integer. If it is not an integer or some other error has occurred, returns 0.*/
+it is an unsigned integer. If it is not an integer or some other error has occurred, returns 0.*/
 size_t hex_dec_oct(char* str){
   char* p_str = str + 2;
   int check_str;
@@ -947,4 +947,31 @@ size_t hex_dec_oct(char* str){
     return 0;
   }
   return strtoul(str, NULL, 10); //return decimal
+}
+
+/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
+it is an long long integer. If it is not an integer or some other error has occurred, returns 0.*/
+long long hex_dec_oct_ll(char* str){
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
+      return strtoll(str, NULL, 16); //return hex
+    }
+    if (check_str == FALSE){
+      return 0;
+    }
+    return strtoll(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
+  }
+  return strtoll(str, NULL, 10); //return decimal
 }
