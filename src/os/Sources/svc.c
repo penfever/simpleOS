@@ -310,7 +310,7 @@ int __attribute__((never_inline)) SVC_dir_ls(int full) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVC_settime(long long newTime) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_settime(long long* newTime) {
 	__asm("svc %0" : : "I" (SVC_SETTIME));
 	__asm("bx lr");
 }

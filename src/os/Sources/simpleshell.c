@@ -275,7 +275,7 @@ int cmd_date(int argc, char *argv[]){
   if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
   	return E_NOINPUT;
   }
-  return SVC_settime(setTime);
+  return SVC_settime(&setTime);
 }
 
 int cmd_clockdate(int argc, char *argv[]){

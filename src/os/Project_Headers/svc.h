@@ -57,6 +57,6 @@ int SVC_ischarImpl(file_descriptor descrf);
 void* SVC_malloc(unsigned int size);
 int SVC_free(void *ptr);
 int SVC_dir_ls(int full);
-int SVC_settime(long long newTime);
+int SVC_settime(long long *newTime);
 
 #endif /* ifndef _SVC_H */

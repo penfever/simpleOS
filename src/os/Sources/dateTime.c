@@ -21,10 +21,10 @@ struct months allMonths[] = {{"January", 0, 31},
               {"December", 11, 31}, 
               {"February", 12, 29}};
 
-int set_time(long long newTime){
+int set_time(long long *newTime){
      /* Disable interrupts (PRIMASK is set) */
      __asm("cpsid i");
-     curTime = newTime;
+     curTime = *newTime;
      /* Allows interrupts (PRIMASK is cleared) */
      __asm("cpsie i");
      flexTimer0Init(1875);
@@ -44,7 +44,7 @@ struct date_time get_time(){
 	struct date_time curr_date;
 	long long thisTime = curTime; //avoid further ticks
 	long long sec_now = thisTime/1000;
-	curr_date.msec = thisTime - sec_now;
+	curr_date.msec = thisTime - sec_now*1000;
   //converts an integer value of seconds into a populated date_time struct
   int year_count = 0;
   while (sec_now > SECYEAR){
