@@ -23,3 +23,83 @@ void date_time_incr(){
      /* Allows interrupts (PRIMASK is cleared) */
      __asm("cpsie i");
 }
+
+struct date_time get_time(){
+     long long thisTime = curTime; //avoid further ticks
+     long long sec_now = thisTime/1000;
+     curr_date.msec = thisTime - sec_now;
+  //converts an integer value of seconds into a populated date_time struct
+  struct date_time curr_date;
+  int year_count = 0;
+  while (sec_now > SECYEAR){
+    year_count += 1;
+    sec_now -= SECYEAR;
+  }
+  //check leap years
+  for (int i = 1980; i < 1980 + year_count; i++){
+    if (isleapyear(i)){
+      sec_now -= SECDAY;
+      if (sec_now < 0){
+        sec_now += SECYEAR;
+        year_count -= 1;
+      }
+    }
+  }
+  curr_date.year = 1980 + year_count;
+  curr_date.day = 1;
+  curr_date.hour = 0;
+  curr_date.minute = 0;
+  curr_date.clock = "";
+
+  while (sec_now > SECDAY){
+    sec_now -= SECDAY;
+    curr_date.day += 1;
+  }
+  while (sec_now > SECHOUR){
+    sec_now -= SECHOUR;
+    curr_date.hour += 1;
+  }
+  while (sec_now > SECMIN){
+    sec_now -= SECMIN;
+    curr_date.minute += 1;
+  }
+  curr_date.second = sec_now;
+  for (int i = 0; i < 11; i ++){
+    if (curr_date.day > months[i].offset){
+      curr_date.day -= months[i].offset;
+      if (i == 1 && isleapyear(curr_date.year)){
+        curr_date.day -= 1;
+        if (curr_date.day <= 0) {
+          curr_date.day += months[i].offset;
+          i++;
+          curr_date.month = months[i].month;
+          break;
+        }
+      }
+    }
+    else {
+      curr_date.month = months[i].month;
+      break;
+    }
+  }
+  return curr_date;
+}
+
+void print_time(const struct date_time curr_date){
+     char output[128] = {'\0'};
+     sprintf(output, "%s %d, %d " TIMESTAMP "\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
+     SVC_fputs(io_dev, output, strlen(output));
+}
+
+//checks if a given integer, assumed to be a year, is a leap year
+int isleapyear(int inyear){
+    if(inyear % 400 == 0){
+        return TRUE;
+    }
+    else if(inyear % 4 == 0 && inyear % 100 != 0){
+        return TRUE;
+    }
+    else{
+        return FALSE;
+    }
+}

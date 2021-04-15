@@ -273,25 +273,22 @@ If called with one argument, this command sets the system time
  * to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.
  * Note: system time WILL NOT INCREMENT unless time is set using this command.
  * This command will display the current date and time when invoked without any arguments.*/ 
-
 int cmd_date(int argc, char *argv[]){
   if (argc == 1){
-	if (curTime == 0){
-		return E_NOINPUT;
-	}
-	char output[64] = {'\0'};
-    sprintf(output, "%d \n", (int)curTime); //TODO: proper date formatting
-	SVC_fputs(io_dev, output, strlen(output));
+    if (curTime == 0){
+      return E_NOINPUT;
+    }
+    struct date_time curr_date = get_time();
+    print_time(curr_date);
     return 0;
   }
   if (argc != 2){
-  		return E_NUMARGS;
-  	}
-       long long thisTime;
-       if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0)
-       {
-  		return E_NOINPUT;
-  	}
+  	return E_NUMARGS;
+  }
+  long long thisTime;
+  if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0){
+  	return E_NOINPUT;
+  }
   return SVC_settime(thisTime);
 }
 
@@ -615,12 +612,11 @@ int cmd_touch2led(int argc, char* argv[]){
 	}
 	return 0;
 }
-/*
-pot2ser: Continuously output the value of the analog
+
+/*pot2ser: Continuously output the value of the analog
    potentiomemter to the serial device as a decimal or
    hexadecimal number followed by a newline.  End when SW1 is
    depressed.*/
-
 int cmd_pot2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
@@ -657,11 +653,9 @@ int cmd_pot2ser(int argc, char* argv[]){
 	return SVC_fclose(sw1);
 }
 
-/*
-therm2ser: Continuously output the value of the thermistor to
+/* therm2ser: Continuously output the value of the thermistor to
    the serial device as a decimal or hexadecimal number followed
-   by a newline.  End when SW1 is depressed.
-*/
+   by a newline.  End when SW1 is depressed.*/
 int cmd_therm2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
@@ -700,7 +694,6 @@ int cmd_therm2ser(int argc, char* argv[]){
 
 /* 6. pb2led: Continuously copy from SW1 to orange LED and SW2 to
         yellow LED.  End when both SW1 and SW2 are depressed.*/
-
 int cmd_pb2led(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
@@ -763,6 +756,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	}
 	return SVC_fclose(sw2);
 }
+
 /*Display the contents of the specified <file> in
         the root directory by sending to STDOUT.
  * */
@@ -912,19 +906,6 @@ int check_hex (char c) {
     if ((c >= 'a') && (c <= 'f')) return 1;
     if ((c >= 'A') && (c <= 'F')) return 1;
     return 0;
-}
-
-//checks if a given integer, assumed to be a year, is a leap year
-int isleapyear(int inyear){
-    if(inyear % 400 == 0){
-        return TRUE;
-    }
-    else if(inyear % 4 == 0 && inyear % 100 != 0){
-        return TRUE;
-    }
-    else{
-        return FALSE;
-    }
 }
 
 /*Helper: checks strtoul output for integer overflow error and prints error if one is encountered.*/

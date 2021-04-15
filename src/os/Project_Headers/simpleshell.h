@@ -127,8 +127,6 @@ int check_hex_all(char* str);
 
 int string_cmp(const char *first, const char *second);
 
-int isleapyear(int inyear);
-
 size_t hex_dec_oct(char* str);
 
 void check_overflow(unsigned long my_num);
