@@ -36,6 +36,7 @@
 #define SVC_FGETS 13
 #define SVC_ISCHAR 14
 #define SVC_DIR_LS 15
+#define SVC_SET_TIME 16
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -56,5 +57,6 @@ int SVC_ischarImpl(file_descriptor descrf);
 void* SVC_malloc(unsigned int size);
 int SVC_free(void *ptr);
 int SVC_dir_ls(int full);
+int SVC_settime(long long newTime);
 
 #endif /* ifndef _SVC_H */

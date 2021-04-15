@@ -74,6 +74,7 @@
 #include "simpleshell.h"
 #include "mymalloc.h"
 #include "devices.h"
+#include "datetime.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -87,6 +88,7 @@ struct frame {
 		file_descriptor descrf;
 		unsigned int unsInt;
 		void* vptr;
+		long long thisTime;
 	};
 	union {
 		int r1;
@@ -113,7 +115,7 @@ struct frame {
 };
 
 /* Issue the SVC (Supervisor Call) instruction (See A7.7.175 on page A7-503 of the
- * ARM®v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
+ * ARMï¿½v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
 #ifdef __GNUC__
 void __attribute__((naked)) __attribute__((noinline)) SVCEndive(void) {
 	__asm("svc %0" : : "I" (SVC_ENDIVE));
@@ -306,6 +308,19 @@ int __attribute__((never_inline)) SVC_dir_ls(int full) {
 	__asm("svc %0" : : "I" (SVC_DIR_LS));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_settime(long long newTime) {
+	__asm("svc %0" : : "I" (SVC_SETTIME));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_settime(long long newTime) {
+	__asm("svc %0" : : "I" (SVC_SETTIME));
+}
+#endif
 
 int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
 	int sum;
@@ -335,7 +350,7 @@ int SVC_ischarImpl(file_descriptor descrf){
 
 /* This function sets the priority at which the SVCall handler runs (See
  * B3.2.11, System Handler Priority Register 2, SHPR2 on page B3-723 of
- * the ARM®v7-M Architecture Reference Manual, ARM DDI 0403Derrata
+ * the ARMï¿½v7-M Architecture Reference Manual, ARM DDI 0403Derrata
  * 2010_Q3 (ID100710)).
  * 
  * If priority parameter is invalid, this function performs no action.
@@ -369,7 +384,7 @@ void svcInit_SetSVCPriority(unsigned char priority) {
 void svcHandlerInC(struct frame *framePtr);
 
 /* Exception return behavior is detailed in B1.5.8 on page B1-652 of the
- * ARM®v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3
+ * ARMï¿½v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3
  * (ID100710) */
 
 /* When an SVC instruction is executed, the following steps take place:
@@ -392,7 +407,7 @@ void svcHandlerInC(struct frame *framePtr);
  * 	   stack pointer.
  *     
  * These steps are discussed in detail in the pseudo-code given for
- * processor action ExceptionEntry() on page B1-643 of the ARM®v7-M
+ * processor action ExceptionEntry() on page B1-643 of the ARMï¿½v7-M
  * Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3
  * (ID100710).  ExceptionEntry() invokes PushStack() and
  * ExceptionTaken() on page B1-643. */
@@ -525,6 +540,9 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_DIR_LS:
 			framePtr->returnVal = dir_ls(framePtr->arg0);
+			break;
+		case SVC_SET_TIME:
+			framePtr->returnVal = set_time(framePtr->newTime);
 			break;
 		default:
 			if (MYFAT_DEBUG){

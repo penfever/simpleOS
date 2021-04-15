@@ -20,6 +20,7 @@ extern unsigned long _estack;
 extern void __thumb_startup(void);
 extern void svcHandler(void); //handler for svc
 extern void interruptSerialPort2(void); //handler for UART2
+extern void flexTimer0Isr(void); //handler for flexTimer 0
 #if __cplusplus
 }
 #endif
@@ -147,7 +148,7 @@ void (* const InterruptVector[])() __attribute__ ((section(".vectortable"))) = {
   Default_Handler,		/* Vector 75: CMP0 */
   Default_Handler,		/* Vector 76: CMP1 */
   Default_Handler,		/* Vector 77: CMP2 */
-  Default_Handler,		/* Vector 78: FTM0 */
+  flexTimer0Isr,		/* Vector 78: FTM0 */
   Default_Handler,		/* Vector 79: FTM1 */
   Default_Handler,		/* Vector 80: FTM2 */
   Default_Handler,		/* Vector 81: CMT */

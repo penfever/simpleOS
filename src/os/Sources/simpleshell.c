@@ -16,6 +16,7 @@
 #include "pushbutton.h"
 #include "util.h"
 #include "switchcmd.h"
+#include "dateTime.h"
 
 struct escape_chars escapechars[] = {
     {'0', 0},
@@ -72,7 +73,9 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
-                {"cat2file", cmd_cat2file}
+                {"cat2file", cmd_cat2file},
+                {"settime", cmd_settime},
+                {"gettime", cmd_gettime}
 };
 
 /*Takes as arguments a user command and the length of that command.
@@ -502,7 +505,6 @@ int cmd_fputc(int argc, char *argv[]){
 
 /*shell interface for fputs. argv[1] is file_descriptor, argv[2] is the string to be put.*/
 int cmd_fputs(int argc, char *argv[]){
-	//TODO: errcheck, descr
 	if (argc != 3){
 		return E_NUMARGS;
 	}
@@ -807,6 +809,30 @@ int cmd_cat2file(int argc, char* argv[]){
 		SVC_fputc(descr, c);
 	}
 	return SVC_fclose(descr);
+}
+
+/*This sets the system time to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.*/
+int cmd_settime(int argc, char *argv[]){
+     if (argc != 2){
+		return E_NUMARGS;
+	}
+     long long thisTime;
+     if ((thisTime = (long long)hex_dec_oct(argv[1])) == 0)
+     {
+		return E_NOINPUT;
+	}
+     return SVC_settime(thisTime);
+}
+
+/*Prints current system time to STDOUT (in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980*/
+int cmd_gettime(int argc, char *argv[]){
+     if (argc != 1){
+		return E_NUMARGS;
+	}
+     int error;
+     check argc argv
+     sprintf("%ll", curTime); //check reqd formatting
+     return 0;
 }
 
 //command line shell accepts user input and executes basic commands

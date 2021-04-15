@@ -37,7 +37,10 @@
 				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
 				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
 				  "catfile prints the contents of a file to STDOUT \n"\
-				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"\
+          "settime sets system time in ms according to an integer input by the user (assumes MS-DOS epoch) \n"\
+          "gettime gets system time in ms \n"
+
 				  
 #define SECYEAR 31536000
 #define SECDAY 86400
@@ -109,6 +112,8 @@ int cmd_therm2ser(int argc, char* argv[]);
 int cmd_pb2led(int argc, char* argv[]);
 int cmd_catfile(int argc, char* argv[]);
 int cmd_cat2file(int argc, char* argv[]);
+int cmd_settime(int argc, char *argv[]);
+int cmd_gettime(int argc, char *argv[]);
 
 struct commandEntry {
   char *name;
