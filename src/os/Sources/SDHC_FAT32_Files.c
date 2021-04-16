@@ -26,6 +26,7 @@ struct sdhc_card_status card_status;
 struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
 uint32_t latestSector; //records sector number of most recent dir_entry
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
+struct dir_entry_8_3 *cached = NULL; //records an unused dir_entry
 static int g_unusedSeek = FALSE;
 struct dir_entry_8_3 *cwd = NULL;
 static int g_deleteFlag = FALSE;
@@ -264,7 +265,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if ((err = dir_extend_dir(i, currCluster)) != 0){
 	    				return err;
 	    			}
-	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
+	    			if ((err = load_cache(logicalSector, data, i)) != 0){
 	    				return err;
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
@@ -281,7 +282,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 	    		//this directory is unused
 	    		if (unused == NULL){
-	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
+	    			if ((err = load_cache(logicalSector, data, i)) != 0){
 	    				return err;
 	    			}
 	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
@@ -289,7 +290,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			}
 	    		}
 	    		if (g_unusedSeek == TRUE){
-	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
+	    			if ((err = load_cache(logicalSector, data, i)) != 0){
 	    				return err;
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
@@ -312,7 +313,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    	}
 	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
-	    		char output[64] = {' '};
+	    		char output[64] = {'\0'};
     			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
     			if (g_printAll){
         			putsNLIntoBuffer(output);
@@ -327,24 +328,24 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	
 			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 	    	if(!noMatch){
-	    		return search_match(dir_entry, logicalSector, i); //If search is successful, process search result and return
+	    		return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
 	    	}
 	    }
 	    return LOOP_CONTD; //end of sector reached, continue loop in read_all
 }
 
-int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i){
+int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint8_t data[BLOCK]){
 	int err;
 	if (dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY){
 		return E_DIRENTRY;
 	}
 	else if (g_deleteFlag == TRUE){
-		if ((err = load_cache_used(logicalSector, (uint8_t)&dir_entry)) != 0){
+		if ((err = load_cache(logicalSector, data, i)) != 0){
 			return err;
 		}
 	}
 	else if (g_readFlag == TRUE){
-		if ((err = load_cache_used(logicalSector, (uint8_t)&dir_entry)) != 0){
+		if ((err = load_cache(logicalSector, data, i)) != 0){
 			return err;
 		}
 	}
@@ -397,21 +398,12 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 	}
 }
 
-/*Loads MOUNT cache with an empty dir_entry.
- * SIDE EFFECT: updates global unused*/
-int load_cache_unused(uint32_t logicalSector, uint8_t data[BLOCK]){
+/*Loads MOUNT cache with an empty dir_entry.*/
+int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
 	MOUNT->writeSector = logicalSector; //updates writeSector
 	memcpy(MOUNT->data, data, BLOCK);
-	unused = &MOUNT->data[0]; //points unused at the write cache in MOUNT
-    return 0;
-}
-
-/*Loads MOUNT cache with a non-empty dir_entry.
- * SIDE EFFECT: updates global latest to point to MOUNT->data*/
-int load_cache_used(uint32_t logicalSector, uint8_t data[BLOCK]){
-	MOUNT->writeSector = logicalSector; //updates writeSector
-	memcpy(MOUNT->data, data, BLOCK);
-	latest = &MOUNT->data[0]; //points latest at the write cache in MOUNT
+	cached = (struct dir_entry_8_3*)MOUNT->data; //point to cache
+	cached += i; //walk to current dir_entry
     return 0;
 }
 
@@ -684,7 +676,7 @@ int dir_delete_file(char *filename){
 		return E_SEARCH;
 	}
 	int err;
-	latest->DIR_Name[0] = DIR_ENTRY_UNUSED;
+	cached->DIR_Name[0] = DIR_ENTRY_UNUSED;
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
 		g_deleteFlag = FALSE;
@@ -768,7 +760,7 @@ int file_close(file_descriptor descr){
 				return err;
 			}
 			g_readFlag = FALSE;
-			dir_set_attr_close(latest);
+			dir_set_attr_close(cached);
 			MOUNT->dirty = TRUE;
 			if ((err = write_cache()) != 0){
 				return err;
