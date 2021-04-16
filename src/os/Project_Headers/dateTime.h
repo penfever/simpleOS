@@ -1,11 +1,9 @@
-#include "time.h"
-
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
 #define SECMIN 60
 #define TIMESTAMP "%02d:%02d:%02d.%04.d"
-#define GMTTIME time(NULL)-315400000
+#define GMTTIME timestamp_to_ms()
 
 /*Holds current system time in ms since the MS-DOS epoch, 00:00, Jan 1 1980, as given by user*/
 struct date_time {
@@ -38,11 +36,19 @@ int set_time(long long *newTime);
 /*Subroutine called by flexTimer 0 ISR. increments current time by 1ms*/
 void date_time_incr();
 
+/*checks if a given integer, assumed to be a year, is a leap year*/
 int isleapyear(int inyear);
 
 /*formats and prints a date and time from get_time
   (4) "date" will output to stdout the current date and time in the format "January
    23, 2014 15:57:07.123456".  "date" will call the POSIX system call "gettimeofday" to determine the time and date.  "gettimeofday"
    returns the number of seconds and microseconds since midnight (zero
-   hours) on January 1, 1980 -- this time is referred to as the MSDOS Epoch. */
+   hours) on January 1, 1980 -- this time is referred to as the MSDOS Epoch. 
+   Note: userspace function*/
 void print_time(struct date_time curr_date);
+
+/*Returns the current DATE in FAT32 format*/
+uint16_t date_format_FAT();
+
+/*Converts compiler timestamp to ms since MS-DOS epoch.*/
+long long timestamp_to_ms(char* timestamp);
