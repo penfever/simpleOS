@@ -205,6 +205,8 @@ int dir_ls(int full){
     return err;
 }
 
+/*read_all is a loop that traverses a single logical sector, returns search matches if search is enabled.
+SIDE EFFECT: If search is enabled, this function updates global latestSector with the sector number of the found file*/
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	int finished = LOOP_CONTD;
 	int numSector = 0;
@@ -399,6 +401,8 @@ int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
  * Search for filename in cwd and return its first cluster number in firstCluster
  * Returns an error code if filename is not in the cwd
  * Returns an error code if the filename is a directory
+ * SIDE EFFECT--global dir_entry latest gets the dir_entry for the found file. This can
+ * be used to update metadata as needed.
  */
 int dir_find_file(char *filename, uint32_t *firstCluster){
     if (0 == MOUNT){
@@ -420,6 +424,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){
     if ((err = read_all(data, logicalSector, filename)) != 0){
     	return err; //TODO: I could just have dir_ls take filename as its argument
     }
+	//latestSector = logicalSector;
     *firstCluster = latest->DIR_FstClusLO | (latest->DIR_FstClusHI << 16);
     return 0;
 }
@@ -553,6 +558,12 @@ int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry
 
 int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry){
 	writeEntry->DIR_FileSize = writeSize;
+	return 0;
+}
+
+int dir_set_attr_close(struct dir_entry_8_3* writeEntry){
+	uint16_t lastAcc = date_format_FAT(curTime);
+	writeEntry->DIR_LstAccDate = lastAcc;
 	return 0;
 }
 
@@ -728,12 +739,19 @@ int find_curr_stream(struct stream* fileptr){
  */
 int file_close(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
-	if (find_curr_stream(userptr) == FALSE){
-		return E_FREE_PERM;
-	}
+	int err;
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
-		if (userptr == &(currentPCB->openFiles[i])){ //match found, release the file
-			//TODO: write buffer?
+		if (userptr == &(currentPCB->openFiles[i])){ //match found
+			if ((err = dir_find_file(userptr->fileName, userptr->clusterAddr)) != 0){ //finding file on disk
+				return err;
+			}
+			MOUNT->data = latest; //side effect of successful file search, latest gets descr's dir_entry
+			MOUNT->writeSector = latestSector; //side effect of successful file search, latestSector gets sector addr of dir_entry
+			dir_set_attr_close(MOUNT->data);
+			MOUNT->dirty = TRUE;
+			if ((err = write_cache()) != 0){
+				return err;
+			}
 			userptr->deviceType = UNUSED;
 			return 0;
 		}

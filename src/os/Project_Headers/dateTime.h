@@ -1,8 +1,11 @@
+#include "time.h"
+
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
 #define SECMIN 60
 #define TIMESTAMP "%02d:%02d:%02d.%04.d"
+#define GMTTIME time(NULL)-315400000
 
 /*Holds current system time in ms since the MS-DOS epoch, 00:00, Jan 1 1980, as given by user*/
 struct date_time {
