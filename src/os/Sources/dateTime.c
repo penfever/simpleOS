@@ -2,6 +2,9 @@
 #include "devices.h"
 #include "simpleshell.h"
 #include "dateTime.h"
+#include "myerror.h"
+#include <stdio.h>
+#include <string.h>
 
 //MS-DOS epoch is 00:00 Jan 1 1980
 
@@ -103,33 +106,29 @@ struct date_time get_time(){
 
 uint8_t month_to_int(char* month){
   for (int i = 0; i < 12; ++i){
-    if (strcmp(allMonths[i], month, strlen(month)) != 0){
+    if (strncmp(allMonths[i].month, month, strlen(month)) != 0){
       continue;
     }
     return i;
   }
-  return i;
+  return 12;
 }
 
-/*Returns the current DATE in FAT32 format*/
 uint16_t date_format_FAT(){
   struct date_time curr_date = get_time();
   uint8_t myMonth = month_to_int(curr_date.month);
   if (myMonth == 12 && MYFAT_DEBUG){
     printf("Month returned invalid date. Please check for errors. \n");
   }
-  return = ((curr_date.year) << 9) | 
-               (myMonth + 1) << 5) |
-               (curr_date.day << 0);
+  return (curr_date.year << 9) | ((myMonth + 1) << 5) | (curr_date.day << 0);
 }
 
 void print_time(struct date_time curr_date){
      char output[128] = {'\0'};
-     sprintf(output, "%s %d, %d " TIMESTAMP "\r\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
+     sprintf(output, "%s %u, %u " TIMESTAMP "\r\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
      SVC_fputs(io_dev, output, strlen(output));
 }
 
-//checks if a given integer, assumed to be a year, is a leap year
 int isleapyear(int inyear){
     if(inyear % 400 == 0){
         return TRUE;
@@ -140,4 +139,27 @@ int isleapyear(int inyear){
     else{
         return FALSE;
     }
+}
+
+long long timestamp_to_ms(){
+  char* comDate = __DATE__;
+  char* comTime = __TIME__;
+  long long returnTimeInSeconds = 0;
+  unsigned int thisMonth = (comDate[0] == 'J') ? ((comDate[1] == 'a') ? 0 : ((comDate[2] == 'n') ? 150 : 180))    // Jan, Jun or Jul
+                                : (comDate[0] == 'F') ? 30                                                              // Feb
+                                : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 119)                                 // Mar or May
+                                : (comDate[0] == 'A') ? ((comDate[2] == 'p') ? 90 : 211)                                 // Apr or Aug
+                                : (comDate[0] == 'S') ? 242                                                              // Sep
+                                : (comDate[0] == 'O') ? 272                                                             // Oct
+                                : (comDate[0] == 'N') ? 303                                                             // Nov
+                                : (comDate[0] == 'D') ? 333                                                             // Dec
+                                : 0;
+  returnTimeInSeconds += (10*(comTime[6]-'0')+(comTime[7]-'0')); //seconds
+  returnTimeInSeconds += (10*(comTime[3]-'0')+(comTime[4]-'0'))*60; //minutes
+  returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours
+  returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
+  returnTimeInSeconds += thisMonth * SECDAY; //months
+  returnTimeInSeconds += (comDate[7] - '0') * 1000 + (comDate[8] - '0') * 100 + (comDate[9] - '0') * 10 + (comDate[10] - '0'); //years
+
+  return returnTimeInSeconds*1000;
 }

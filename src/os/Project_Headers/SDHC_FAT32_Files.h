@@ -202,7 +202,13 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 
 int filename_verify(char* filename, int len);
 
-int load_cache(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
+int load_cache_unused(uint32_t logicalSector);
+
+int load_cache_used(uint32_t logicalSector);
+
+int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i);
+
+void print_attr(struct dir_entry_8_3* dir_entry, char* search);
 
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry);
 

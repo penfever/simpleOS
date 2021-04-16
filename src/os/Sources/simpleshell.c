@@ -807,7 +807,7 @@ int cmd_cat2file(int argc, char* argv[]){
 //command line shell accepts user input and executes basic commands
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
-  SVC_settime(GMTTIME); //set default time to GMT
+	SVC_settime(GMTTIME); //set default time to GMT
 	if (UARTIO){
 		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
 		char output[64] = {'\0'};
