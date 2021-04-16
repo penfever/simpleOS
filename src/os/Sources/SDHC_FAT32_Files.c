@@ -562,8 +562,7 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 }
 
 int dir_set_attr_close(struct dir_entry_8_3* writeEntry){
-	uint16_t lastAcc = date_format_FAT(curTime);
-	writeEntry->DIR_LstAccDate = lastAcc;
+	writeEntry->DIR_LstAccDate = date_format_FAT();
 	return 0;
 }
 

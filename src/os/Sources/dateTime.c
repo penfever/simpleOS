@@ -101,6 +101,28 @@ struct date_time get_time(){
   return curr_date;
 }
 
+uint8_t month_to_int(char* month){
+  for (int i = 0; i < 12; ++i){
+    if (strcmp(allMonths[i], month, strlen(month)) != 0){
+      continue;
+    }
+    return i;
+  }
+  return i;
+}
+
+/*Returns the current DATE in FAT32 format*/
+uint16_t date_format_FAT(){
+  struct date_time curr_date = get_time();
+  uint8_t myMonth = month_to_int(curr_date.month);
+  if (myMonth == 12 && MYFAT_DEBUG){
+    printf("Month returned invalid date. Please check for errors. \n");
+  }
+  return = ((curr_date.year) << 9) | 
+               (myMonth + 1) << 5) |
+               (curr_date.day << 0);
+}
+
 void print_time(struct date_time curr_date){
      char output[128] = {'\0'};
      sprintf(output, "%s %d, %d " TIMESTAMP "\r\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
