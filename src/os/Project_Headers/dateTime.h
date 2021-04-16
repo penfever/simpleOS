@@ -3,7 +3,6 @@
 #define SECHOUR 3600
 #define SECMIN 60
 #define TIMESTAMP "%02d:%02d:%02d.%04.d"
-#define GMTTIME timestamp_to_ms()
 
 /*Holds current system time in ms since the MS-DOS epoch, 00:00, Jan 1 1980, as given by user*/
 struct date_time {
@@ -51,4 +50,4 @@ void print_time(struct date_time curr_date);
 uint16_t date_format_FAT();
 
 /*Converts compiler timestamp to ms since MS-DOS epoch.*/
-long long timestamp_to_ms(char* timestamp);
+long long timestamp_to_ms();

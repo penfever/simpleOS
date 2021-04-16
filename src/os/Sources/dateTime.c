@@ -3,6 +3,7 @@
 #include "simpleshell.h"
 #include "dateTime.h"
 #include "myerror.h"
+#include "svc.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -159,7 +160,7 @@ long long timestamp_to_ms(){
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours
   returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
   returnTimeInSeconds += thisMonth * SECDAY; //months
-  returnTimeInSeconds += (comDate[7] - '0') * 1000 + (comDate[8] - '0') * 100 + (comDate[9] - '0') * 10 + (comDate[10] - '0'); //years
+  returnTimeInSeconds += ((((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'))-1980)*SECYEAR); //years
 
   return returnTimeInSeconds*1000;
 }

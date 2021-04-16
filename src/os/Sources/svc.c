@@ -75,6 +75,7 @@
 #include "mymalloc.h"
 #include "devices.h"
 #include "datetime.h"
+#include "uart.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
