@@ -142,25 +142,40 @@ int isleapyear(int inyear){
     }
 }
 
+int count_leap_years(int inputYear){
+	int count = 0;
+	while (inputYear > 1979){
+	    if(inputYear % 400 == 0){
+	        count ++;
+	    }
+	    else if(inputYear % 4 == 0 && inputYear % 100 != 0){
+	        count ++;
+	    }
+	inputYear --;
+	}
+	return count;
+}
+
 long long timestamp_to_ms(){
   char* comDate = __DATE__;
   char* comTime = __TIME__;
   long long returnTimeInSeconds = 0;
+  unsigned int thisYear = ((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'));
+  returnTimeInSeconds += ((thisYear-1980)*SECYEAR); //years
+  returnTimeInSeconds += count_leap_years(thisYear)*SECDAY;//adjust for leap years
   unsigned int thisMonth = (comDate[0] == 'J') ? ((comDate[1] == 'a') ? 0 : ((comDate[2] == 'n') ? 150 : 180))    // Jan, Jun or Jul
                                 : (comDate[0] == 'F') ? 30                                                              // Feb
                                 : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 119)                                 // Mar or May
-                                : (comDate[0] == 'A') ? ((comDate[2] == 'p') ? 90 : 211)                                 // Apr or Aug
+                                : (comDate[0] == 'A') ? ((comDate[1] == 'p') ? 90 : 211)                                 // Apr or Aug
                                 : (comDate[0] == 'S') ? 242                                                              // Sep
                                 : (comDate[0] == 'O') ? 272                                                             // Oct
                                 : (comDate[0] == 'N') ? 303                                                             // Nov
                                 : (comDate[0] == 'D') ? 333                                                             // Dec
                                 : 0;
+  returnTimeInSeconds += thisMonth * SECDAY; //months
+  returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
   returnTimeInSeconds += (10*(comTime[6]-'0')+(comTime[7]-'0')); //seconds
   returnTimeInSeconds += (10*(comTime[3]-'0')+(comTime[4]-'0'))*60; //minutes
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours
-  returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
-  returnTimeInSeconds += thisMonth * SECDAY; //months
-  returnTimeInSeconds += ((((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'))-1980)*SECYEAR); //years
-
   return returnTimeInSeconds*1000;
 }

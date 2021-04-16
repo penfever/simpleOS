@@ -755,7 +755,7 @@ int file_close(file_descriptor descr){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		if (userptr == &(currentPCB->openFiles[i])){ //match found
 			g_readFlag = TRUE;
-			if ((err = dir_find_file(userptr->fileName, userptr->clusterAddr)) != 0){ //finding file on disk
+			if ((err = dir_find_file(userptr->fileName, userptr->clusterAddr)) != 0){ //TODO: SVC issue. finding file on disk
 				g_readFlag = FALSE;
 				return err;
 			}
