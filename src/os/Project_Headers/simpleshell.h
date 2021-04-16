@@ -15,29 +15,29 @@
 #endif
 #define MAXARGS 32 //accepts args 0->32
 #define NULLCHAR '\0'
-#define HELPBLOCK "Welcome to the simple shell!\n"\
-                  "Here are a few commands you can try: \n"\
-                  "exit will exit this shell. \n"\
-                  "help will show you a list of commands and how they work. \n"\
-                  "echo will echo back whatever words follow the command itself. \n"\
-                  "date will print the current date and time (GMT, MS-DOS EPOCH) or set the current system time in MS according to an integer input by the user. \n"\
-                  "clockdate tests the date function. \n"\
-                  "malloc allocates memory. \n"\
-                  "free frees memory. \n"\
-                  "memset sets an allocated memory region to a value. \n"\
-                  "memchk checks that an allocated memory region is set to a value. \n"\
-                  "memorymap prints a map of all allocated memory. \n"\
-                  "fopen opens a file or device. \n"\
-                  "fclose closes a file or device. \n"\
-                  "fgetc and fgets retrieve characters or strings from a file or device. \n"\
-                  "fputc and fputs send characters or strings to a file or device. \n"\
-                  "fseek sets the file cursor to a particular position in a file. \n"\
-                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
-                  "pot2ser continuously outputs the potentiometer value to STDOUT \n"\
-				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
-				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
-				  "catfile prints the contents of a file to STDOUT \n"\
-				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
+#define HELPBLOCK "Welcome to the simple shell! \r\n"\
+                  "Here are a few commands you can try: \r\n"\
+                  "exit will exit this shell. \r\n"\
+                  "help will show you a list of commands and how they work. \r\n"\
+                  "echo will echo back whatever words follow the command itself. \r\n"\
+                  "date will print the current date and time (GMT, MS-DOS EPOCH) or set the current system time in MS according to an integer input by the user. \r\n"\
+                  "clockdate tests the date function. \r\n"\
+                  "malloc allocates memory. \r\n"\
+                  "free frees memory. \r\n"\
+                  "memset sets an allocated memory region to a value. \r\n"\
+                  "memchk checks that an allocated memory region is set to a value. \r\n"\
+                  "memorymap prints a map of all allocated memory. \r\n"\
+                  "fopen opens a file or device. \r\n"\
+                  "fclose closes a file or device. \r\n"\
+                  "fgetc and fgets retrieve characters or strings from a file or device. \r\n"\
+                  "fputc and fputs send characters or strings to a file or device. \r\n"\
+                  "fseek sets the file cursor to a particular position in a file. \r\n"\
+                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \r\n"\
+                  "pot2ser continuously outputs the potentiometer value to STDOUT \r\n"\
+				  "therm2ser continuously outputs the thermistor value to STDOUT \r\n"\
+				  "pb2LED toggles LEDs based on inputs from pushbuttons \r\n"\
+				  "catfile prints the contents of a file to STDOUT \r\n"\
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"
 				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))

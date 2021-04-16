@@ -202,9 +202,9 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 
 int filename_verify(char* filename, int len);
 
-int load_cache_unused(uint32_t logicalSector);
+int load_cache_unused(uint32_t logicalSector, uint8_t data[BLOCK]);
 
-int load_cache_used(uint32_t logicalSector);
+int load_cache_used(uint32_t logicalSector, uint8_t data[BLOCK]);
 
 int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i);
 

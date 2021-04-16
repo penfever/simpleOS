@@ -264,7 +264,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if ((err = dir_extend_dir(i, currCluster)) != 0){
 	    				return err;
 	    			}
-	    			if ((err = load_cache_unused(logicalSector)) != 0){
+	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
 	    				return err;
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
@@ -281,7 +281,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 	    		//this directory is unused
 	    		if (unused == NULL){
-	    			if ((err = load_cache_unused(logicalSector)) != 0){
+	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
 	    				return err;
 	    			}
 	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
@@ -289,7 +289,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			}
 	    		}
 	    		if (g_unusedSeek == TRUE){
-	    			if ((err = load_cache_unused(logicalSector)) != 0){
+	    			if ((err = load_cache_unused(logicalSector, data)) != 0){
 	    				return err;
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
@@ -339,16 +339,14 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i){
 		return E_DIRENTRY;
 	}
 	else if (g_deleteFlag == TRUE){
-		if ((err = load_cache_used(logicalSector)) != 0){
+		if ((err = load_cache_used(logicalSector, (uint8_t)&dir_entry)) != 0){
 			return err;
 		}
-		latest->DIR_Name[0] = DIR_ENTRY_UNUSED;
 	}
 	else if (g_readFlag == TRUE){
-		MOUNT->writeSector = logicalSector; //loads sector to be updated into cache
-	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-	    	return E_IO;
-	    }
+		if ((err = load_cache_used(logicalSector, (uint8_t)&dir_entry)) != 0){
+			return err;
+		}
 	}
 	if(MYFAT_DEBUG){
 		char output[64] = {'\0'};
@@ -401,23 +399,19 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 
 /*Loads MOUNT cache with an empty dir_entry.
  * SIDE EFFECT: updates global unused*/
-int load_cache_unused(uint32_t logicalSector){
+int load_cache_unused(uint32_t logicalSector, uint8_t data[BLOCK]){
 	MOUNT->writeSector = logicalSector; //updates writeSector
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-    	return E_IO;
-    }
-	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
+	memcpy(MOUNT->data, data, BLOCK);
+	unused = &MOUNT->data[0]; //points unused at the write cache in MOUNT
     return 0;
 }
 
 /*Loads MOUNT cache with a non-empty dir_entry.
  * SIDE EFFECT: updates global latest to point to MOUNT->data*/
-int load_cache_used(uint32_t logicalSector){
+int load_cache_used(uint32_t logicalSector, uint8_t data[BLOCK]){
 	MOUNT->writeSector = logicalSector; //updates writeSector
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-    	return E_IO;
-    }
-	latest = (struct dir_entry_8_3*)MOUNT->data; //points latest at the write cache in MOUNT
+	memcpy(MOUNT->data, data, BLOCK);
+	latest = &MOUNT->data[0]; //points latest at the write cache in MOUNT
     return 0;
 }
 

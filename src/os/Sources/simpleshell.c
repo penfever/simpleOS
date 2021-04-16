@@ -296,7 +296,7 @@ int cmd_malloc(int argc, char *argv[]){
   }
   else{
 	char output[32];
-	sprintf(output, "%p \n", mal_val);
+	sprintf(output, "%p \r\n", mal_val);
 	SVC_fputs(io_dev, output, strlen(output));
     return 0;
   }
@@ -312,7 +312,7 @@ int cmd_free(int argc, char *argv[]){
   check_overflow(ptr_val);
   err_val = SVC_free((void *)ptr_val);
   if (err_val == 0){
-	char* msg = "Free successful \n";
+	char* msg = "Free successful \r\n";
 	SVC_fputs(io_dev, msg, strlen(msg));
   }
   return err_val;
@@ -385,7 +385,7 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-	char* msg = "memchk successful \n";
+	char* msg = "memchk successful \r\n";
 	SVC_fputs(io_dev, msg, strlen(msg));
 	return 0;
 }
@@ -409,7 +409,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = SVC_malloc(64);
-	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
+	sprintf(output, "fopen success \r\n FILE* is 0x%x \r\n", (unsigned int)myfile);
 	SVC_fputs(io_dev, output, strlen(output));
 	SVC_free(output);
 	return 0;
@@ -427,7 +427,7 @@ int cmd_fclose(int argc, char *argv[]){
 	//svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
-		char* msg = "File close successful \n";
+		char* msg = "File close successful \r\n";
 		SVC_fputs(io_dev, msg, strlen(msg));
 	}
 	return err;
@@ -469,9 +469,10 @@ int cmd_fgetc(int argc, char *argv[]){
 		return err;
 	}
 	else{
-		char output[2];
+		char output[3];
 		output[0] = bufp;
-		output[1] = '\n';
+		output[1] = '\r';
+		output[2] = '\n';
 		SVC_fputs(io_dev, output, strlen(output));
 	}
 	return err;
