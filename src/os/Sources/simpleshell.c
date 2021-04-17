@@ -648,7 +648,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1) != 1){
+	while (SVC_fgetc(sw1, 'a') != 1){
 		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)i);
 		if (err != 0){
@@ -686,7 +686,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1) != 1){
+	while (SVC_fgetc(sw1, 'a') != 1){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -732,7 +732,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	}
 	const unsigned long int delayCount = 0x7ffff;
   char* bufp = " ";
-	while (SVC_fgetc(sw2) != 3){
+	while (SVC_fgetc(sw2, 'a') != 3){
 		delay(delayCount);
 		int switchState = switchScan();
 		if (switchState == noChange){
