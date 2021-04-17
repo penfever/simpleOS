@@ -37,7 +37,8 @@
 				  "therm2ser continuously outputs the thermistor value to STDOUT \r\n"\
 				  "pb2LED toggles LEDs based on inputs from pushbuttons \r\n"\
 				  "catfile prints the contents of a file to STDOUT \r\n"\
-				  "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"\
+          "flashled flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals) \r\n"
 				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
@@ -52,6 +53,7 @@
 
 extern int g_noFS;
 extern file_descriptor io_dev;
+extern uint8_t g_timerExpired;
 
 struct escape_chars {
     char c;
@@ -86,6 +88,7 @@ int cmd_therm2ser(int argc, char* argv[]);
 int cmd_pb2led(int argc, char* argv[]);
 int cmd_catfile(int argc, char* argv[]);
 int cmd_cat2file(int argc, char* argv[]);
+int cmd_flashled(int argc, char* argv[]);
 
 struct commandEntry {
   char *name;

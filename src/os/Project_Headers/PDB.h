@@ -40,8 +40,8 @@
 
 /* IRQ for PDB0 is 72 */
 #define PDB0_IRQ_NUMBER 72
-/* Interrupt priority for PDB0 is 7 (range is 0 to 15) */
-#define PDB0_INTERRUPT_PRIORITY 7
+/* Interrupt priority for PDB0 is 10 (range is 0 to 15) */
+#define PDB0_INTERRUPT_PRIORITY 10
 
 /* Values for the PDB_SC_PRESCALER field in PDB0_SC */
 #define PDB_SC_PRESCALER_DIVIDE_BY_1 0	
@@ -79,6 +79,8 @@
 
 #define PDBTimerOneShot 0
 #define PDBTimerContinuous 1
+
+#define PDB0_FACTOR 9375
 
 /* Function prototypes */
 void PDB0Init(uint16_t count, int continuous);

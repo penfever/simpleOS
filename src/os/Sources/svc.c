@@ -321,6 +321,19 @@ int __attribute__((never_inline)) SVC_settime(long long newTime) {
 	__asm("svc %0" : : "I" (SVC_SETTIME));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
+	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
+	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
+}
+#endif
 
 int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
 	int sum;
@@ -543,6 +556,9 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_SETTIME:
 			framePtr->returnVal = set_time(framePtr->arg0);
+			break;
+		case SVC_PDBONESHOT:
+			framePtr->returnVal = pdb0_one_shot_timer(framePtr->arg0);
 			break;
 		default:
 			if (MYFAT_DEBUG){

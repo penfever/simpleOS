@@ -18,6 +18,7 @@
 #include "nvic.h"
 #include "PDB.h"
 #include "mcg.h"
+#include "simpleshell.h"
 
 /* For an overall description of the Programmable Delay Block (PDB), see
  * Chapter 43 on page 1193 of the K70 Sub-Family Reference Manual, Rev. 2,
@@ -56,17 +57,10 @@ void PDB0Init(uint16_t count, int continuous) {
 	 * Rev. 2, Dec 2011) */
 	PDB0_SC = 0;
 	
-	/* With the MCGOUTCLK = FLL_Factor*IRC (which is 32768*640), and with the
-	 * peripheral clock divider set to 10, we end up with a peripheral clock of
-	 * 2,097,152 Hz.  Setting the prescaler to divide by 128 yields a counter
-	 * frequency of 16384 Hz */
-
-	/* Set the Clock 2 (peripheral clock) output divider value to 10 using
-	 * the SIM_CLKDIV1 register (System Clock Divider Register 1)
-	 * (See 12.2.16 on page 347 of the K70 Sub-Family Reference Manual,
-	 * Rev. 2, Dec 2011) */
-	SIM_CLKDIV1 = (SIM_CLKDIV1 & ~SIM_CLKDIV1_OUTDIV2_MASK) |
-			SIM_CLKDIV1_OUTDIV2(SIM_CLKDIV1_OUTDIV_DIVIDE_BY_10);
+	/* After MCGInit, we end up with a peripheral clock of
+	 * 60,000,000 Hz.  
+	 Prescaler 128 = 468,750
+	  */
 
 	/* Load timer count (16-bit value) into the modulo register */
 	PDB0_MOD = count;
@@ -115,5 +109,19 @@ void PDB0Isr(void) {
 	PDB0_SC &= ~PDB_SC_PDBIF_MASK;
 
 	/* Perform the user's action */
-	PDB0Action();
+	pdb0stop();
+	g_timerExpired = TRUE; //timerExpired is now true
+}
+
+/*pdb0 one shot timer sets the pdb timer to a one-shot value determined by delayCount (ranging 50ms to 1000ms)*/
+int pdb0_one_shot_timer(uint16_t* delayCount){
+     uint16_t count = *delayCount * FACTOR;
+     if (count < 1){
+          return E_NOINPUT; //check overflow
+     }
+     pdb0init(count, FALSE);
+     pdb0start(count); //timer starts
+     g_timerExpired = FALSE; //timerExpired is now false
+     return 0;
+     }
 }

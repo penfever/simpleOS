@@ -21,6 +21,7 @@ extern void __thumb_startup(void);
 extern void svcHandler(void); //handler for svc
 extern void interruptSerialPort2(void); //handler for UART2
 extern void flexTimer0Isr(void); //handler for flexTimer 0
+extern void PDB0Isr(void); //handler for pdb0
 #if __cplusplus
 }
 #endif
@@ -158,7 +159,7 @@ void (* const InterruptVector[])() __attribute__ ((section(".vectortable"))) = {
   Default_Handler,		/* Vector 85: PIT, Channel 1 */
   Default_Handler,		/* Vector 86: PIT, Channel 2 */
   Default_Handler,		/* Vector 87: PIT, Channel 3 */
-  Default_Handler,		/* Vector 88: PDB */
+  PDB0Isr,		/* Vector 88: PDB */
   Default_Handler,		/* Vector 89: USB OTG */
   Default_Handler,		/* Vector 90: USB Charger Detect */
   Default_Handler,		/* Vector 91: Ethernet MAC, IEEE 1588 Timer */

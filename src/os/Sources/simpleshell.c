@@ -17,7 +17,14 @@
 #include "util.h"
 #include "switchcmd.h"
 #include "dateTime.h"
+#include "pdb.h"
 
+/*Globals*/
+int g_noFS = TRUE;
+int g_timerExpired = TRUE;
+file_descriptor io_dev;
+
+/*Structs*/
 struct escape_chars escapechars[] = {
     {'0', 0},
     {'a', 7},
@@ -30,9 +37,6 @@ struct escape_chars escapechars[] = {
     {'v', 11},
     {'"', 34}
 };
-
-int g_noFS = TRUE;
-file_descriptor io_dev;
 
 struct commandEntry commands[] = {{"date", cmd_date},
                 {"echo", cmd_echo},
@@ -59,10 +63,13 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
-                {"cat2file", cmd_cat2file}
+                {"cat2file", cmd_cat2file},
+                {"flashled", cmd_flashled}
 };
 
-/*Takes as arguments a user command and the length of that command.
+/*Functions*/
+
+/*escape_char accepts as arguments a user command and the length of that command.
 It then compares the next character to a list of escape characters and processes it accordingly.*/
 char escape_char(char* user_cmd, int* str_len){
   char c;
@@ -80,7 +87,7 @@ char escape_char(char* user_cmd, int* str_len){
   return c;
 }
 
-/*Takes as arguments a user command, the length of a string, the number of arguments, 
+/*quote_string takes as arguments a user command, the length of a string, the number of arguments, 
 the current scan position and a pointer to an updateable scan position.
 It then scans the string until it encounters a close_quote and updates the scan position
 as necessary. If it does not encounter a close quote, returns an error.*/
@@ -116,7 +123,7 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   return c;
 }
 
-/*Takes user input from stdin and sends it to a char* array representing the user's command, also 
+/*get_string takes user input from stdin and sends it to a char* array representing the user's command, also 
 keeping accurate track of the length of the user string. Once it encounters a newline, get_string
 parses user arguments to create argc and argv. */
 int get_string(char* user_cmd, int arg_len[]){
@@ -214,6 +221,7 @@ int get_string(char* user_cmd, int arg_len[]){
   return 0;
 }
 
+/*echo prints to the terminal whatever was typed as an argument by the user following the call to echo itself.*/
 int cmd_echo(int argc, char *argv[]){
   if (argc == 1){
     return 0;
@@ -229,6 +237,7 @@ int cmd_echo(int argc, char *argv[]){
   return 0;
 }
 
+/*exit shuts down all processes and devices, frees memory and exits the shell.*/
 int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
@@ -245,6 +254,7 @@ int cmd_exit(int argc, char *argv[]){
   exit(0);
 }
 
+/*help displays a list of commands, along with their behavior in the shell.*/
 int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
@@ -253,7 +263,7 @@ int cmd_help(int argc, char *argv[]){
   return 0;
 }
 
-/*formats and prints a date and time from get_time -- "date" will output to stdout 
+/*date formats and prints a date and time from get_time -- "date" will output to stdout 
 the current date and time in the format "January 23, 2014 15:57:07.123456". 
 If called with one argument, this command sets the system time 
  * to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.
@@ -551,7 +561,6 @@ int cmd_touch2led(int argc, char* argv[]){
 		return E_NUMARGS;
 	}
 	file_descriptor myTS1 = 0;
-	//svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
 	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
 	if (err != 0){
 		return err;
@@ -685,7 +694,6 @@ int cmd_pb2led(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -793,9 +801,6 @@ int cmd_cat2file(int argc, char* argv[]){
 	}
 	char c;
 	while(TRUE){
-    	// while(!SVC_ischar(io_dev)) {
-    	// 	delay(delayCount);
-    	// }
 	    SVC_fgetc(io_dev, &c);
 	    if (c == EOT){
 	    	break;
@@ -803,6 +808,44 @@ int cmd_cat2file(int argc, char* argv[]){
 		SVC_fputc(descr, c);
 	}
 	return SVC_fclose(descr);
+}
+
+/*flashled takes an argument between 1 and 20 (1 is 50ms, 20 is 1000ms). 
+It toggles the (color?) LED on and off every argv[1] milliseconds 
+until sw1 is pushed.*/
+int cmd_flashled(int argc, char* argv[]){
+  int err = 0;
+  if (argc != 2){
+		return E_NUMARGS;
+	}
+  uint16_t delayCount = hex_dec_oct(argv[1]); 
+  if (delayCount < 1 || delayCount > 20){
+    return E_NOINPUT;
+  }
+  uint8_t toggle = TRUE;
+  file_descriptor sw1;
+	err = SVC_fopen(&sw1, "dev_sw1", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor myE1 = 0;
+	err = SVC_fopen(&myE1, "dev_E1", 'r');
+	if (err != 0){
+		return err;
+	}
+  while(!sw1in()){
+    if (g_timerExpired) {
+      if (toggle){
+        SVC_fgetc(myE1, char* bufp); //fgetc turns LED on
+      }
+      else{
+        SVC_fputc(myE1, 'a'); //fputc turns LED off
+      }
+      toggle = !toggle; //toggle reverses
+      SVC_pdb0oneshottimer(&delayCount); //timer reset
+    }
+  }
+  return 0;
 }
 
 //command line shell accepts user input and executes basic commands

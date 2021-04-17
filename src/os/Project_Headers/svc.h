@@ -37,6 +37,7 @@
 #define SVC_ISCHAR 14
 #define SVC_DIR_LS 15
 #define SVC_SETTIME 16
+#define SVC_PDBONESHOT 17
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -58,5 +59,6 @@ void* SVC_malloc(unsigned int size);
 int SVC_free(void *ptr);
 int SVC_dir_ls(int full);
 int SVC_settime(long long *newTime);
+int SVC_pdb0oneshottimer(uint16_t* delayCount);
 
 #endif /* ifndef _SVC_H */

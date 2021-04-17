@@ -302,7 +302,8 @@ int pushb_fgetc(file_descriptor descr){
 	return 0;
 }
 
-int led_fgetc(file_descriptor descr){ //LED_fgetc is defined as 'on'
+/*LED_fgetc is defined as 'on'*/
+int led_fgetc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
 	if (userptr->minorId == dev_E1){
         ledOrangeOn();
@@ -381,6 +382,7 @@ int myfputc (file_descriptor descr, char bufp){
 	return err;
 }
 
+/*led_fputc is defined as off*/
 int led_fputc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
 	if (userptr->minorId == dev_E1){
