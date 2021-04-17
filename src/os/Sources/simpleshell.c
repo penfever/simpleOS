@@ -565,6 +565,21 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
+  file_descriptor myTS2 = 0;
+	err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor myTS3 = 0;
+	err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor myTS4 = 0;
+	err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
+	if (err != 0){
+		return err;
+	}
 	file_descriptor E1 = 0;
 	err = SVC_fopen(&E1, "dev_E1", 'r');
 	if (err != 0){
@@ -587,24 +602,24 @@ int cmd_touch2led(int argc, char* argv[]){
 	}
   char* bufp = " ";
 	const unsigned long int delayCount = 0x7ffff;
-	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
+	while(!(SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp))) {
 		delay(delayCount);
-		if(electrode_in(0)) {
+		if(SVC_fgetc(myTS1, bufp)) {
       SVC_fgetc(E1, bufp); //fgetc turns LED on
 		} else {
       SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(1)) {
+		if(SVC_fgetc(myTS2, bufp)) {
       SVC_fgetc(E4, bufp); //fgetc turns LED on
 		} else {
       SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(2)) {
+		if(SVC_fgetc(myTS3, bufp)) {
       SVC_fgetc(E3, bufp); //fgetc turns LED on
 		} else {
       SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(3)) {
+		if(SVC_fgetc(myTS4, bufp)) {
       SVC_fgetc(E2, bufp); //fgetc turns LED on
 		} else {
       SVC_fputc(E2, 'a'); //fputc turns LED off
@@ -618,7 +633,31 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
+  err = SVC_fclose(myTS2);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(myTS3);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(myTS4);
+	if (err != 0){
+		return err;
+	}
 	err = SVC_fclose(E1);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E2);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E3);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E4);
 	if (err != 0){
 		return err;
 	}
