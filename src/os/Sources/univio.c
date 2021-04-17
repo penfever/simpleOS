@@ -20,6 +20,8 @@
 #include "led.h"
 #include "pushbutton.h"
 #include "intSerialIO.h"
+#include "PDB.h"
+#include "flexTimer.h"
 
 static int pid = 0; //temporarily set everything to OS
 
@@ -487,5 +489,13 @@ int close_all_devices(void){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		currentPCB->openFiles[i].deviceType = UNUSED;
 	}
+	//stop any running timers
+	PDB0Stop();
+	flexTimer0Stop();
+	//deactivate any active LEDs
+	ledOrangeOff();
+	ledYellowOff();
+	ledBlueOff();
+	ledGreenOff();
     return 0;
 }

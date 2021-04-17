@@ -361,13 +361,37 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 	return 0;
 }
 
+/*clean_dir_name returns a dir_name with trailing whitespace and file extensions removed.*/
+char* clean_dir_name(char* dirtyName){
+	int myLen = strlen(dirtyName);
+	if (myLen == 0){
+		return "\0"; //CASE: string is empty
+	}
+	char* dirname = myMalloc(sizeof(myLen));
+	int i;
+	for (i = 0; i < myLen; i++){
+		if (dirtyName[i] == 0x20 || dirtyName[i] == 0x2E || dirtyName[i] == 0x00){
+			break;
+		}
+		dirname[i] = dirtyName[i];
+	}
+	if (i < myLen){
+		dirname[i] = '\0';
+	}
+	return dirname;
+}
 /*print_attr prints all requested information either to the debug console,
  * or to the UART, or both.*/
 void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 	int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	char output[64] = {' '};
-	char* dirname = dir_entry->DIR_Name;
-	sprintf(output, "%.8s%c%.3s\n", dirname, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
+	char* dirname = clean_dir_name(dir_entry->DIR_Name);
+	char* extension = "\0";
+	if (hasExtension){
+		extension = &dir_entry->DIR_Name[8];
+	}
+	sprintf(output, "%s%c%s\n", dirname, hasExtension ? '.' : ' ', extension);
+	myFree(dirname);
 	if(UARTIO && search == NULL && g_deleteFlag == FALSE && g_readFlag == FALSE){
 		putsNLIntoBuffer(output);
 		if(g_printAll){
