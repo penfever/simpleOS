@@ -788,7 +788,6 @@ int cmd_catfile(int argc, char* argv[]){
   ^D (control-D) input character.
  * */
 int cmd_cat2file(int argc, char* argv[]){
-	const unsigned long int delayCount = 0x7ffff;
 	if (argc != 2){
 		return E_NUMARGS;
 	}
@@ -862,7 +861,7 @@ int shell(void){
 	}
     while(TRUE){
     	char dollar[4] = {'\0'};
-    	sprintf(dollar, "$ ", io_dev);
+    	sprintf(dollar, "$ ");
     	SVC_fputs(io_dev, dollar, strlen(dollar));
         int arg_len[MAXARGS+2] = {0};
         char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
@@ -970,7 +969,7 @@ int check_hex_all(char* str){
 }
 
 /*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an unsigned integer. If it is not an integer or some other error has occurred, returns 0.*/
+it is an unsigned int or long. If it is not an integer or some other error has occurred, returns 0.*/
 size_t hex_dec_oct(char* str){
   char* p_str = str + 2;
   int check_str;
