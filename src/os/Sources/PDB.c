@@ -114,9 +114,11 @@ void PDB0Isr(void) {
 	g_timerExpired = TRUE; //timerExpired is now true
 }
 
-/*pdb0 one shot timer sets the pdb timer to a one-shot value determined by delayCount (ranging 50ms to 1000ms)*/
+/*pdb0 one shot timer sets the pdb timer to a one-shot value determined by delayCount (ranging ~7.8ms to 1000ms)
+This function assumes count is in 1/16384 intervals.*/
 int pdb0_one_shot_timer(uint16_t* delayCount){
      uint16_t count = *delayCount;
+	 count += 1;
      count *= PDB0_FACTOR;
      if (count < 1){
           return E_NOINPUT; //check overflow
