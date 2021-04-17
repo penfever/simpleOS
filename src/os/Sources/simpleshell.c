@@ -21,7 +21,7 @@
 
 /*Globals*/
 int g_noFS = TRUE;
-int g_timerExpired = TRUE;
+uint8_t g_timerExpired = TRUE;
 file_descriptor io_dev;
 
 /*Structs*/
@@ -833,10 +833,11 @@ int cmd_flashled(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  while(!sw1in()){
+  while(!sw1In()){
     if (g_timerExpired) {
       if (toggle){
-        SVC_fgetc(myE1, char* bufp); //fgetc turns LED on
+    	char* bufp = " ";
+        SVC_fgetc(myE1, bufp); //fgetc turns LED on
       }
       else{
         SVC_fputc(myE1, 'a'); //fputc turns LED off

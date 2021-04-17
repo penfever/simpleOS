@@ -19,6 +19,7 @@
 #include "PDB.h"
 #include "mcg.h"
 #include "simpleshell.h"
+#include "myerror.h"
 
 /* For an overall description of the Programmable Delay Block (PDB), see
  * Chapter 43 on page 1193 of the K70 Sub-Family Reference Manual, Rev. 2,
@@ -109,19 +110,19 @@ void PDB0Isr(void) {
 	PDB0_SC &= ~PDB_SC_PDBIF_MASK;
 
 	/* Perform the user's action */
-	pdb0stop();
+	PDB0Stop();
 	g_timerExpired = TRUE; //timerExpired is now true
 }
 
 /*pdb0 one shot timer sets the pdb timer to a one-shot value determined by delayCount (ranging 50ms to 1000ms)*/
 int pdb0_one_shot_timer(uint16_t* delayCount){
-     uint16_t count = *delayCount * FACTOR;
+     uint16_t count = *delayCount;
+     count *= PDB0_FACTOR;
      if (count < 1){
           return E_NOINPUT; //check overflow
      }
-     pdb0init(count, FALSE);
-     pdb0start(count); //timer starts
+     PDB0Init(count, FALSE);
+     PDB0Start(); //timer starts
      g_timerExpired = FALSE; //timerExpired is now false
      return 0;
-     }
 }
