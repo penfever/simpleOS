@@ -80,7 +80,7 @@
 #define PDBTimerOneShot 0
 #define PDBTimerContinuous 1
 
-#define PDB0_FACTOR 9375
+#define PDB0_FACTOR 128
 
 /* Function prototypes */
 void PDB0Init(uint16_t count, int continuous);

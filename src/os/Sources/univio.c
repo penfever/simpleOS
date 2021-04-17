@@ -284,20 +284,28 @@ int adc_fgetc(file_descriptor descr) {
 	return E_DEV;
 }
 
+/*pushb_fgetc returns 1 if sw1 is pressed, 2 if sw2 is pressed, 3 if both are pressed, otherwise 0*/
 int pushb_fgetc(file_descriptor descr){
-	if (UARTIO){
-		if (sw1In()){
+	if (sw1In() && sw2In()){
+		if (MYFAT_DEBUG){
+			putsNLIntoBuffer("Pushbutton sw1, sw2 are pressed \n");
+		}
+		return 3;
+	}
+	else if (sw1In()){
+		if (MYFAT_DEBUG){
 			putsNLIntoBuffer("Pushbutton sw1 is pressed \n");
 		}
-		else{
-			putsNLIntoBuffer("Pushbutton sw1 is not pressed \n");
-		}
-		if (sw2In()){
+		return 1;
+	}
+	else if (sw2In()){
+		if (MYFAT_DEBUG){
 			putsNLIntoBuffer("Pushbutton sw2 is pressed \n");
 		}
-		else{
-			putsNLIntoBuffer("Pushbutton sw2 is not pressed \n");
-		}
+		return 2;
+	}
+	if (MYFAT_DEBUG){
+		putsNLIntoBuffer("Pushbutton sw1, sw2 are not pressed \n");
 	}
 	return 0;
 }

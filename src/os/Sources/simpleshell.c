@@ -565,44 +565,60 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	file_descriptor myE1 = 0;
-	err = SVC_fopen(&myE1, "dev_E1", 'r');
+	file_descriptor E1 = 0;
+	err = SVC_fopen(&E1, "dev_E1", 'r');
 	if (err != 0){
 		return err;
 	}
+  file_descriptor E2 = 0;
+	err = SVC_fopen(&E2, "dev_E2", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor E3 = 0;
+	err = SVC_fopen(&E3, "dev_E3", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor E4 = 0;
+	err = SVC_fopen(&E4, "dev_E4", 'r');
+	if (err != 0){
+		return err;
+	}
+  char* bufp = " ";
 	const unsigned long int delayCount = 0x7ffff;
 	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
 		delay(delayCount);
 		if(electrode_in(0)) {
-			ledOrangeOn();
+      SVC_fgetc(E1, bufp); //fgetc turns LED on
 		} else {
-			ledOrangeOff();
+      SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
 		if(electrode_in(1)) {
-			ledYellowOn();
+      SVC_fgetc(E4, bufp); //fgetc turns LED on
 		} else {
-			ledYellowOff();
+      SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
 		if(electrode_in(2)) {
-			ledGreenOn();
+      SVC_fgetc(E3, bufp); //fgetc turns LED on
 		} else {
-			ledGreenOff();
+      SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
 		if(electrode_in(3)) {
-			ledBlueOn();
+      SVC_fgetc(E2, bufp); //fgetc turns LED on
 		} else {
-			ledBlueOff();
+      SVC_fputc(E2, 'a'); //fputc turns LED off
 		}
 	}
-	ledOrangeOff();
-	ledBlueOff();
-	ledGreenOff();
-	ledYellowOff();
+  SVC_fputc(E1, 'a'); //fputc turns LED off
+  SVC_fputc(E2, 'a'); //fputc turns LED off
+  SVC_fputc(E3, 'a'); //fputc turns LED off
+  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		return err;
 	}
-	err = SVC_fclose(myE1);
+	err = SVC_fclose(E1);
 	if (err != 0){
 		return err;
 	}
@@ -632,7 +648,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (!sw1In()){
+	while (SVC_fgetc(sw1) != 1){
 		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)i);
 		if (err != 0){
@@ -656,7 +672,6 @@ int cmd_therm2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -671,7 +686,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (!sw1In()){
+	while (SVC_fgetc(sw1) != 1){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -706,7 +721,7 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	file_descriptor E1;
-	err = SVC_fopen(&E1, "dev_E1", 'r'); //red
+	err = SVC_fopen(&E1, "dev_E1", 'r'); //orange
 	if (err != 0){
 		return err;
 	}
@@ -716,27 +731,28 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	const unsigned long int delayCount = 0x7ffff;
-	while (!(sw1In() && sw2In())){
+  char* bufp = " ";
+	while (SVC_fgetc(sw2) != 3){
 		delay(delayCount);
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
 		}
 		else if (switchState == switch1Down){
-			ledOrangeOn();
+      SVC_fgetc(E1, bufp); //fgetc turns LED on
 		}
 		else if (switchState == switch2Down){
-			ledYellowOn();
+      SVC_fgetc(E4, bufp); //fgetc turns LED on
 		}
 		else if (switchState == switch1Up){
-			ledOrangeOff();
+      SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
 		else if (switchState == switch2Up){
-			ledYellowOff();
+      SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
 	}
-	ledYellowOff();
-	ledOrangeOff();
+  SVC_fputc(E1, 'a'); //fputc turns LED off
+  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(E1);
 	if (err != 0){
 		return err;
@@ -809,8 +825,8 @@ int cmd_cat2file(int argc, char* argv[]){
 	return SVC_fclose(descr);
 }
 
-/*flashled takes an argument between 1 and 20 (1 is 50ms, 20 is 1000ms). 
-It toggles the (color?) LED on and off every argv[1] milliseconds 
+/*flashled takes an argument, argv[1], between 0 and 127 (0 is ~7.8ms, 127 is 1s). 
+It toggles the orange LED on and off every argv[1] milliseconds 
 until sw1 is pushed.*/
 int cmd_flashled(int argc, char* argv[]){
   int err = 0;
@@ -818,7 +834,7 @@ int cmd_flashled(int argc, char* argv[]){
 		return E_NUMARGS;
 	}
   uint16_t delayCount = hex_dec_oct(argv[1]); 
-  if (delayCount < 1 || delayCount > 20){
+  if (delayCount < 0 || delayCount > 127){
     return E_NOINPUT;
   }
   uint8_t toggle = TRUE;
