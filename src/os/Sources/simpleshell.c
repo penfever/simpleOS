@@ -605,24 +605,24 @@ int cmd_touch2led(int argc, char* argv[]){
 	while(!(SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp))) {
 		delay(delayCount);
 		if(SVC_fgetc(myTS1, bufp)) {
-      SVC_fgetc(E1, bufp); //fgetc turns LED on
-		} else {
-      SVC_fputc(E1, 'a'); //fputc turns LED off
+		  SVC_fgetc(E1, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
 		if(SVC_fgetc(myTS2, bufp)) {
-      SVC_fgetc(E4, bufp); //fgetc turns LED on
-		} else {
-      SVC_fputc(E4, 'a'); //fputc turns LED off
+		  SVC_fgetc(E4, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
 		if(SVC_fgetc(myTS3, bufp)) {
-      SVC_fgetc(E3, bufp); //fgetc turns LED on
-		} else {
-      SVC_fputc(E3, 'a'); //fputc turns LED off
+		  SVC_fgetc(E3, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
 		if(SVC_fgetc(myTS4, bufp)) {
-      SVC_fgetc(E2, bufp); //fgetc turns LED on
-		} else {
-      SVC_fputc(E2, 'a'); //fputc turns LED off
+		  SVC_fgetc(E2, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E2, 'a'); //fputc turns LED off
 		}
 	}
   SVC_fputc(E1, 'a'); //fputc turns LED off

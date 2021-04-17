@@ -365,7 +365,7 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 char* clean_dir_name(char* dirtyName){
 	int myLen = strlen(dirtyName);
 	if (myLen == 0){
-		return "\0"; //CASE: string is empty
+		return ""; //CASE: string is empty
 	}
 	char* dirname = myMalloc(sizeof(myLen));
 	int i;
@@ -385,13 +385,9 @@ char* clean_dir_name(char* dirtyName){
 void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 	int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	char output[64] = {' '};
-	char* dirname = clean_dir_name(dir_entry->DIR_Name);
-	char* extension = "\0";
-	if (hasExtension){
-		extension = &dir_entry->DIR_Name[8];
-	}
-	sprintf(output, "%s%c%s\n", dirname, hasExtension ? '.' : ' ', extension);
-	myFree(dirname);
+	char* dirname = dir_entry->DIR_Name;
+	//dirname = filename_clean(dirname);
+	sprintf(output, "%.8s%c%.3s\n", dirname, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
 	if(UARTIO && search == NULL && g_deleteFlag == FALSE && g_readFlag == FALSE){
 		putsNLIntoBuffer(output);
 		if(g_printAll){
@@ -439,6 +435,8 @@ int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
  * Returns an error code if the filename is a directory
  * SIDE EFFECT--global dir_entry latest gets the dir_entry for the found file. This can
  * be used to update metadata as needed.
+ * SIDE EFFECT: firstCluster MUST have memory allocated to it, even if you are not using
+ * the cluster information
  */
 int dir_find_file(char *filename, uint32_t *firstCluster){
     if (0 == MOUNT){
@@ -779,7 +777,8 @@ int file_close(file_descriptor descr){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		if (userptr == &(currentPCB->openFiles[i])){ //match found
 			g_readFlag = TRUE;
-			if ((err = dir_find_file(userptr->fileName, userptr->clusterAddr)) != 0){ //TODO: SVC issue. finding file on disk
+			uint32_t myCluster;
+			if ((err = dir_find_file(userptr->fileName, myCluster)) != 0){
 				g_readFlag = FALSE;
 				return err;
 			}

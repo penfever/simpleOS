@@ -260,19 +260,19 @@ int myfgetc (file_descriptor descr, char* bufp){
 
 int tsi_fgetc(file_descriptor descr) {
 	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorId == dev_TSI1 && electrode_in(0)){
-		return TRUE;
+	if (userptr->minorId == dev_TSI1){
+		return electrode_in(0);
 	}
-	if (userptr->minorId == dev_TSI2 && electrode_in(1)){
-		return TRUE;
+	if (userptr->minorId == dev_TSI2){
+		return electrode_in(1);
 	}
-	if (userptr->minorId == dev_TSI3 && electrode_in(2)){
-		return TRUE;
+	if (userptr->minorId == dev_TSI3){
+		return electrode_in(2);
 	}
-	if (userptr->minorId == dev_TSI4 && electrode_in(3)){
-		return TRUE;
+	if (userptr->minorId == dev_TSI4){
+		return electrode_in(3);
 	}
-	return FALSE;
+	return E_DEV;
 }
 
 int adc_fgetc(file_descriptor descr) {

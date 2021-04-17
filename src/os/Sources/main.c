@@ -16,7 +16,6 @@
 
 int main(void){
 	int error;
-	//error = intSerIoProj();
 	if ((error = init_clocks_sdram()) != 0){
 		if (MYFAT_DEBUG){
 			printf("sdram/MCG error \n");
@@ -32,7 +31,6 @@ int main(void){
 //			exit(-4);
 //		}
 //	}
-	//error = intSerIoProj();
     if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
         setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
         setvbuf(stdout, NULL, _IONBF, 0);	
