@@ -17,6 +17,7 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "intSerialIO.h"
+#include "dateTime.h"
 
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */
@@ -271,7 +272,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    			return 0;
 	    		}
-    			int firstSector = first_sector_of_cluster(MOUNT->cwd_cluster);
     			if(UARTIO){
     	    		char output[64] = {' '};
         			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
@@ -361,13 +361,14 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 	return 0;
 }
 
-/*clean_dir_name returns a dir_name with trailing whitespace and file extensions removed.*/
+/*clean_dir_name returns a dir_name with trailing whitespace and file extensions removed.
+ * Limited to 16 characters*/
 char* clean_dir_name(char* dirtyName){
 	int myLen = strlen(dirtyName);
 	if (myLen == 0){
 		return ""; //CASE: string is empty
 	}
-	char* dirname = myMalloc(sizeof(myLen));
+	char dirname[16] = {'\0'};
 	int i;
 	for (i = 0; i < myLen; i++){
 		if (dirtyName[i] == 0x20 || dirtyName[i] == 0x2E || dirtyName[i] == 0x00){
@@ -385,9 +386,7 @@ char* clean_dir_name(char* dirtyName){
 void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 	int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
 	char output[64] = {' '};
-	char* dirname = dir_entry->DIR_Name;
-	//dirname = filename_clean(dirname);
-	sprintf(output, "%.8s%c%.3s\n", dirname, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
+	sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
 	if(UARTIO && search == NULL && g_deleteFlag == FALSE && g_readFlag == FALSE){
 		putsNLIntoBuffer(output);
 		if(g_printAll){
@@ -777,7 +776,7 @@ int file_close(file_descriptor descr){
 	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		if (userptr == &(currentPCB->openFiles[i])){ //match found
 			g_readFlag = TRUE;
-			uint32_t myCluster;
+			uint32_t myCluster = 0;
 			if ((err = dir_find_file(userptr->fileName, myCluster)) != 0){
 				g_readFlag = FALSE;
 				return err;
