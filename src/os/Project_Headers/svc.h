@@ -51,6 +51,7 @@ int SVC_fclose(file_descriptor descrf);
 int SVC_create(char* filename);
 int SVC_delete(char* filename);
 int SVC_fgetc (file_descriptor descrf, char* bufp);
+int SVC_fgets (file_descriptor descrf, char* bufp, int buflen);
 int SVC_fputc (file_descriptor descrf, char bufp);
 int SVC_fputs (file_descriptor descrf, char* bufp, int buflen);
 int SVC_ischar(file_descriptor descrf);

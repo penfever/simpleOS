@@ -51,9 +51,10 @@
 #endif
 #define EOT 4
 
-extern int g_noFS;
-extern file_descriptor io_dev;
-extern uint8_t g_timerExpired;
+struct commandEntry {
+  char *name;
+  int (*functionp)(int argc, char *argv[]);
+};
 
 struct escape_chars {
     char c;
@@ -61,6 +62,9 @@ struct escape_chars {
 };
 
 extern struct escape_chars escapechars[];
+extern int g_noFS;
+extern file_descriptor io_dev;
+extern uint8_t g_timerExpired;
 
 int cmd_date(int argc, char *argv[]);
 int cmd_echo(int argc, char *argv[]);
@@ -90,27 +94,19 @@ int cmd_catfile(int argc, char* argv[]);
 int cmd_cat2file(int argc, char* argv[]);
 int cmd_flashled(int argc, char* argv[]);
 
-struct commandEntry {
-  char *name;
-  int (*functionp)(int argc, char *argv[]);
-};
+int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen);
+int quote_check(char* user_cmd, uint16_t cmdLen);
+void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len);
+void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen);
 
 int shell(void);
 
 int check_digit(char c);
-
 int check_hex (char c);
-
 int check_digit_all(char* str);
-
 int check_hex_all(char* str);
-
-int string_cmp(const char *first, const char *second);
-
 size_t hex_dec_oct(char* str);
-
 void check_overflow(unsigned long my_num);
-
 long long hex_dec_oct_ll(char* str);
 
 #endif

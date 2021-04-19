@@ -259,6 +259,19 @@ int __attribute__((never_inline)) SVC_fputs(file_descriptor descrf, char* bufp, 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_fgets(file_descriptor descrf, char* bufp, int buflen) {
+	__asm("svc %0" : : "I" (SVC_FGETS));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_fgets(file_descriptor descrf, char* bufp, int buflen) {
+	__asm("svc %0" : : "I" (SVC_FGETS));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
 void* __attribute__((naked)) __attribute__((noinline)) SVC_malloc(unsigned int size) {
 	__asm("svc %0" : : "I" (SVC_MALLOC));
 	__asm("bx lr");
@@ -535,6 +548,12 @@ void svcHandlerInC(struct frame *framePtr) {
 			printf("FPUTS\n");
 			}
 			framePtr->returnVal = myfputs(framePtr->descrf, framePtr->filename, framePtr->arg2);
+			break;
+		case SVC_FGETS:
+			if (MYFAT_DEBUG){
+			printf("FGETS\n");
+			}
+			framePtr->returnVal = myfgets(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_MALLOC:
 			if (MYFAT_DEBUG){

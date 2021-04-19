@@ -333,32 +333,49 @@ int led_fgetc(file_descriptor descr){
 	return 0;
 }
 
-/*fgets() reads in at most one less than size characters from stream and 
+/*myfgets() reads in at most one less than size characters from a stream and 
  * stores them into the buffer pointed to by s. Reading stops after an 
  * EOF or a newline. If a newline is read, it is stored into the buffer. 
- * A terminating null byte (\0) is stored after the last character in the buffer. */
-
-char* myfgets (file_descriptor descr, int buflen){ //TODO: convert to return integer
-	;
-//	if (g_noFS){
-//		return E_NOFS;
-//	}
-//	int err;
-//	if (pid != currentPCB->pid){
-//		return E_NOINPUT; //TODO: error checking
-//	}
-//	struct stream* userptr = (struct stream*)descr;
-//	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
-//		return E_NOINPUT;
-//	}
-//	if (userptr->cursor + buflen >= userptr->fileSize){
-//		return E_EOF;
-//	}
-//	int charsreadp;
-//	char bufp[buflen];
-//	err = file_getbuf(descr, bufp, buflen, &charsreadp);
-//	bufp[buflen] = '\0';
-//	return bufp;
+ * A terminating null byte (\0) is added after the last character in the buffer.*/
+int myfgets (file_descriptor descr, char* bufp, int buflen){
+	struct stream* userptr = (struct stream*)descr;
+	if (find_curr_stream(userptr) == FALSE){
+		return E_NOINPUT;
+	}
+	if (userptr->minorId == dev_UART2){ //get string terminating in newline from UART, up to a buffer size limit
+		int count = 0;
+		char c = getcharFromBuffer();
+		while (count < buflen - 1 && c != '\n'){
+			bufp[count] = c;
+			putcharIntoBuffer(bufp[count]); //per instructor, echo-back handled at device level
+			count ++;
+			c = getcharFromBuffer();
+		}
+		if (count == buflen - 1){
+			return E_NOINPUT;
+		}
+		else{
+			bufp[count] = NULLCHAR;
+		}
+		return 0;
+	}
+	if (userptr->deviceType != FAT32){
+		return E_DEV;
+	}
+	if (g_noFS){
+		return E_NOFS;
+	}
+	int err;
+	if (pid != currentPCB->pid){
+		return E_NOINPUT; //TODO: error checking
+	}
+	if (userptr->cursor + buflen >= userptr->fileSize){
+		return E_EOF;
+	}
+	int charsreadp;
+	err = file_getbuf(descr, bufp, buflen, &charsreadp);
+	bufp[buflen] = '\0';
+	return bufp;
 }
 
 int myfputc (file_descriptor descr, char bufp){

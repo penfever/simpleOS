@@ -67,124 +67,7 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"flashled", cmd_flashled}
 };
 
-/*Functions*/
-
-/*escape_char accepts as arguments a user command and the length of that command.
-It then compares the next character to a list of escape characters and processes it accordingly.*/
-char escape_char(char* user_cmd, int* str_len){
-  char c;
-  SVC_fgetc(io_dev, &c);
-  for (int i = 0; i < NUMESCAPES; i++){
-    if (c == escapechars[i].c){
-      char* user_cmd_ptr = user_cmd + *str_len;
-      char escape = escapechars[i].ascii;
-      sprintf(user_cmd_ptr, &escape);
-      *str_len = *str_len + 1;
-      SVC_fgetc(io_dev, &c);
-      return c;
-    }
-  }
-  return c;
-}
-
-/*quote_string takes as arguments a user command, the length of a string, the number of arguments, 
-the current scan position and a pointer to an updateable scan position.
-It then scans the string until it encounters a close_quote and updates the scan position
-as necessary. If it does not encounter a close quote, returns an error.*/
-char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* this_len){
-  int right_pos = *str_len;
-  char* user_cmd_ptr = user_cmd + *str_len;
-  char c = '"';
-  sprintf(user_cmd_ptr, &c);
-  *str_len = *str_len + 1;
-  SVC_fgetc(io_dev, &c);
-  while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      if (c == '\n'){
-        return E_NOINPUT;
-      }
-    }
-    user_cmd_ptr = user_cmd + *str_len;
-    sprintf(user_cmd_ptr, &c);
-    *str_len = *str_len + 1;
-    SVC_fgetc(io_dev, &c);
-  }
-  *this_len = right_pos - left_pos;
-  left_pos = right_pos;
-  *argc = *argc + 1;
-  user_cmd_ptr = user_cmd + *str_len;
-  sprintf(user_cmd_ptr, &c);
-  *str_len = *str_len + 1;
-  SVC_fgetc(io_dev, &c);
-  return c;
-}
-
-/*get_string takes user input from stdin and sends it to a char* array representing the user's command, also 
-keeping accurate track of the length of the user string. Once it encounters a newline, get_string
-parses user arguments to create argc and argv. */
-int get_string(char* user_cmd, int arg_len[]){
-  char c = NULLCHAR;
-  char* user_cmd_ptr = NULL;
-  uint32_t left_pos = 0;
-  uint32_t str_len = 0;
-  uint32_t argc = 0;
-  char buffer[2] = {NULLCHAR};
-  while (str_len < MAXLEN - 1 && c != '\n'){
-    if (buffer[1] != NULLCHAR){
-      buffer[1] = NULLCHAR;
-    }
-    else{
-      SVC_fgetc(io_dev, &c);
-    }
-    if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
-      c = escape_char(user_cmd, &str_len);
-    }
-    //otherwise, falls through and checks for a quotation mark
-    if (c == '"'){
-      int* this_len = &arg_len[argc + 1];
-      c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
-      SVC_fputc(io_dev, c);
-      if (c == E_NOINPUT){
-        return E_NOINPUT;
-      }
-    }
-    if (c == ' ' || c == '\t'){
-      int right_pos = str_len;
-      buffer[0] = c;
-      while( buffer[0] == ' ' || buffer[0] == '\t' ){
-        buffer[1] = buffer[0];
-        SVC_fgetc(io_dev, &buffer[0]);
-      }
-      c = buffer[0];
-      arg_len[argc] = right_pos - left_pos;
-      left_pos = right_pos;
-      argc++;
-      if (argc == MAXARGS){
-        return E_NUMARGS;
-      }
-      continue;
-    }
-    user_cmd_ptr = user_cmd + str_len;
-    sprintf(user_cmd_ptr, &c);
-    str_len++;
-  }
-  if (user_cmd == NULL){
-    return E_NOINPUT;
-  }
-  if (str_len == MAXLEN - 1){
-    return E_TOO_LONG;
-  }
-  else{
-    int right_pos = str_len;
-    arg_len[argc] = right_pos - left_pos;
-    argc ++;
-    user_cmd[str_len] = NULLCHAR;
-    arg_len[MAXARGS] = str_len;
-    arg_len[MAXARGS+1] = argc;
-  }
-  return 0;
-}
+/*User Commands*/
 
 /*echo prints to the terminal whatever was typed as an argument by the user following the call to echo itself.*/
 int cmd_echo(int argc, char *argv[]){
@@ -433,12 +316,11 @@ int cmd_fgetc(int argc, char *argv[]){
 		return E_NUMARGS;
 	}
 	int err;
-	char bufp = '\0';
+	char bufp = NULLCHAR;
 	file_descriptor descr;
 	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	//svcInit_SetSVCPriority(7);
 	err = SVC_fgetc(descr, &bufp);
 	if (err < 0){
 		return err;
@@ -868,80 +750,214 @@ int cmd_flashled(int argc, char* argv[]){
   return 0;
 }
 
-//command line shell accepts user input and executes basic commands
+/*String processing functions*/
+
+/*escape_char takes a user command string containing a backslash. 
+It then compares the next character to a list of escape characters.
+If a match is found, it writes ' ' to the position of the char following
+the backslash, and the correct ASCII escaped character to the position of backslash.*/
+void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen){
+  user_cmd ++;
+  for (int i = 0; i < NUMESCAPES; i++){
+    if (*user_cmd == escapechars[i].c){
+      *user_cmd_clean = escapechars[i].ascii;
+      *cleanLen ++;
+      return;
+    }
+  }
+  //if no match found, simply copy the characters verbatim into the stream
+  user_cmd --;
+  *user_cmd_clean = *user_cmd;
+  user_cmd_clean ++;
+  user_cmd ++;
+  *user_cmd_clean = *user_cmd;
+  *cleanLen += 2;
+  return;
+}
+
+/*quote_check checks a user command to ensure every open quote has a matching end quote.
+returns 0 on success, error on failure.*/
+int quote_check(char* user_cmd, uint16_t cmdLen){
+  int quote_count = 0;
+  for (int i = 0; i < cmdLen; i++){
+    if (user_cmd[i] == '"'){
+      quote_count ++;
+    }
+  }
+  if (quote_count % 2 != 0){ //discard strings with an invalid number of quotation marks
+    return E_NOINPUT;
+  }
+  return 0;
+}
+
+/*quote_char adds all characters between quotation marks in user_cmd to a single argument in user_cmd_clean,
+omitting the quotation marks themselves. It also calculates the length of the string between quotes
+and updates quote_len with that value.*/
+void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len){
+  while (*user_cmd != '"'){
+    user_cmd ++;
+    *user_cmd_clean = *user_cmd;
+    user_cmd_clean ++;
+    *quote_len ++;
+  }
+}
+
+/*parse_string parses a user-provided string, determines how many
+* arguments are in the string as well as the position of each argument
+* in the string. It then passes that information on in order to 
+* create an argv array.*/
+int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen){
+  uint16_t left_pos = 0;
+  uint32_t argc = 0; //use 1-indexing on argc
+  uint16_t cleanLen = 0;
+  int right_pos = 0;
+  for (; right_pos < cmdLen; right_pos++){
+    if (user_cmd[right_pos] == BACKSLASH){ //escape character handling
+      escape_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], &cleanLen);
+      continue;
+    }
+    if (user_cmd[right_pos] == '"' || user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t' || user_cmd[right_pos] == '\r' || user_cmd[right_pos] == '\n'){ //special char handling
+      if (user_cmd[right_pos] == '"'){ //quotes mean a new argument, plus a special handler
+        quote_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], arg_len[argc]);
+        cleanLen += arg_len[argc];
+        right_pos += arg_len[argc];
+        if (++argc == MAXARGS){
+          return E_NUMARGS;
+        }
+      }
+      else if (user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t'){ //whitespace means a new argument
+        arg_len[argc] = right_pos - left_pos;
+        left_pos = right_pos + 1;
+        if (++argc == MAXARGS){
+          return E_NUMARGS;
+        }
+      }
+      else{ //discard newlines and carriage returns
+          arg_len[argc] = right_pos - left_pos;
+          break;
+      }
+      while (user_cmd[right_pos+1] == ' ' || user_cmd[right_pos+1] == '\t'){ //surplus characters consumed
+      	right_pos ++;
+    	left_pos = right_pos;
+      }
+      continue;
+    }
+    //fall-through copies character, increments cleaned string length and continues loop
+    user_cmd_clean[cleanLen] = user_cmd[right_pos];
+    cleanLen ++;
+  }
+  if (MYFAT_DEBUG){
+	  printf("parsestring: ");
+	  for (int i = 0; i < cleanLen; i++){
+		  printf("%c", user_cmd_clean[i]);
+	  }
+	  printf("\n");
+  }
+  user_cmd_clean[cleanLen] = NULLCHAR;
+  arg_len[MAXARGS] = cleanLen; //store length of string
+  arg_len[MAXARGS+1] = argc + 1; //store argc with 1-indexing
+  return 0;
+}
+
+/*main shell function*/
+
 int shell(void){
 	const unsigned long int delayCount = 0x7ffff;
 	long long gmtTime = timestamp_to_ms();
 	SVC_settime(&gmtTime); //set default time to GMT
 	if (UARTIO){
 		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-		char output[64] = {'\0'};
+		char output[64] = {NULLCHAR};
 		sprintf(output, "Your STDIN/STDOUT file is %x \r\n", io_dev);
 		SVC_fputs(io_dev, output, strlen(output));
 	}
-    while(TRUE){
-    	char dollar[4] = {'\0'};
-    	sprintf(dollar, "$ ");
-    	SVC_fputs(io_dev, dollar, strlen(dollar));
-        int arg_len[MAXARGS+2] = {0};
-        char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
-    	// while(!SVC_ischar(io_dev)) {
-    	// 	delay(delayCount);
-    	// }
-        if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
-          return -99;
-        }
-    	SVC_fputs(io_dev, "\n", 1);
-        int argc = arg_len[MAXARGS+1];
-        char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
-        if (argv == NULL) {
-          error_checker(E_MALLOC);
-          return E_MALLOC;
-        }
-        argv[argc] = NULL;
-        int user_cmd_offset = 0;
-        //parse string into argv
-        for (int i = 0; i < argc; i++){
-          argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
-          if (argv[i] == NULL) {
-            error_checker(E_MALLOC);
-            return E_MALLOC;
-          }
-          for (int j = 0; j < arg_len[i]; j++){
-            argv[i][j] = user_cmd[user_cmd_offset + j];
-          }
-          argv[i][arg_len[i]] = NULLCHAR;
-          user_cmd_offset += arg_len[i];
-        }
-        //check if command exists in struct
-        for (int i = 0; i < NUMCOMMANDS; i++){
-          if (argv[0] == NULL){
-            break;
-          }
-          if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
-        	  ;
-          }
-          else{
-              //execute command
-              int return_value = commands[i].functionp(argc, argv);
-              error_checker(return_value);
-              break;
-          }
-          if (i == NUMCOMMANDS - 1){
-            error_checker(E_CMD_NOT_FOUND);
-          }
-        }
-        //free memory and repeat
-        for (int i = 0; i <= argc; i ++){
-          if (argv[i] != NULL){
-            SVC_free(argv[i]);
-          }
-        }
-        SVC_free(argv);
+  while(TRUE){
+    int err;
+    char dollar[4] = {NULLCHAR};
+    sprintf(dollar, "$ ");
+    SVC_fputs(io_dev, dollar, strlen(dollar));
+    int arg_len[MAXARGS+2] = {0}; //arglen_maxargs is string length, arglen_maxargs+1 is argc
+    char user_cmd[MAXLEN];       //get argc, create string itself
+    if ((err = SVC_fgets(io_dev, user_cmd, MAXLEN)) != 0){ //gets user input up to \n
+      error_checker(err); //print error message
+      continue; //discard the string and try again
     }
-    error_t err_code = E_INF;
-    error_checker(err_code);
-    return err_code;
+    if (user_cmd == NULL){ //user command was empty
+      error_checker(E_NOINPUT);
+      continue;
+    }
+    uint16_t cmdLen = strlen(user_cmd);
+    if ((err = quote_check(user_cmd, cmdLen)) != 0){ //checks for valid number of quotation marks
+      error_checker(err); //print error message
+      continue; //discard the string and try again
+    }
+    char user_cmd_clean[MAXLEN];
+    if ((err = parse_string(user_cmd, user_cmd_clean, arg_len, cmdLen)) != 0){ //parses string for argc
+      error_checker(err); //print error message
+      continue; //discard the string and try again
+    }
+    SVC_fputs(io_dev, "\r\n", 1);
+    int argc = arg_len[MAXARGS+1];
+    char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
+    if (argv == NULL) {
+      error_checker(E_MALLOC);
+      return E_MALLOC;
+    }
+    argv[argc] = NULL;
+    int user_cmd_offset = 0;
+    //parse string into argv
+    for (int i = 0; i < argc; i++){
+      argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
+      if (argv[i] == NULL) {
+        error_checker(E_MALLOC);
+        continue;
+      }
+      if (MYFAT_DEBUG){
+          printf("argument %d: ", i);
+      }
+      int j = 0;
+      for (; j < arg_len[i]; j++){
+        argv[i][j] = user_cmd_clean[user_cmd_offset + j];
+        if (MYFAT_DEBUG){
+      	  printf("%c", argv[i][j]);
+        }
+      }
+      if (MYFAT_DEBUG){
+          printf("\n");
+      }
+      argv[i][j] = NULLCHAR;
+      user_cmd_offset += j;
+    }
+    //check if command exists in struct
+    for (int i = 0; i < NUMCOMMANDS; i++){
+      if (MYFAT_DEBUG_LITE){
+      	printf("%s compared to %s \n", argv[0], commands[i].name);
+      }
+      if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
+        ;
+      }
+      else{
+          //execute command
+          int return_value = commands[i].functionp(argc, argv);
+          error_checker(return_value);
+          break;
+      }
+      if (i == NUMCOMMANDS - 1){
+        error_checker(E_CMD_NOT_FOUND);
+      }
+    }
+    //free memory and repeat
+    for (int i = 0; i <= argc; i ++){
+      if (argv[i] != NULL){
+        SVC_free(argv[i]);
+      }
+    }
+    SVC_free(argv);
+  }
+  //Error; infinite loop was escaped
+  error_t err_code = E_INF;
+  error_checker(err_code);
+  return err_code;
 }
 
 //HELPERS
