@@ -10,7 +10,9 @@
 #include "uart.h"
 #include "uartNL.h"
 #include "mymalloc.h"
+#include "svc.h"
 #include "priv.h"
+#include "intSerialIO.h"
 
 int main(void){
 	int error;
@@ -43,7 +45,7 @@ int main(void){
     else{
         g_noFS = FALSE;
     }
-    svcInit_SetSVCPriority(7);
+    svcInit_SetSVCPriority(15);
     privUnprivileged();
     int err = shell();
     if (MYFAT_DEBUG){

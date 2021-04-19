@@ -8,6 +8,7 @@
 #include "devices.h"
 #include "uart.h"
 #include "uartNL.h"
+#include "intSerialIO.h"
 #include "sdram.h"
 #include "simpleshell.h"
 
@@ -163,7 +164,7 @@ void memoryMap(void){
 
 void walk_struct_err(){
 	if (UARTIO){
-		uartPutsNL(UART2_BASE_PTR, "walk_struct error (check memory bounds)\n");
+		putsNLIntoBuffer("walk_struct error (check memory bounds)\n");
 	}
 	else if (MYFAT_DEBUG){
 		printf("walk_struct error (check memory bounds)\n");

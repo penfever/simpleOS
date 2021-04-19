@@ -16,7 +16,15 @@
 #include "pushbutton.h"
 #include "util.h"
 #include "switchcmd.h"
+#include "dateTime.h"
+#include "pdb.h"
 
+/*Globals*/
+int g_noFS = TRUE;
+uint8_t g_timerExpired = TRUE;
+file_descriptor io_dev;
+
+/*Structs*/
 struct escape_chars escapechars[] = {
     {'0', 0},
     {'a', 7},
@@ -29,23 +37,6 @@ struct escape_chars escapechars[] = {
     {'v', 11},
     {'"', 34}
 };
-
-int g_noFS = TRUE;
-file_descriptor io_dev;
-
-struct months months[] = {{"January", 0, 31}, 
-              {"February", 1, 28}, 
-              {"March", 2, 31},  
-              {"April", 3, 30},  
-              {"May", 4, 31},  
-              {"June", 5, 31},  
-              {"July", 6, 31}, 
-              {"August", 7, 31}, 
-              {"September", 8, 30}, 
-              {"October", 9, 31}, 
-              {"November", 10, 30}, 
-              {"December", 11, 31}, 
-              {"February", 12, 29}};
 
 struct commandEntry commands[] = {{"date", cmd_date},
                 {"echo", cmd_echo},
@@ -72,176 +63,28 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
-                {"cat2file", cmd_cat2file}
+                {"cat2file", cmd_cat2file},
+                {"flashled", cmd_flashled}
 };
 
-/*Takes as arguments a user command and the length of that command.
-It then compares the next character to a list of escape characters and processes it accordingly.*/
-char escape_char(char* user_cmd, int* str_len){
-  char c;
-  SVC_fgetc(io_dev, &c);
-  for (int i = 0; i < NUMESCAPES; i++){
-    if (c == escapechars[i].c){
-      char* user_cmd_ptr = user_cmd + *str_len;
-      char escape = escapechars[i].ascii;
-      sprintf(user_cmd_ptr, &escape);
-      *str_len = *str_len + 1;
-      SVC_fgetc(io_dev, &c);
-      return c;
-    }
-  }
-  return c;
-}
+/*User Commands*/
 
-/*Takes as arguments a user command, the length of a string, the number of arguments, 
-the current scan position and a pointer to an updateable scan position.
-It then scans the string until it encounters a close_quote and updates the scan position
-as necessary. If it does not encounter a close quote, returns an error.*/
-char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* this_len){
-  int right_pos = *str_len;
-  char* user_cmd_ptr = user_cmd + *str_len;
-  char c = '"';
-  sprintf(user_cmd_ptr, &c);
-  *str_len = *str_len + 1;
-  SVC_fgetc(io_dev, &c);
-  SVC_fputc(io_dev, c);
-  while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      SVC_fputc(io_dev, c);
-      if (c == '\n'){
-        return E_NOINPUT;
-      }
-    }
-    user_cmd_ptr = user_cmd + *str_len;
-    sprintf(user_cmd_ptr, &c);
-    *str_len = *str_len + 1;
-    SVC_fgetc(io_dev, &c);
-    SVC_fputc(io_dev, c);
-  }
-  *this_len = right_pos - left_pos;
-  left_pos = right_pos;
-  *argc = *argc + 1;
-  user_cmd_ptr = user_cmd + *str_len;
-  sprintf(user_cmd_ptr, &c);
-  *str_len = *str_len + 1;
-  SVC_fgetc(io_dev, &c);
-  return c;
-}
-
-/*Takes user input from stdin and sends it to a char* array representing the user's command, also 
-keeping accurate track of the length of the user string. Once it encounters a newline, get_string
-parses user arguments to create argc and argv. */
-int get_string(char* user_cmd, int arg_len[]){
-  char c;
-  char* user_cmd_ptr = NULL;
-  uint32_t left_pos = 0;
-  uint32_t str_len = 0;
-  uint32_t argc = 0;
-  char buffer[2];
-  buffer[0] = buffer[1] = NULLCHAR;
-  while (str_len < MAXLEN - 1){
-    if (buffer[1] != NULLCHAR){
-      buffer[1] = NULLCHAR;
-    }
-    else{
-      SVC_fgetc(io_dev, &c);
-      SVC_fputc(io_dev, c);
-    }
-//    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
-//      if (str_len == 0){
-//          c = uartGetchar(UART2_BASE_PTR);
-//      }
-//      else{
-//    	  str_len --;
-//      }
-//    }
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      if (c == '\n'){
-        break;
-      }
-      else{
-    	continue;
-      }
-    }
-    if (c == '\033'){       //attempt to handle special shell escape char
-        SVC_fgetc(io_dev, &c);
-    }
-    if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
-      c = escape_char(user_cmd, &str_len);
-    }
-    //otherwise, falls through and checks for a quotation mark
-    if (c == '"'){
-      int* this_len = &arg_len[argc + 1];
-      c = quote_string(user_cmd, &str_len, &argc, left_pos, this_len);
-      SVC_fputc(io_dev, c);
-      if (c == E_NOINPUT){
-        return E_NOINPUT;
-      }
-    }
-    if (c == ' ' || c == '\t'){
-      int right_pos = str_len;
-      buffer[0] = c;
-      while( buffer[0] == ' ' || buffer[0] == '\t' ){
-        buffer[1] = buffer[0];
-        SVC_fgetc(io_dev, &buffer[0]);
-        SVC_fputc(io_dev, buffer[0]);
-      }
-      c = buffer[0];
-      arg_len[argc] = right_pos - left_pos;
-      left_pos = right_pos;
-      argc++;
-      if (argc == MAXARGS){
-        return E_NUMARGS;
-      }
-      continue;
-    }
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      if (c == '\n'){
-        break;
-      }
-      else{
-    	  continue;
-      }
-    }
-    user_cmd_ptr = user_cmd + str_len;
-    sprintf(user_cmd_ptr, &c);
-    str_len++;
-  }
-  if (user_cmd == NULL){
-    return E_NOINPUT;
-  }
-  if (str_len == MAXLEN - 1){
-    return E_TOO_LONG;
-  }
-  else{
-    int right_pos = str_len;
-    arg_len[argc] = right_pos - left_pos;
-    argc ++;
-    user_cmd[str_len] = NULLCHAR;
-    arg_len[MAXARGS] = str_len;
-    arg_len[MAXARGS+1] = argc;
-  }
-  return 0;
-}
-
+/*echo prints to the terminal whatever was typed as an argument by the user following the call to echo itself.*/
 int cmd_echo(int argc, char *argv[]){
   if (argc == 1){
     return 0;
   }
+  char* output[MAXLEN] = {NULLCHAR};
   for (int i = 1; i < argc - 1; i++){
-	SVC_fputs(io_dev, argv[i], strlen(argv[i]));
-	SVC_fputc(io_dev, '\r');
-	SVC_fputc(io_dev, '\n');
+	sprintf(output, "%s \n", argv[i]);
+	SVC_fputs(io_dev, output, strlen(argv[i]));
   }
-  SVC_fputs(io_dev, argv[argc - 1], strlen(argv[argc - 1]));
-  SVC_fputc(io_dev, '\r');
-  SVC_fputc(io_dev, '\n');
+  sprintf(output, "%s \n", argv[argc - 1]);
+  SVC_fputs(io_dev, output, strlen(argv[argc - 1]));
   return 0;
 }
 
+/*exit shuts down all processes and devices, frees memory and exits the shell.*/
 int cmd_exit(int argc, char *argv[]){
   if (argc != 1){
     return E_NUMARGS;
@@ -258,6 +101,7 @@ int cmd_exit(int argc, char *argv[]){
   exit(0);
 }
 
+/*help displays a list of commands, along with their behavior in the shell.*/
 int cmd_help(int argc, char *argv[]){
   if (argc > 1){
     return E_NUMARGS;
@@ -266,17 +110,29 @@ int cmd_help(int argc, char *argv[]){
   return 0;
 }
 
-/*formats and prints a date and time from get_time -- "date" will output to stdout 
-the current date and time in the format "January 23, 2014 15:57:07.123456".  
-"date" will call the POSIX system call "gettimeofday" to determine the time and date.  
-"gettimeofday" returns the number of seconds and microseconds since midnight (zero
-hours) on January 1, 1970 -- this time is referred to as the Unix Epoch. */
-
+/*date formats and prints a date and time from get_time -- "date" will output to stdout 
+the current date and time in the format "January 23, 2014 15:57:07.123456". 
+If called with one argument, this command sets the system time 
+ * to an integer (assumed in ms since the MS-DOS Epoch, 00:00 Jan 1, 1980) provided at the command line.
+ * Note: system time WILL NOT INCREMENT unless time is set using this command.
+ * This command will display the current date and time when invoked without any arguments.*/ 
 int cmd_date(int argc, char *argv[]){
-  if (argc != 1){
-    return E_NUMARGS;
+  if (argc == 1){
+    if (curTime == 0){
+      return E_NOINPUT;
+    }
+    struct date_time curr_date = get_time();
+    print_time(curr_date);
+    return 0;
   }
-  return 0;
+  if (argc != 2){
+  	return E_NUMARGS;
+  }
+  long long setTime;
+  if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
+  	return E_NOINPUT;
+  }
+  return SVC_settime(&setTime);
 }
 
 int cmd_clockdate(int argc, char *argv[]){
@@ -459,20 +315,20 @@ int cmd_fgetc(int argc, char *argv[]){
 		return E_NUMARGS;
 	}
 	int err;
-	char bufp = '\0';
+	char bufp = NULLCHAR;
 	file_descriptor descr;
 	if ((descr = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	//svcInit_SetSVCPriority(7);
 	err = SVC_fgetc(descr, &bufp);
 	if (err < 0){
 		return err;
 	}
 	else{
-		char output[2];
+		char output[3];
 		output[0] = bufp;
-		output[1] = '\n';
+		output[1] = '\r';
+		output[2] = '\n';
 		SVC_fputs(io_dev, output, strlen(output));
 	}
 	return err;
@@ -502,7 +358,6 @@ int cmd_fputc(int argc, char *argv[]){
 
 /*shell interface for fputs. argv[1] is file_descriptor, argv[2] is the string to be put.*/
 int cmd_fputs(int argc, char *argv[]){
-	//TODO: errcheck, descr
 	if (argc != 3){
 		return E_NUMARGS;
 	}
@@ -552,60 +407,117 @@ int cmd_touch2led(int argc, char* argv[]){
 		return E_NUMARGS;
 	}
 	file_descriptor myTS1 = 0;
-	//svcInit_SetSVCPriority(7); //TODO: sufficient to open one of each?
 	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
 	if (err != 0){
 		return err;
 	}
-	file_descriptor myE1 = 0;
-	err = SVC_fopen(&myE1, "dev_E1", 'r');
+  file_descriptor myTS2 = 0;
+	err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
 	if (err != 0){
 		return err;
 	}
+  file_descriptor myTS3 = 0;
+	err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor myTS4 = 0;
+	err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
+	if (err != 0){
+		return err;
+	}
+	file_descriptor E1 = 0;
+	err = SVC_fopen(&E1, "dev_E1", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor E2 = 0;
+	err = SVC_fopen(&E2, "dev_E2", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor E3 = 0;
+	err = SVC_fopen(&E3, "dev_E3", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor E4 = 0;
+	err = SVC_fopen(&E4, "dev_E4", 'r');
+	if (err != 0){
+		return err;
+	}
+  char* bufp = " ";
 	const unsigned long int delayCount = 0x7ffff;
-	while(!(electrode_in(0) && electrode_in(1) && electrode_in(2) && electrode_in(3))) {
+	while(TRUE) {
+		int val = (SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp));
+		if(val){
+			break;
+		}
 		delay(delayCount);
-		if(electrode_in(0)) {
-			ledOrangeOn();
-		} else {
-			ledOrangeOff();
+		if(SVC_fgetc(myTS1, bufp)) {
+		  SVC_fgetc(E1, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(1)) {
-			ledYellowOn();
-		} else {
-			ledYellowOff();
+		if(SVC_fgetc(myTS2, bufp)) {
+		  SVC_fgetc(E4, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(2)) {
-			ledGreenOn();
-		} else {
-			ledGreenOff();
+		if(SVC_fgetc(myTS3, bufp)) {
+		  SVC_fgetc(E3, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
-		if(electrode_in(3)) {
-			ledBlueOn();
-		} else {
-			ledBlueOff();
+		if(SVC_fgetc(myTS4, bufp)) {
+		  SVC_fgetc(E2, bufp); //fgetc turns LED on
+			} else {
+		  SVC_fputc(E2, 'a'); //fputc turns LED off
 		}
 	}
-	ledOrangeOff();
-	ledBlueOff();
-	ledGreenOff();
-	ledYellowOff();
+  SVC_fputc(E1, 'a'); //fputc turns LED off
+  SVC_fputc(E2, 'a'); //fputc turns LED off
+  SVC_fputc(E3, 'a'); //fputc turns LED off
+  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		return err;
 	}
-	err = SVC_fclose(myE1);
+  err = SVC_fclose(myTS2);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(myTS3);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(myTS4);
+	if (err != 0){
+		return err;
+	}
+	err = SVC_fclose(E1);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E2);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E3);
+	if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(E4);
 	if (err != 0){
 		return err;
 	}
 	return 0;
 }
-/*
-pot2ser: Continuously output the value of the analog
+
+/*pot2ser: Continuously output the value of the analog
    potentiomemter to the serial device as a decimal or
    hexadecimal number followed by a newline.  End when SW1 is
    depressed.*/
-
 int cmd_pot2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
@@ -625,7 +537,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (!sw1In()){
+	while (SVC_fgetc(sw1, 'a') != 1){
 		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)i);
 		if (err != 0){
@@ -642,16 +554,13 @@ int cmd_pot2ser(int argc, char* argv[]){
 	return SVC_fclose(sw1);
 }
 
-/*
-therm2ser: Continuously output the value of the thermistor to
+/* therm2ser: Continuously output the value of the thermistor to
    the serial device as a decimal or hexadecimal number followed
-   by a newline.  End when SW1 is depressed.
-*/
+   by a newline.  End when SW1 is depressed.*/
 int cmd_therm2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -666,7 +575,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (!sw1In()){
+	while (SVC_fgetc(sw1, 'a') != 1){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -685,12 +594,10 @@ int cmd_therm2ser(int argc, char* argv[]){
 
 /* 6. pb2led: Continuously copy from SW1 to orange LED and SW2 to
         yellow LED.  End when both SW1 and SW2 are depressed.*/
-
 int cmd_pb2led(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -703,7 +610,7 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	file_descriptor E1;
-	err = SVC_fopen(&E1, "dev_E1", 'r'); //red
+	err = SVC_fopen(&E1, "dev_E1", 'r'); //orange
 	if (err != 0){
 		return err;
 	}
@@ -713,27 +620,28 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	const unsigned long int delayCount = 0x7ffff;
-	while (!(sw1In() && sw2In())){
+  char* bufp = " ";
+	while (SVC_fgetc(sw2, 'a') != 3){
 		delay(delayCount);
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
 		}
 		else if (switchState == switch1Down){
-			ledOrangeOn();
+      SVC_fgetc(E1, bufp); //fgetc turns LED on
 		}
 		else if (switchState == switch2Down){
-			ledYellowOn();
+      SVC_fgetc(E4, bufp); //fgetc turns LED on
 		}
 		else if (switchState == switch1Up){
-			ledOrangeOff();
+      SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
 		else if (switchState == switch2Up){
-			ledYellowOff();
+      SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
 	}
-	ledYellowOff();
-	ledOrangeOff();
+  SVC_fputc(E1, 'a'); //fputc turns LED off
+  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(E1);
 	if (err != 0){
 		return err;
@@ -748,6 +656,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	}
 	return SVC_fclose(sw2);
 }
+
 /*Display the contents of the specified <file> in
         the root directory by sending to STDOUT.
  * */
@@ -784,7 +693,6 @@ int cmd_catfile(int argc, char* argv[]){
   ^D (control-D) input character.
  * */
 int cmd_cat2file(int argc, char* argv[]){
-	const unsigned long int delayCount = 0x7ffff;
 	if (argc != 2){
 		return E_NUMARGS;
 	}
@@ -797,9 +705,6 @@ int cmd_cat2file(int argc, char* argv[]){
 	}
 	char c;
 	while(TRUE){
-    	while(!SVC_ischar(io_dev)) {
-    		delay(delayCount);
-    	}
 	    SVC_fgetc(io_dev, &c);
 	    if (c == EOT){
 	    	break;
@@ -809,78 +714,253 @@ int cmd_cat2file(int argc, char* argv[]){
 	return SVC_fclose(descr);
 }
 
-//command line shell accepts user input and executes basic commands
-int shell(void){
-	const unsigned long int delayCount = 0x7ffff;
-	if (UARTIO){
-		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-		char output[64] = {'\0'};
-		sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
-		SVC_fputs(io_dev, output, strlen(output));
+/*flashled takes an argument, argv[1], between 0 and 127 (0 is ~7.8ms, 127 is 1s). 
+It toggles the orange LED on and off every argv[1] milliseconds 
+until sw1 is pushed.*/
+int cmd_flashled(int argc, char* argv[]){
+  int err = 0;
+  if (argc != 2){
+		return E_NUMARGS;
 	}
-    while(TRUE){
-    	char dollar[4] = {'\0'};
-    	sprintf(dollar, "$ ", io_dev);
-    	SVC_fputs(io_dev, dollar, strlen(dollar));
-        int arg_len[MAXARGS+2] = {0};
-        char user_cmd[MAXLEN] = {'\0'};       //get argc, create string itself
-    	while(!SVC_ischar(io_dev)) {
-    		delay(delayCount);
-    	}
-        if ((error_checker(get_string(&user_cmd, arg_len))) != 0){
-          return -99;
-        }
-    	SVC_fputs(io_dev, "\n", 1);
-        int argc = arg_len[MAXARGS+1];
-        char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
-        if (argv == NULL) {
-          error_checker(E_MALLOC);
-          return E_MALLOC;
-        }
-        argv[argc] = NULL;
-        int user_cmd_offset = 0;
-        //parse string into argv
-        for (int i = 0; i < argc; i++){
-          argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
-          if (argv[i] == NULL) {
-            error_checker(E_MALLOC);
-            return E_MALLOC;
-          }
-          for (int j = 0; j < arg_len[i]; j++){
-            argv[i][j] = user_cmd[user_cmd_offset + j];
-          }
-          argv[i][arg_len[i]] = NULLCHAR;
-          user_cmd_offset += arg_len[i];
-        }
-        //check if command exists in struct
-        for (int i = 0; i < NUMCOMMANDS; i++){
-          if (argv[0] == NULL){
-            break;
-          }
-          if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
-        	  ;
-          }
-          else{
-              //execute command
-              int return_value = commands[i].functionp(argc, argv);
-              error_checker(return_value);
-              break;
-          }
-          if (i == NUMCOMMANDS - 1){
-            error_checker(E_CMD_NOT_FOUND);
-          }
-        }
-        //free memory and repeat
-        for (int i = 0; i <= argc; i ++){
-          if (argv[i] != NULL){
-            SVC_free(argv[i]);
-          }
-        }
-        SVC_free(argv);
+  uint16_t delayCount = hex_dec_oct(argv[1]); 
+  if (delayCount < 0 || delayCount > 127){
+    return E_NOINPUT;
+  }
+  uint8_t toggle = TRUE;
+  file_descriptor sw1;
+	err = SVC_fopen(&sw1, "dev_sw1", 'r');
+	if (err != 0){
+		return err;
+	}
+  file_descriptor myE1 = 0;
+	err = SVC_fopen(&myE1, "dev_E1", 'r');
+	if (err != 0){
+		return err;
+	}
+  while(!sw1In()){
+    if (g_timerExpired) {
+      if (toggle){
+    	char* bufp = " ";
+        SVC_fgetc(myE1, bufp); //fgetc turns LED on
+      }
+      else{
+        SVC_fputc(myE1, 'a'); //fputc turns LED off
+      }
+      toggle = !toggle; //toggle reverses
+      SVC_pdb0oneshottimer(&delayCount); //timer reset
     }
-    error_t err_code = E_INF;
-    error_checker(err_code);
-    return err_code;
+  }
+  return 0;
+}
+
+/*String processing functions*/
+
+/*escape_char takes a user command string containing a backslash. 
+It then compares the next character to a list of escape characters.
+If a match is found, it writes ' ' to the position of the char following
+the backslash, and the correct ASCII escaped character to the position of backslash.*/
+void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen){
+  user_cmd ++;
+  for (int i = 0; i < NUMESCAPES; i++){
+    if (*user_cmd == escapechars[i].c){
+      *user_cmd_clean = escapechars[i].ascii;
+      *cleanLen ++;
+      return;
+    }
+  }
+  //if no match found, simply copy the characters verbatim into the stream
+  user_cmd --;
+  *user_cmd_clean = *user_cmd;
+  user_cmd_clean ++;
+  user_cmd ++;
+  *user_cmd_clean = *user_cmd;
+  *cleanLen += 2;
+  return;
+}
+
+/*quote_check checks a user command to ensure every open quote has a matching end quote.
+returns 0 on success, error on failure.*/
+int quote_check(char* user_cmd, uint16_t cmdLen){
+  int quote_count = 0;
+  for (int i = 0; i < cmdLen; i++){
+    if (user_cmd[i] == '"'){
+      quote_count ++;
+    }
+  }
+  if (quote_count % 2 != 0){ //discard strings with an invalid number of quotation marks
+    return E_NOINPUT;
+  }
+  return 0;
+}
+
+/*quote_char adds all characters between quotation marks in user_cmd to a single argument in user_cmd_clean,
+omitting the quotation marks themselves. It also calculates the length of the string between quotes
+and updates quote_len with that value.*/
+void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len){
+  while (*user_cmd != '"'){
+    user_cmd ++;
+    *user_cmd_clean = *user_cmd;
+    user_cmd_clean ++;
+    *quote_len ++;
+  }
+}
+
+/*parse_string parses a user-provided string, determines how many
+* arguments are in the string as well as the position of each argument
+* in the string. It then passes that information on in order to 
+* create an argv array.*/
+int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen){
+  uint16_t left_pos = 0;
+  uint32_t argc = 0; //use 1-indexing on argc
+  uint16_t cleanLen = 0;
+  int right_pos = 0;
+  for (; right_pos < cmdLen; right_pos++){
+    if (user_cmd[right_pos] == BACKSLASH){ //escape character handling
+      escape_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], &cleanLen);
+      continue;
+    }
+    if (user_cmd[right_pos] == '"' || user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t' || user_cmd[right_pos] == '\r' || user_cmd[right_pos] == '\n'){ //special char handling
+      if (user_cmd[right_pos] == '"'){ //quotes mean a new argument, plus a special handler
+        quote_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], arg_len[argc]);
+        cleanLen += arg_len[argc];
+        right_pos += arg_len[argc];
+        if (++argc == MAXARGS){
+          return E_NUMARGS;
+        }
+      }
+      else if (user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t'){ //whitespace means a new argument
+        arg_len[argc] = right_pos - left_pos;
+        left_pos = right_pos + 1;
+        if (++argc == MAXARGS){
+          return E_NUMARGS;
+        }
+      }
+      else{ //discard newlines and carriage returns
+          break;
+      }
+      while (user_cmd[right_pos+1] == ' ' || user_cmd[right_pos+1] == '\t'){ //surplus characters consumed
+      	right_pos ++;
+    	left_pos = right_pos;
+      }
+      continue;
+    }
+    //fall-through copies character, increments cleaned string length and continues loop
+    user_cmd_clean[cleanLen] = user_cmd[right_pos];
+    cleanLen ++;
+  }
+  if (MYFAT_DEBUG){
+	  printf("parsestring: ");
+	  for (int i = 0; i < cleanLen; i++){
+		  printf("%c", user_cmd_clean[i]);
+	  }
+	  printf("\n");
+  }
+  arg_len[argc] = right_pos - left_pos;
+  user_cmd_clean[cleanLen] = NULLCHAR;
+  arg_len[MAXARGS] = cleanLen; //store length of string
+  arg_len[MAXARGS+1] = argc + 1; //store argc with 1-indexing
+  return 0;
+}
+
+/*main shell function*/
+
+int shell(void){
+  const unsigned long int delayCount = 0x7ffff;
+  long long gmtTime = timestamp_to_ms();
+  SVC_settime(&gmtTime); //set default time to GMT
+  if (UARTIO){
+	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
+	char output[64] = {NULLCHAR};
+	sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
+	SVC_fputs(io_dev, output, strlen(output));
+  }
+  while(TRUE){
+    int err;
+    char dollar[4] = {NULLCHAR};
+    sprintf(dollar, "$ ");
+    SVC_fputs(io_dev, dollar, strlen(dollar));
+    int arg_len[MAXARGS+2] = {0}; //arglen_maxargs is string length, arglen_maxargs+1 is argc
+    char user_cmd[MAXLEN];       //get argc, create string itself
+    if ((err = SVC_fgets(io_dev, user_cmd, MAXLEN)) != 0){ //gets user input up to \n
+      error_checker(err); //print error message
+      continue; //discard the string and try again
+    }
+    if (user_cmd == NULL){ //user command was empty
+      error_checker(E_NOINPUT);
+      continue;
+    }
+    uint16_t cmdLen = strlen(user_cmd);
+    if ((err = quote_check(user_cmd, cmdLen)) != 0){ //checks for valid number of quotation marks
+      error_checker(err); //print error message
+      continue; //discard the string and try again
+    }
+    char user_cmd_clean[MAXLEN];
+    if ((err = parse_string(user_cmd, user_cmd_clean, arg_len, cmdLen)) != 0){ //parses string for argc
+      error_checker(err); //print error message
+      continue; //discard the string and try again
+    }
+    //SVC_fputs(io_dev, "\n", 1);
+    int argc = arg_len[MAXARGS+1];
+    char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
+    if (argv == NULL) {
+      error_checker(E_MALLOC);
+      return E_MALLOC;
+    }
+    argv[argc] = NULL;
+    int user_cmd_offset = 0;
+    //parse string into argv
+    for (int i = 0; i < argc; i++){
+      argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
+      if (argv[i] == NULL) {
+        error_checker(E_MALLOC);
+        continue;
+      }
+      if (MYFAT_DEBUG){
+          printf("argument %d: ", i);
+      }
+      int j = 0;
+      for (; j < arg_len[i]; j++){
+        argv[i][j] = user_cmd_clean[user_cmd_offset + j];
+        if (MYFAT_DEBUG){
+      	  printf("%c", argv[i][j]);
+        }
+      }
+      if (MYFAT_DEBUG){
+          printf("\n");
+      }
+      argv[i][j] = NULLCHAR;
+      user_cmd_offset += j;
+    }
+    //check if command exists in struct
+    for (int i = 0; i < NUMCOMMANDS; i++){
+      if (MYFAT_DEBUG_LITE){
+      	printf("%s compared to %s \n", argv[0], commands[i].name);
+      }
+      if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
+        ;
+      }
+      else{
+          //execute command
+          int return_value = commands[i].functionp(argc, argv);
+          error_checker(return_value);
+          break;
+      }
+      if (i == NUMCOMMANDS - 1){
+        error_checker(E_CMD_NOT_FOUND);
+      }
+    }
+    //free memory and repeat
+    for (int i = 0; i <= argc; i ++){
+      if (argv[i] != NULL){
+        SVC_free(argv[i]);
+      }
+    }
+    SVC_free(argv);
+  }
+  //Error; infinite loop was escaped
+  error_t err_code = E_INF;
+  error_checker(err_code);
+  return err_code;
 }
 
 //HELPERS
@@ -897,19 +977,6 @@ int check_hex (char c) {
     if ((c >= 'a') && (c <= 'f')) return 1;
     if ((c >= 'A') && (c <= 'F')) return 1;
     return 0;
-}
-
-//checks if a given integer, assumed to be a year, is a leap year
-int isleapyear(int inyear){
-    if(inyear % 400 == 0){
-        return TRUE;
-    }
-    else if(inyear % 4 == 0 && inyear % 100 != 0){
-        return TRUE;
-    }
-    else{
-        return FALSE;
-    }
 }
 
 /*Helper: checks strtoul output for integer overflow error and prints error if one is encountered.*/
@@ -941,7 +1008,7 @@ int check_hex_all(char* str){
 }
 
 /*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an integer. If it is not an integer or some other error has occurred, returns 0.*/
+it is an unsigned int or long. If it is not an integer or some other error has occurred, returns 0.*/
 size_t hex_dec_oct(char* str){
   char* p_str = str + 2;
   int check_str;
@@ -965,4 +1032,31 @@ size_t hex_dec_oct(char* str){
     return 0;
   }
   return strtoul(str, NULL, 10); //return decimal
+}
+
+/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
+it is an long long integer. If it is not an integer or some other error has occurred, returns 0.*/
+long long hex_dec_oct_ll(char* str){
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
+      return strtoll(str, NULL, 16); //return hex
+    }
+    if (check_str == FALSE){
+      return 0;
+    }
+    return strtoll(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
+  }
+  return strtoll(str, NULL, 10); //return decimal
 }

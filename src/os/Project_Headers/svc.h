@@ -36,6 +36,8 @@
 #define SVC_FGETS 13
 #define SVC_ISCHAR 14
 #define SVC_DIR_LS 15
+#define SVC_SETTIME 16
+#define SVC_PDBONESHOT 17
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -49,6 +51,7 @@ int SVC_fclose(file_descriptor descrf);
 int SVC_create(char* filename);
 int SVC_delete(char* filename);
 int SVC_fgetc (file_descriptor descrf, char* bufp);
+int SVC_fgets (file_descriptor descrf, char* bufp, int buflen);
 int SVC_fputc (file_descriptor descrf, char bufp);
 int SVC_fputs (file_descriptor descrf, char* bufp, int buflen);
 int SVC_ischar(file_descriptor descrf);
@@ -56,5 +59,7 @@ int SVC_ischarImpl(file_descriptor descrf);
 void* SVC_malloc(unsigned int size);
 int SVC_free(void *ptr);
 int SVC_dir_ls(int full);
+int SVC_settime(long long *newTime);
+int SVC_pdb0oneshottimer(uint16_t* delayCount);
 
 #endif /* ifndef _SVC_H */

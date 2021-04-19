@@ -15,35 +15,31 @@
 #endif
 #define MAXARGS 32 //accepts args 0->32
 #define NULLCHAR '\0'
-#define HELPBLOCK "Welcome to the simple shell!\n"\
-                  "Here are a few commands you can try: \n"\
-                  "exit will exit this shell. \n"\
-                  "help will show you a list of commands and how they work. \n"\
-                  "echo will echo back whatever words follow the command itself. \n"\
-                  "date will print the current date and time (GMT). \n"\
-                  "clockdate tests the date function. \n"\
-                  "malloc allocates memory. \n"\
-                  "free frees memory. \n"\
-                  "memset sets an allocated memory region to a value. \n"\
-                  "memchk checks that an allocated memory region is set to a value. \n"\
-                  "memorymap prints a map of all allocated memory. \n"\
-                  "fopen opens a file or device. \n"\
-                  "fclose closes a file or device. \n"\
-                  "fgetc and fgets retrieve characters or strings from a file or device. \n"\
-                  "fputc and fputs send characters or strings to a file or device. \n"\
-                  "fseek sets the file cursor to a particular position in a file. \n"\
-                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \n"\
-                  "pot2ser continuously outputs the potentiometer value to STDOUT \n"\
-				  "therm2ser continuously outputs the thermistor value to STDOUT \n"\
-				  "pb2LED toggles LEDs based on inputs from pushbuttons \n"\
-				  "catfile prints the contents of a file to STDOUT \n"\
-				  "cat2file copies characters from serial input to the specified <file> in the root directory \n"
-				  
-#define SECYEAR 31536000
-#define SECDAY 86400
-#define SECHOUR 3600
-#define SECMIN 60
-#define TIMESTAMP "%02d:%02d:%02d.%06.ld"
+#define HELPBLOCK "Welcome to the simple shell! \r\n"\
+                  "Here are a few commands you can try: \r\n"\
+                  "exit will exit this shell. \r\n"\
+                  "help will show you a list of commands and how they work. \r\n"\
+                  "echo will echo back whatever words follow the command itself. \r\n"\
+                  "date will print the current date and time (GMT, MS-DOS EPOCH) or set the current system time in MS according to an integer input by the user. \r\n"\
+                  "clockdate tests the date function. \r\n"\
+                  "malloc allocates memory. \r\n"\
+                  "free frees memory. \r\n"\
+                  "memset sets an allocated memory region to a value. \r\n"\
+                  "memchk checks that an allocated memory region is set to a value. \r\n"\
+                  "memorymap prints a map of all allocated memory. \r\n"\
+                  "fopen opens a file or device. \r\n"\
+                  "fclose closes a file or device. \r\n"\
+                  "fgetc and fgets retrieve characters or strings from a file or device. \r\n"\
+                  "fputc and fputs send characters or strings to a file or device. \r\n"\
+                  "fseek sets the file cursor to a particular position in a file. \r\n"\
+                  "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \r\n"\
+                  "pot2ser continuously outputs the potentiometer value to STDOUT \r\n"\
+				  "therm2ser continuously outputs the thermistor value to STDOUT \r\n"\
+				  "pb2LED toggles LEDs based on inputs from pushbuttons \r\n"\
+				  "catfile prints the contents of a file to STDOUT \r\n"\
+				  "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"\
+          "flashled flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals) \r\n"
+				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))
 #define BACKSLASH 92
@@ -55,17 +51,9 @@
 #endif
 #define EOT 4
 
-extern int g_noFS;
-extern file_descriptor io_dev;
-
-struct date_time {
-  char* month;
-  int day;
-  int year;
-  int hour;
-  int minute;
-  int second;
-  char* clock;
+struct commandEntry {
+  char *name;
+  int (*functionp)(int argc, char *argv[]);
 };
 
 struct escape_chars {
@@ -74,14 +62,9 @@ struct escape_chars {
 };
 
 extern struct escape_chars escapechars[];
-
-struct months {
-  char *month;
-  int order;
-  int offset;
-};
-
-extern struct months months[];
+extern int g_noFS;
+extern file_descriptor io_dev;
+extern uint8_t g_timerExpired;
 
 int cmd_date(int argc, char *argv[]);
 int cmd_echo(int argc, char *argv[]);
@@ -109,28 +92,21 @@ int cmd_therm2ser(int argc, char* argv[]);
 int cmd_pb2led(int argc, char* argv[]);
 int cmd_catfile(int argc, char* argv[]);
 int cmd_cat2file(int argc, char* argv[]);
+int cmd_flashled(int argc, char* argv[]);
 
-struct commandEntry {
-  char *name;
-  int (*functionp)(int argc, char *argv[]);
-};
+int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen);
+int quote_check(char* user_cmd, uint16_t cmdLen);
+void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len);
+void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen);
 
 int shell(void);
 
 int check_digit(char c);
-
 int check_hex (char c);
-
 int check_digit_all(char* str);
-
 int check_hex_all(char* str);
-
-int string_cmp(const char *first, const char *second);
-
-int isleapyear(int inyear);
-
 size_t hex_dec_oct(char* str);
-
 void check_overflow(unsigned long my_num);
+long long hex_dec_oct_ll(char* str);
 
 #endif

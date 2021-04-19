@@ -9,7 +9,7 @@ int myfclose (file_descriptor descr);
 
 int myfgetc (file_descriptor descr, char* bufp);
 
-char* myfgets (file_descriptor descr, int buflen);
+int myfgets (file_descriptor descr, char* bufp, int buflen);
 
 int myfputc (file_descriptor descr, char bufp);
 
