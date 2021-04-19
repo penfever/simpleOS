@@ -74,14 +74,13 @@ int cmd_echo(int argc, char *argv[]){
   if (argc == 1){
     return 0;
   }
+  char* output[MAXLEN] = {NULLCHAR};
   for (int i = 1; i < argc - 1; i++){
-	SVC_fputs(io_dev, argv[i], strlen(argv[i]));
-	SVC_fputc(io_dev, '\r');
-	SVC_fputc(io_dev, '\n');
+	sprintf(output, "%s \n", argv[i]);
+	SVC_fputs(io_dev, output, strlen(argv[i]));
   }
-  SVC_fputs(io_dev, argv[argc - 1], strlen(argv[argc - 1]));
-  SVC_fputc(io_dev, '\r');
-  SVC_fputc(io_dev, '\n');
+  sprintf(output, "%s \n", argv[argc - 1]);
+  SVC_fputs(io_dev, output, strlen(argv[argc - 1]));
   return 0;
 }
 
@@ -154,7 +153,7 @@ int cmd_malloc(int argc, char *argv[]){
   }
   else{
 	char output[32];
-	sprintf(output, "%p \r\n", mal_val);
+	sprintf(output, "%p \n", mal_val);
 	SVC_fputs(io_dev, output, strlen(output));
     return 0;
   }
@@ -170,7 +169,7 @@ int cmd_free(int argc, char *argv[]){
   check_overflow(ptr_val);
   err_val = SVC_free((void *)ptr_val);
   if (err_val == 0){
-	char* msg = "Free successful \r\n";
+	char* msg = "Free successful \n";
 	SVC_fputs(io_dev, msg, strlen(msg));
   }
   return err_val;
@@ -243,7 +242,7 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-	char* msg = "memchk successful \r\n";
+	char* msg = "memchk successful \n";
 	SVC_fputs(io_dev, msg, strlen(msg));
 	return 0;
 }
@@ -267,7 +266,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = SVC_malloc(64);
-	sprintf(output, "fopen success \r\n FILE* is 0x%x \r\n", (unsigned int)myfile);
+	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
 	SVC_fputs(io_dev, output, strlen(output));
 	SVC_free(output);
 	return 0;
@@ -285,7 +284,7 @@ int cmd_fclose(int argc, char *argv[]){
 	//svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
-		char* msg = "File close successful \r\n";
+		char* msg = "File close successful \n";
 		SVC_fputs(io_dev, msg, strlen(msg));
 	}
 	return err;
@@ -449,7 +448,11 @@ int cmd_touch2led(int argc, char* argv[]){
 	}
   char* bufp = " ";
 	const unsigned long int delayCount = 0x7ffff;
-	while(!(SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp))) {
+	while(TRUE) {
+		int val = (SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp));
+		if(val){
+			break;
+		}
 		delay(delayCount);
 		if(SVC_fgetc(myTS1, bufp)) {
 		  SVC_fgetc(E1, bufp); //fgetc turns LED on
@@ -833,7 +836,6 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
         }
       }
       else{ //discard newlines and carriage returns
-          arg_len[argc] = right_pos - left_pos;
           break;
       }
       while (user_cmd[right_pos+1] == ' ' || user_cmd[right_pos+1] == '\t'){ //surplus characters consumed
@@ -853,6 +855,7 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 	  }
 	  printf("\n");
   }
+  arg_len[argc] = right_pos - left_pos;
   user_cmd_clean[cleanLen] = NULLCHAR;
   arg_len[MAXARGS] = cleanLen; //store length of string
   arg_len[MAXARGS+1] = argc + 1; //store argc with 1-indexing
@@ -862,15 +865,15 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 /*main shell function*/
 
 int shell(void){
-	const unsigned long int delayCount = 0x7ffff;
-	long long gmtTime = timestamp_to_ms();
-	SVC_settime(&gmtTime); //set default time to GMT
-	if (UARTIO){
-		SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-		char output[64] = {NULLCHAR};
-		sprintf(output, "Your STDIN/STDOUT file is %x \r\n", io_dev);
-		SVC_fputs(io_dev, output, strlen(output));
-	}
+  const unsigned long int delayCount = 0x7ffff;
+  long long gmtTime = timestamp_to_ms();
+  SVC_settime(&gmtTime); //set default time to GMT
+  if (UARTIO){
+	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
+	char output[64] = {NULLCHAR};
+	sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
+	SVC_fputs(io_dev, output, strlen(output));
+  }
   while(TRUE){
     int err;
     char dollar[4] = {NULLCHAR};
@@ -896,7 +899,7 @@ int shell(void){
       error_checker(err); //print error message
       continue; //discard the string and try again
     }
-    SVC_fputs(io_dev, "\r\n", 1);
+    //SVC_fputs(io_dev, "\n", 1);
     int argc = arg_len[MAXARGS+1];
     char** argv = (char **)SVC_malloc((argc + 1) * sizeof(char *));
     if (argv == NULL) {

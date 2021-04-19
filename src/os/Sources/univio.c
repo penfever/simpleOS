@@ -24,6 +24,7 @@
 #include "flexTimer.h"
 
 static int pid = 0; //temporarily set everything to OS
+int g_tsInit = FALSE;
 
 /*Devices to support: pushbuttons, LEDs, FAT32*/
 
@@ -157,8 +158,11 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	}
 	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
 		userptr->deviceType = TSI;
-		TSI_Init();
-		TSI_Calibrate();
+		if (g_tsInit == FALSE){
+			TSI_Init();
+			TSI_Calibrate();
+			g_tsInit = TRUE;
+		}
 		if (UARTIO){
 			putsNLIntoBuffer("TSI initialized. \n");
 		}
@@ -264,7 +268,8 @@ int myfgetc (file_descriptor descr, char* bufp){
 int tsi_fgetc(file_descriptor descr) {
 	struct stream* userptr = (struct stream*)descr;
 	if (userptr->minorId == dev_TSI1){
-		return electrode_in(0);
+		int res = electrode_in(0);
+		return res;
 	}
 	if (userptr->minorId == dev_TSI2){
 		return electrode_in(1);
@@ -345,7 +350,7 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 	if (userptr->minorId == dev_UART2){ //get string terminating in newline from UART, up to a buffer size limit
 		int count = 0;
 		char c = getcharFromBuffer();
-		while (count < buflen - 1 && c != '\n'){
+		while (count < buflen - 1 && c != '\r' && c != '\n'){
 			bufp[count] = c;
 			putcharIntoBuffer(bufp[count]); //per instructor, echo-back handled at device level
 			count ++;
@@ -355,6 +360,8 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 			return E_NOINPUT;
 		}
 		else{
+			putcharIntoBuffer('\r'); //per instructor, echo-back handled at device level
+			putcharIntoBuffer('\n'); //per instructor, echo-back handled at device level
 			bufp[count] = NULLCHAR;
 		}
 		return 0;
@@ -440,7 +447,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		putsIntoBuffer(bufp);
+		putsNLIntoBuffer(bufp);
 	}
 	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI || userptr->deviceType == LED){
 		return E_DEV;
@@ -452,7 +459,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		err = file_putbuf(descr, &bufp, buflen);
 	}
 	if (err == 0 && UARTIO){
-		putsIntoBuffer("fputc success\r\n");
+		putsNLIntoBuffer("fputc success\r\n");
 	}
 	return err;
 }
