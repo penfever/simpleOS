@@ -214,7 +214,9 @@ int remove_device_from_PCB(file_descriptor fd){
 	return 0;
 }
 /* myfgetc() reads the next character from stream and 
- * passes it to a buffer. Returns an error code if it encounters an error.  */
+ * passes it to a buffer, while also echoing it back to the
+ * user's screen.
+ * Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
 	int err = 0;
 	if (pid != currentPCB->pid){
@@ -232,6 +234,7 @@ int myfgetc (file_descriptor descr, char* bufp){
 	//device type checks
 	if (userptr->minorId == dev_UART2){
 		*bufp = getcharFromBuffer();
+		putcharIntoBuffer(*bufp); //per instructor, echo-back handled at device level
 		return 0;
 	}
 	int charsreadp = 0;

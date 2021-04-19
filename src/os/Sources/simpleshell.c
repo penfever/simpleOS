@@ -98,11 +98,9 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
   sprintf(user_cmd_ptr, &c);
   *str_len = *str_len + 1;
   SVC_fgetc(io_dev, &c);
-  SVC_fputc(io_dev, c);
   while (c != '"') { //TODO: fix this error catching -- maybe memcpy to new string?
     if (c == '\r'){
       SVC_fgetc(io_dev, &c);
-      SVC_fputc(io_dev, c);
       if (c == '\n'){
         return E_NOINPUT;
       }
@@ -111,7 +109,6 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
     sprintf(user_cmd_ptr, &c);
     *str_len = *str_len + 1;
     SVC_fgetc(io_dev, &c);
-    SVC_fputc(io_dev, c);
   }
   *this_len = right_pos - left_pos;
   left_pos = right_pos;
@@ -127,40 +124,18 @@ char quote_string(char* user_cmd, int* str_len, int* argc, int left_pos, int* th
 keeping accurate track of the length of the user string. Once it encounters a newline, get_string
 parses user arguments to create argc and argv. */
 int get_string(char* user_cmd, int arg_len[]){
-  char c;
+  char c = NULLCHAR;
   char* user_cmd_ptr = NULL;
   uint32_t left_pos = 0;
   uint32_t str_len = 0;
   uint32_t argc = 0;
-  char buffer[2];
-  buffer[0] = buffer[1] = NULLCHAR;
-  while (str_len < MAXLEN - 1){
+  char buffer[2] = {NULLCHAR};
+  while (str_len < MAXLEN - 1 && c != '\n'){
     if (buffer[1] != NULLCHAR){
       buffer[1] = NULLCHAR;
     }
     else{
       SVC_fgetc(io_dev, &c);
-      SVC_fputc(io_dev, c);
-    }
-//    if (c == 0x08 || c == 0x7f){ //TODO: backspace/delete handling
-//      if (str_len == 0){
-//          c = uartGetchar(UART2_BASE_PTR);
-//      }
-//      else{
-//    	  str_len --;
-//      }
-//    }
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      if (c == '\n'){
-        break;
-      }
-      else{
-    	continue;
-      }
-    }
-    if (c == '\033'){       //attempt to handle special shell escape char
-        SVC_fgetc(io_dev, &c);
     }
     if (c == BACKSLASH){     //if it finds a backslash, assumes the use of escape character
       c = escape_char(user_cmd, &str_len);
@@ -180,7 +155,6 @@ int get_string(char* user_cmd, int arg_len[]){
       while( buffer[0] == ' ' || buffer[0] == '\t' ){
         buffer[1] = buffer[0];
         SVC_fgetc(io_dev, &buffer[0]);
-        SVC_fputc(io_dev, buffer[0]);
       }
       c = buffer[0];
       arg_len[argc] = right_pos - left_pos;
@@ -190,15 +164,6 @@ int get_string(char* user_cmd, int arg_len[]){
         return E_NUMARGS;
       }
       continue;
-    }
-    if (c == '\r'){
-      SVC_fgetc(io_dev, &c);
-      if (c == '\n'){
-        break;
-      }
-      else{
-    	  continue;
-      }
     }
     user_cmd_ptr = user_cmd + str_len;
     sprintf(user_cmd_ptr, &c);
