@@ -67,7 +67,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 	}
 	struct stream* userptr = (struct stream *)*descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_UNFREE;
+		return E_FREE_PERM;
 	}
 	userptr->mode = mode;
 	return 0;
@@ -196,7 +196,7 @@ int myfclose (file_descriptor descr){
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_UNFREE;
+		return E_FREE_PERM;
 	}
 	if (userptr->deviceType != FAT32){
 		return remove_device_from_PCB(descr);
@@ -211,7 +211,7 @@ int myfclose (file_descriptor descr){
 int remove_device_from_PCB(file_descriptor fd){
 	struct stream* userptr = (struct stream*)fd;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_UNFREE;
+		return E_FREE_PERM;
 	}
 	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;
@@ -228,7 +228,7 @@ int myfgetc (file_descriptor descr, char* bufp){
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
-		return E_UNFREE;
+		return E_FREE_PERM;
 	}
 	if (userptr->deviceType == FAT32){
 		if (userptr->cursor >= userptr->fileSize){
@@ -388,14 +388,20 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 int myfputc (file_descriptor descr, char bufp){
 	int err = 0;
 	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		putcharIntoBuffer(bufp);
+		if (bufp == '\r' || bufp == '\n'){ //TODO: correct?
+			putcharIntoBuffer('\r');
+			putcharIntoBuffer('\n');
+		}
+		else{
+			putcharIntoBuffer(bufp);
+		}
 	}
 	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
 		return E_DEV;

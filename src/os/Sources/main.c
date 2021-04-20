@@ -14,7 +14,7 @@
 #include "priv.h"
 #include "intSerialIO.h"
 
-int main(void){
+	int main(void){
 	int error;
 	if ((error = init_clocks_sdram()) != 0){
 		if (MYFAT_DEBUG){

@@ -384,9 +384,13 @@ int cmd_seek(int argc, char *argv[]){
 	return myseek(descr, pos);
 }
 
+
 int cmd_ls(int argc, char *argv[]){
-	if (argc != 2){
+	if (argc > 2){
 		return E_NUMARGS;
+	}
+	if (argv == 1){
+		return SVC_dir_ls(0);
 	}
 	if (argv[1][0] != '0' && argv[1][0] != '1'){
 		return E_NOINPUT;
@@ -671,18 +675,19 @@ int cmd_catfile(int argc, char* argv[]){
 		return err;
 	}
 	struct stream* userptr = (struct stream *) descr;
-	char contents[userptr->fileSize];
+	char contents[4]; //TODO: doesn't need to be this size
 	for (int i = 0; i < userptr->fileSize; ++i){
-	    err = SVC_fgetc(descr, &contents[i]);
+	    err = SVC_fgetc(descr, &contents[0]);
 		if (err != 0){
+			SVC_fclose(descr);
 			return err;
 		}
-		err = SVC_fputc(io_dev, contents[i]);
+		err = SVC_fputc(io_dev, contents[0]);
 		if (err != 0){
+			SVC_fclose(descr);
 			return err;
 		}
 	}
-	SVC_fputc(io_dev, '\r');
 	SVC_fputc(io_dev, '\n');
 	return SVC_fclose(descr);
 }

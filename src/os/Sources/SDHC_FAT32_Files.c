@@ -729,6 +729,7 @@ int file_open(char *filename, file_descriptor *descrp){
 		}
 		return err;
 	}
+	uint32_t fileSize = latest->DIR_FileSize;
 	struct stream* userptr = find_open_stream();
 	if (userptr == NULL){
 		return E_UNFREE;
@@ -739,7 +740,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	userptr->minorId = dev_sdhc;
 	userptr->fileName = filename;
 	userptr->clusterAddr = fileCluster;
-	userptr->fileSize =latest->DIR_FileSize;
+	userptr->fileSize =fileSize;
 	userptr->cursor = 0;
     *descrp = (file_descriptor*)userptr;
 	return 0;
@@ -814,7 +815,13 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	}
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
-    uint32_t numSector = curr_sector_from_offset(userptr, &logicalSector, numCluster); //how many sectors to offset
+    uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
+    while (numSector > sectors_per_cluster){
+    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+    	numSector -= sectors_per_cluster;
+    }
+    logicalSector += numSector;
 	if (buflen > (userptr->fileSize - userptr->cursor)){ //Prevent attempts to read past EOF
 		return E_EOF;
 	}
@@ -826,11 +833,6 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	while (pos < end){
 		uint32_t diff = end - pos;
 		uint32_t blockDiff = BLOCK - offBlock;
-	    if (numSector > sectors_per_cluster){ //jump to next cluster, if needed
-	    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-	    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-        	numSector = 0;
-	    }
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //read next block into memory
 	    	return E_IO;
 	    }
@@ -859,19 +861,20 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
 	return 0;
 }
 
-int curr_sector_from_offset(struct stream* userptr, int* logicalSector, uint32_t numCluster){
+/*curr_sector_from_offset returns the number of sectors from index 0 where the cursor currently points.*/
+int curr_sector_from_offset(struct stream* userptr){
 	int numSector = 0;
 	int cursor = userptr->cursor;
 	while (cursor > bytes_per_sector){
 		numSector ++;
 		cursor -= bytes_per_sector;
 	}
-    while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
-    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-    	*logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector -= sectors_per_cluster;
-    }
-    *logicalSector += numSector;
+//    while (numSector > sectors_per_cluster){ //skips ahead clusters as needed
+//    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+//    	*logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+//    	numSector -= sectors_per_cluster;
+//    }
+//    *logicalSector += numSector;
 	return numSector;
 }
 
@@ -957,7 +960,13 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     }
     //uint8_t fileData[BLOCK];
 	uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
-    uint32_t numSector = curr_sector_from_offset(userptr, &fileLogicalSector, numCluster); //how many sectors to offset (also changes logicalSector)
+    uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset (also changes logicalSector)
+    while (numSector > sectors_per_cluster){
+    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+    	numSector -= sectors_per_cluster;
+    }
+    fileLogicalSector += numSector;
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, MOUNT->data)){ //read next block into memory
     	return E_IO;
     }
