@@ -42,7 +42,6 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"echo", cmd_echo},
                 {"exit", cmd_exit},
                 {"help", cmd_help},
-                {"clockdate", cmd_clockdate},
                 {"malloc", cmd_malloc},
                 {"free", cmd_free},
                 {"memorymap", cmd_memorymap},
@@ -385,9 +384,13 @@ int cmd_seek(int argc, char *argv[]){
 	return myseek(descr, pos);
 }
 
+
 int cmd_ls(int argc, char *argv[]){
-	if (argc != 2){
+	if (argc > 2){
 		return E_NUMARGS;
+	}
+	if (argv == 1){
+		return SVC_dir_ls(0);
 	}
 	if (argv[1][0] != '0' && argv[1][0] != '1'){
 		return E_NOINPUT;
@@ -672,18 +675,19 @@ int cmd_catfile(int argc, char* argv[]){
 		return err;
 	}
 	struct stream* userptr = (struct stream *) descr;
-	char contents[userptr->fileSize];
+	char contents[4]; //TODO: doesn't need to be this size
 	for (int i = 0; i < userptr->fileSize; ++i){
-	    err = SVC_fgetc(descr, &contents[i]);
+	    err = SVC_fgetc(descr, &contents[0]);
 		if (err != 0){
+			SVC_fclose(descr);
 			return err;
 		}
-		err = SVC_fputc(io_dev, contents[i]);
+		err = SVC_fputc(io_dev, contents[0]);
 		if (err != 0){
+			SVC_fclose(descr);
 			return err;
 		}
 	}
-	SVC_fputc(io_dev, '\r');
 	SVC_fputc(io_dev, '\n');
 	return SVC_fclose(descr);
 }
@@ -797,12 +801,13 @@ int quote_check(char* user_cmd, uint16_t cmdLen){
 omitting the quotation marks themselves. It also calculates the length of the string between quotes
 and updates quote_len with that value.*/
 void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len){
-  while (*user_cmd != '"'){
+  while (*user_cmd != 34){
+	*user_cmd_clean = *user_cmd;
     user_cmd ++;
-    *user_cmd_clean = *user_cmd;
     user_cmd_clean ++;
-    *quote_len ++;
+    *quote_len = *quote_len + 1;
   }
+  return;
 }
 
 /*parse_string parses a user-provided string, determines how many
@@ -819,11 +824,13 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
       escape_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], &cleanLen);
       continue;
     }
-    if (user_cmd[right_pos] == '"' || user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t' || user_cmd[right_pos] == '\r' || user_cmd[right_pos] == '\n'){ //special char handling
-      if (user_cmd[right_pos] == '"'){ //quotes mean a new argument, plus a special handler
-        quote_char(&user_cmd[right_pos], &user_cmd_clean[cleanLen], arg_len[argc]);
+    if (user_cmd[right_pos] == 34 || user_cmd[right_pos] == ' ' || user_cmd[right_pos] == '\t' || user_cmd[right_pos] == '\r' || user_cmd[right_pos] == '\n'){ //special char handling
+      if (user_cmd[right_pos] == 34){ //quotes mean a new argument, plus a special handler
+    	int temp = 0;
+        quote_char(&user_cmd[right_pos+1], &user_cmd_clean[cleanLen], &temp);
+        arg_len[argc] = temp;
         cleanLen += arg_len[argc];
-        right_pos += arg_len[argc];
+        right_pos += arg_len[argc] + 1;
         if (++argc == MAXARGS){
           return E_NUMARGS;
         }
@@ -880,7 +887,7 @@ int shell(void){
     sprintf(dollar, "$ ");
     SVC_fputs(io_dev, dollar, strlen(dollar));
     int arg_len[MAXARGS+2] = {0}; //arglen_maxargs is string length, arglen_maxargs+1 is argc
-    char user_cmd[MAXLEN];       //get argc, create string itself
+    char user_cmd[MAXLEN] = {NULLCHAR};       //get argc, create string itself
     if ((err = SVC_fgets(io_dev, user_cmd, MAXLEN)) != 0){ //gets user input up to \n
       error_checker(err); //print error message
       continue; //discard the string and try again
@@ -894,7 +901,7 @@ int shell(void){
       error_checker(err); //print error message
       continue; //discard the string and try again
     }
-    char user_cmd_clean[MAXLEN];
+    char user_cmd_clean[MAXLEN] = {NULLCHAR};
     if ((err = parse_string(user_cmd, user_cmd_clean, arg_len, cmdLen)) != 0){ //parses string for argc
       error_checker(err); //print error message
       continue; //discard the string and try again

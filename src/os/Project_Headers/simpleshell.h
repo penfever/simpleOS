@@ -21,7 +21,6 @@
                   "help will show you a list of commands and how they work. \r\n"\
                   "echo will echo back whatever words follow the command itself. \r\n"\
                   "date will print the current date and time (GMT, MS-DOS EPOCH) or set the current system time in MS according to an integer input by the user. \r\n"\
-                  "clockdate tests the date function. \r\n"\
                   "malloc allocates memory. \r\n"\
                   "free frees memory. \r\n"\
                   "memset sets an allocated memory region to a value. \r\n"\
