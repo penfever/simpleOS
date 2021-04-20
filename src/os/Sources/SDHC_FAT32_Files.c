@@ -816,12 +816,16 @@ int file_getbuf(file_descriptor descr, char *bufp, int buflen, int *charsreadp){
     uint32_t numCluster = userptr->clusterAddr;
     int logicalSector = first_sector_of_cluster(numCluster); //first sector of file
     uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset
-    while (numSector > sectors_per_cluster){
-    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-    	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector -= sectors_per_cluster;
+    uint32_t numSectorCons = numSector;
+    if (numSectorCons > sectors_per_cluster){
+        while (numSectorCons > sectors_per_cluster){
+        	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+        	logicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+        	numSectorCons -= sectors_per_cluster;
+        }
+        numSectorCons --;
     }
-    logicalSector += numSector;
+    logicalSector += numSectorCons;
 	if (buflen > (userptr->fileSize - userptr->cursor)){ //Prevent attempts to read past EOF
 		return E_EOF;
 	}
@@ -936,7 +940,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 //    	}
     	userptr->clusterAddr = numCluster;
     }
-	uint32_t travelCluster;
+	uint32_t travelCluster; //TODO: does this work duplicate the work done by curr_sector_from_offset?
 	int pos = userptr->cursor;
 	const int end = buflen + userptr->cursor; //TODO: errcheck on end? Too large?
     uint32_t clusJump = pos / 512; //Skip ahead this many clusters
@@ -961,12 +965,16 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     //uint8_t fileData[BLOCK];
 	uint32_t fileLogicalSector = first_sector_of_cluster(numCluster);
     uint32_t numSector = curr_sector_from_offset(userptr); //how many sectors to offset (also changes logicalSector)
-    while (numSector > sectors_per_cluster){
-    	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
-    	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
-    	numSector -= sectors_per_cluster;
+    uint32_t numSectorCons = numSector;
+    if (numSectorCons > sectors_per_cluster){
+        while (numSectorCons > sectors_per_cluster){
+        	numCluster = read_FAT_entry(MOUNT->rca, numCluster); //returns a FAT entry
+        	fileLogicalSector = first_sector_of_cluster(numCluster); //takes a cluster as an argument
+        	numSectorCons -= sectors_per_cluster;
+        }
+        numSectorCons --;
     }
-    fileLogicalSector += numSector;
+    fileLogicalSector += numSectorCons;
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, fileLogicalSector, &card_status, MOUNT->data)){ //read next block into memory
     	return E_IO;
     }
