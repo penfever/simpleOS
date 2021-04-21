@@ -532,25 +532,25 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
-  i = 0;
+	uint32_t* potVal = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+	*potVal = 128;
 	char* myOutput = SVC_malloc(16); //string output
 	for (int i = 0; i < 16; i++){
-		myOutput[i] = '\0';
+		myOutput[i] = NULLCHAR;
 	}
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1, 'a') != 1){
+	while (SVC_fgetc(sw1, "a") != 1){
 		delay(delayCount);
-		err = SVC_fgetc(pot, (char *)i);
+		err = SVC_fgetc(pot, (char *)potVal);
 		if (err != 0){
 			return err;
 		}
-		longInt2hex(*i, myOutput);
+		longInt2hex(*potVal, myOutput);
 		SVC_fputs(io_dev, myOutput, strlen(myOutput));
 		SVC_fputc(io_dev, '\r');
 		SVC_fputc(io_dev, '\n');
 	}
-	SVC_free(i);
+	SVC_free(potVal);
 	SVC_free(myOutput);
 	SVC_fclose(pot);
 	return SVC_fclose(sw1);

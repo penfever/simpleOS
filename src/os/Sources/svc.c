@@ -89,7 +89,6 @@ struct frame {
 		file_descriptor* descr;
 		file_descriptor descrf;
 		unsigned int unsInt;
-		void* vptr;
 	};
 	union {
 		int r1;
@@ -453,7 +452,7 @@ void svcHandlerInC(struct frame *framePtr) {
 			if (MYFAT_DEBUG){
 				printf("FREE\n");
 			}
-			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
+			framePtr->returnVal = myFreeErrorCode(framePtr->arg0);
 			break;
 		case SVC_DIR_LS:
 			framePtr->returnVal = dir_ls(framePtr->arg0);

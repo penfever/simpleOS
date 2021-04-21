@@ -31,7 +31,6 @@ int g_tsInit = FALSE;
 /*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
  * to open file filename, log it in the current PID's PCB, and return a pointer
  * handler. It returns an error code on failure.*/
-
 int myfopen (file_descriptor* descr, char* filename, char mode){
 	int len = strlen(filename);
 	int err;
@@ -289,7 +288,8 @@ int adc_fgetc(file_descriptor descr) {
 		return adc_read(ADC_CHANNEL_POTENTIOMETER);
 	}
 	if (userptr->minorId == dev_temp){
-		return adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+		unsigned int temp = adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+		return temp;
 	}
 	return E_DEV;
 }
