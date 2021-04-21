@@ -85,7 +85,7 @@ enum minor_id{
 		dev_sdhc = 0x99FF0000,
 		dev_sw1 = 0x00FF0000,
 		dev_sw2 = 0x00FF0001,
-		dev_E1 = 0x00EF0000, //red
+		dev_E1 = 0x00EF0000, //orange
 		dev_E2 = 0x00EF0001, //blue
 		dev_E3 = 0x00EF0002, //green
 		dev_E4 = 0x00EF0003, //yellow

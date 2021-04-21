@@ -264,7 +264,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 				if ((err = dir_extend_dir(i, currCluster)) != 0){
 					return err;
 				}
-				if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+				if ((err = load_cache(logicalSector, data, i)) != 0){
 					return err;
 				}
 				g_unusedSeek = FOUND_AND_RETURNING;
@@ -280,7 +280,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 		else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
 			//this directory entry is unused
 			if (unused == NULL || g_unusedSeek == TRUE){
-				if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+				if ((err = load_cache(logicalSector, data, i)) != 0){
 					return err;
 				}
 				if (g_unusedSeek == TRUE){
@@ -415,6 +415,7 @@ int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
 	MOUNT->writeSector = logicalSector; //updates writeSector
 	memcpy(MOUNT->data, data, BLOCK);
 	cached = (struct dir_entry_8_3*)MOUNT->data; //point to cache
+	unused = cached;
 	cached += i; //walk to current dir_entry
     return 0;
 }
@@ -486,9 +487,9 @@ int dir_create_file(char *filename){
 		}
 		g_unusedSeek = FALSE;
 	}
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
-    	return E_IO;
-    }
+//    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
+//    	return E_IO;
+//    }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
@@ -565,6 +566,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 
 int dir_set_attr_newfile(char* filename, int len){
 	int i = 0;
+	uint16_t date = date_format_FAT();
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
@@ -572,8 +574,8 @@ int dir_set_attr_newfile(char* filename, int len){
 	unused->DIR_NTRes = 0;		/* Offset 12 */
 	unused->DIR_CrtTimeHundth = 0;		/* Offset 13 */
 	unused->DIR_CrtTime = 0;			/* Offset 14 */
-	unused->DIR_CrtDate = 0;			/* Offset 16 */
-	unused->DIR_LstAccDate = 0;		/* Offset 18 */
+	unused->DIR_CrtDate = date;			/* Offset 16 */
+	unused->DIR_LstAccDate = date;		/* Offset 18 */
 	unused->DIR_FstClusHI = 0;		/* Offset 20 */
 	unused->DIR_WrtTime = 0;			/* Offset 22 */
 	unused->DIR_WrtDate = 0;			/* Offset 24 */

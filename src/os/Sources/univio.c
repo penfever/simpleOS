@@ -323,24 +323,6 @@ int pushb_fgetc(file_descriptor descr){
 	return 0;
 }
 
-/*LED_fgetc is defined as 'on'*/
-int led_fgetc(file_descriptor descr){
-	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorId == dev_E1){
-        ledOrangeOn();
-	}
-	if (userptr->minorId == dev_E2){
-        ledBlueOn();
-	}
-	if (userptr->minorId == dev_E3){
-        ledGreenOn();
-	}
-	if (userptr->minorId == dev_E4){
-        ledYellowOn();
-	}
-	return 0;
-}
-
 /*myfgets() reads in at most one less than size characters from a stream and 
  * stores them into the buffer pointed to by s. Reading stops after an 
  * EOF or a newline. If a newline is read, it is stored into the buffer. 
@@ -430,6 +412,23 @@ int myfputc (file_descriptor descr, char bufp){
 	return err;
 }
 
+/*LED_fgetc is defined as 'on'*/
+int led_fgetc(file_descriptor descr){
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_E1){
+        ledOrangeOn();
+	}
+	if (userptr->minorId == dev_E2){
+        ledBlueOn();
+	}
+	if (userptr->minorId == dev_E3){
+        ledGreenOn();
+	}
+	if (userptr->minorId == dev_E4){
+        ledYellowOn();
+	}
+	return 0;
+}
 /*led_fputc is defined as off*/
 int led_fputc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
@@ -440,7 +439,7 @@ int led_fputc(file_descriptor descr){
         ledBlueOff();
 	}
 	if (userptr->minorId == dev_E3){
-        ledOrangeOff();
+        ledGreenOff();
 	}
 	if (userptr->minorId == dev_E4){
         ledYellowOff();
