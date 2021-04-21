@@ -6,7 +6,7 @@
 #endif
 
 #define MYFAT_DEBUG FALSE
-#define MYFAT_DEBUG_LITE TRUE
+#define MYFAT_DEBUG_LITE FALSE
 #define DEBUG_CODE 3
 
 typedef enum _os_error error_t;

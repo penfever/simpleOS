@@ -208,6 +208,15 @@ int dir_ls(int full){
 /*read_all is a loop that traverses a single logical sector, returns search matches if search is enabled.
 SIDE EFFECT: If search is enabled, this function updates global latestSector with the sector number of the found file*/
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
+	int err;
+	if (search != NULL){
+	    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+	    err = dir_get_cwd(&logicalSector, data);
+	    if (err != 0){
+	    	return err;
+	    }
+		latestSector = logicalSector;
+	}
 	int finished = LOOP_CONTD;
 	int numSector = 1;
 	g_numSector = &numSector;
@@ -254,44 +263,44 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	struct dir_entry_8_3 *dir_entry;
 	int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
 	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
-		if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
-			//we've reached the end of the directory
-			if (search != NULL){
-				return E_SEARCH; //file not found
-			}
-			if (g_unusedSeek == TRUE){
-				//extend the directory, load the cache, set the flag and return
-				if ((err = dir_extend_dir(i, currCluster)) != 0){
-					return err;
-				}
-				if ((err = load_cache(logicalSector, data, i)) != 0){
-					return err;
-				}
-				g_unusedSeek = FOUND_AND_RETURNING;
-				return 0;
-			}
+    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
+    		//we've reached the end of the directory
+    		if (search != NULL){
+    			return E_SEARCH; //file not found
+    		}
+    		if (g_unusedSeek == TRUE){
+    			//extend the directory, load the cache, set the flag and return
+    			if ((err = dir_extend_dir(i, currCluster)) != 0){
+    				return err;
+    			}
+    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+    				return err;
+    			}
+    			g_unusedSeek = FOUND_AND_RETURNING;
+    			return 0;
+    		}
 			if(UARTIO){
-				char output[64] = {'\0'};
-				sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
-				putsNLIntoBuffer(output);
+	    		char output[64] = {' '};
+    			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
+    			putsNLIntoBuffer(output);
 			}
-		return 0;
-		}
-		else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
-			//this directory entry is unused
-			if (unused == NULL || g_unusedSeek == TRUE){
-				if ((err = load_cache(logicalSector, data, i)) != 0){
-					return err;
-				}
-				if (g_unusedSeek == TRUE){
-					g_unusedSeek = FOUND_AND_RETURNING;
-				}
-				if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-					printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
-				}
-			}
-			continue;
-		}
+    	return 0;
+    	}
+    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
+    		//this directory entry is unused
+    		if (unused == NULL || g_unusedSeek == TRUE){
+    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+    				return err;
+    			}
+	    		if (g_unusedSeek == TRUE){
+	    			g_unusedSeek = FOUND_AND_RETURNING;
+	    		}
+	    		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
+	    		}
+    		}
+    		continue;
+    	}
 		else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
 			char output[64] = {'\0'};
 			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
@@ -469,6 +478,12 @@ int dir_find_file(char *filename, uint32_t *firstCluster){
  * this filename
  * Returns an error code if there is no more space to create the regular file
  */
+/**
+ * Create a new empty regular file in the cwd with name filename
+ * Returns an error code if a regular file or directory already exists with
+ * this filename
+ * Returns an error code if there is no more space to create the regular file
+ */
 int dir_create_file(char *filename){
 	int len = strlen(filename);
 	int err;
@@ -476,9 +491,6 @@ int dir_create_file(char *filename){
 		return err;
 	}
 	uint32_t myCluster;
-	if (dir_find_file(filename, &myCluster) == 0){
-		return E_SEARCH;
-	}
 	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
 		g_unusedSeek = TRUE;
 		dir_ls(0); //fills unused slot and copies data to MOUNT->data
@@ -487,9 +499,12 @@ int dir_create_file(char *filename){
 		}
 		g_unusedSeek = FALSE;
 	}
-//    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
-//    	return E_IO;
-//    }
+	if (dir_find_file(filename, &myCluster) == 0){
+		return E_SEARCH;
+	}
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
+    	return E_IO;
+    }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
