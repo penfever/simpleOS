@@ -410,21 +410,21 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  file_descriptor myTS2 = 0;
-	err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
-	if (err != 0){
-		return err;
-	}
-  file_descriptor myTS3 = 0;
-	err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
-	if (err != 0){
-		return err;
-	}
-  file_descriptor myTS4 = 0;
-	err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
-	if (err != 0){
-		return err;
-	}
+	  file_descriptor myTS2 = 0;
+		err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
+		if (err != 0){
+			return err;
+		}
+	  file_descriptor myTS3 = 0;
+		err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
+		if (err != 0){
+			return err;
+		}
+	  file_descriptor myTS4 = 0;
+		err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
+		if (err != 0){
+			return err;
+		}
 	file_descriptor E1 = 0;
 	err = SVC_fopen(&E1, "dev_E1", 'r');
 	if (err != 0){
@@ -445,39 +445,47 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  char* bufp = " ";
+	uint32_t ts1Val = 0;
+	uint32_t ts2Val = 0;
+	uint32_t ts3Val = 0;
+	uint32_t ts4Val = 0;
+	char* bufp = "a";
 	const unsigned long int delayCount = 0x7ffff;
 	while(TRUE) {
-		int val = (SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp));
-		if(val){
+		SVC_fgetc(myTS1, (char*)&ts1Val);
+		SVC_fgetc(myTS2, (char*)&ts2Val);
+		SVC_fgetc(myTS3, (char*)&ts3Val);
+		SVC_fgetc(myTS4, (char*)&ts4Val);
+		uint8_t sumVal = ts1Val && ts2Val && ts3Val && ts4Val;
+		if(sumVal){
 			break;
 		}
 		delay(delayCount);
-		if(SVC_fgetc(myTS1, bufp)) {
+		if(ts1Val){
 		  SVC_fgetc(E1, bufp); //fgetc turns LED on
 			} else {
 		  SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
-		if(SVC_fgetc(myTS2, bufp)) {
+		if(ts2Val){
 		  SVC_fgetc(E4, bufp); //fgetc turns LED on
 			} else {
 		  SVC_fputc(E4, 'a'); //fputc turns LED off
 		}
-		if(SVC_fgetc(myTS3, bufp)) {
+		if(ts3Val) {
 		  SVC_fgetc(E3, bufp); //fgetc turns LED on
 			} else {
 		  SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
-		if(SVC_fgetc(myTS4, bufp)) {
+		if(ts4Val) {
 		  SVC_fgetc(E2, bufp); //fgetc turns LED on
 			} else {
 		  SVC_fputc(E2, 'a'); //fputc turns LED off
 		}
 	}
-  SVC_fputc(E1, 'a'); //fputc turns LED off
-  SVC_fputc(E2, 'a'); //fputc turns LED off
-  SVC_fputc(E3, 'a'); //fputc turns LED off
-  SVC_fputc(E4, 'a'); //fputc turns LED off
+	  SVC_fputc(E1, 'a'); //fputc turns LED off
+	  SVC_fputc(E2, 'a'); //fputc turns LED off
+	  SVC_fputc(E3, 'a'); //fputc turns LED off
+	  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		return err;
@@ -622,7 +630,7 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	const unsigned long int delayCount = 0x7ffff;
-  char* bufp = " ";
+	char* bufp = " ";
 	while (SVC_fgetc(sw2, 'a') != 3){
 		delay(delayCount);
 		int switchState = switchScan();
