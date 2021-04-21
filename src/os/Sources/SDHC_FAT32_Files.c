@@ -209,7 +209,7 @@ int dir_ls(int full){
 SIDE EFFECT: If search is enabled, this function updates global latestSector with the sector number of the found file*/
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	int finished = LOOP_CONTD;
-	int numSector = 0;
+	int numSector = 1;
 	g_numSector = &numSector;
 	int totalSector = 0;
 	uint32_t currCluster = MOUNT->cwd_cluster;
@@ -227,8 +227,9 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 			}
 		}
 		else{
-			currCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
-			logicalSector = first_sector_of_cluster(currCluster); //takes a cluster as an argument
+			uint32_t nextCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
+			logicalSector = first_sector_of_cluster(nextCluster); //takes a cluster as an argument
+			currCluster = nextCluster;
 			numSector = 0;
 			totalSector ++;
 		}
