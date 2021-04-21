@@ -266,7 +266,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    			if ((err = dir_extend_dir(i, currCluster)) != 0){
 	    				return err;
 	    			}
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
+	    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
 	    				return err;
 	    			}
 	    			g_unusedSeek = FOUND_AND_RETURNING;
@@ -280,24 +280,17 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    	return 0;
 	    	}
 	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
-	    		//this directory is unused
-	    		if (unused == NULL){
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
+	    		//this directory entry is unused
+	    		if (unused == NULL || g_unusedSeek == TRUE){
+	    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
 	    				return err;
 	    			}
-	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+		    		if (g_unusedSeek == TRUE){
+		    			g_unusedSeek = FOUND_AND_RETURNING;
+		    		}
+		    		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
-	    			}
-	    		}
-	    		if (g_unusedSeek == TRUE){
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
-	    				return err;
-	    			}
-	    			g_unusedSeek = FOUND_AND_RETURNING;
-	    			return 0;
-	    		}
-	    		if(MYFAT_DEBUG){
-	    			printf("Sector %d, entry %d is unused\n", logicalSector, i);
+		    		}
 	    		}
 	    		continue;
 	    	}
@@ -305,6 +298,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		//long file name
 	    		char output[64] = {' '};
     			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
+    	    	print_attr(dir_entry, search); //print appropriate attributes
     			if (g_printAll){
         			putsNLIntoBuffer(output);
     			}
@@ -323,12 +317,13 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	    		}
 	    		continue;
 	    	}
-	    	
-	    	print_attr(dir_entry, search); //print appropriate attributes
-	    	
-			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
-	    	if(!noMatch){
-	    		return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
+	    	else{
+	    		//there is a file -- do the comparison
+		    	print_attr(dir_entry, search); //print appropriate attributes
+				int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
+		    	if(!noMatch){
+		    		return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
+		    	}
 	    	}
 	    }
 	    return LOOP_CONTD; //end of sector reached, continue loop in read_all
@@ -426,7 +421,14 @@ int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
     return 0;
 }
 
-//TODO: load_cluster_cache?
+int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
+	MOUNT->writeSector = logicalSector; //updates writeSector
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
+    	return E_IO;
+    }
+	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
+    return 0;
+}
 
 /**
  * Search for filename in cwd and return its first cluster number in firstCluster

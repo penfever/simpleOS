@@ -204,6 +204,8 @@ int filename_verify(char* filename, int len);
 
 int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i);
 
+int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
+
 int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint8_t data[BLOCK]);
 
 void print_attr(struct dir_entry_8_3* dir_entry, char* search);

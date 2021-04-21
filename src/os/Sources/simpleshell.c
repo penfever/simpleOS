@@ -259,7 +259,6 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
-	//svcInit_SetSVCPriority(7);
 	err = SVC_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
@@ -280,7 +279,6 @@ int cmd_fclose(int argc, char *argv[]){
 	if ((descrf = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
 		char* msg = "File close successful \n";
@@ -294,7 +292,6 @@ int cmd_create(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	return SVC_create(argv[1]);
 }
 
@@ -303,7 +300,6 @@ int cmd_delete(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	return SVC_delete(argv[1]);
 }
 
@@ -389,7 +385,7 @@ int cmd_ls(int argc, char *argv[]){
 	if (argc > 2){
 		return E_NUMARGS;
 	}
-	if (argv == 1){
+	if (argc == 1){
 		return SVC_dir_ls(0);
 	}
 	if (argv[1][0] != '0' && argv[1][0] != '1'){
@@ -525,7 +521,6 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -538,7 +533,11 @@ int cmd_pot2ser(int argc, char* argv[]){
 		return err;
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+  i = 0;
 	char* myOutput = SVC_malloc(16); //string output
+	for (int i = 0; i < 16; i++){
+		myOutput[i] == '\0';
+	}
 	const unsigned long int delayCount = 0x7ffff;
 	while (SVC_fgetc(sw1, 'a') != 1){
 		delay(delayCount);
