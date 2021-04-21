@@ -380,9 +380,11 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		return E_EOF;
 	}
 	int charsreadp;
-	err = file_getbuf(descr, bufp, buflen, &charsreadp);
+	if ((err = file_getbuf(descr, bufp, buflen, &charsreadp)) != 0){
+		return err;
+	}
 	bufp[buflen] = '\0';
-	return bufp;
+	return 0; //TODO: why was this return bufp?
 }
 
 int myfputc (file_descriptor descr, char bufp){

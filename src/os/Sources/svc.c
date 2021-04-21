@@ -76,6 +76,7 @@
 #include "devices.h"
 #include "datetime.h"
 #include "uart.h"
+#include "pdb.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -408,49 +409,49 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_CREATE:
 			if (MYFAT_DEBUG){
-			printf("CREATE\n");
+				printf("CREATE\n");
 			}
 			framePtr->returnVal = mycreate(framePtr->arg0);
 			break;
 		case SVC_DELETE:
 			if (MYFAT_DEBUG){
-			printf("DELETE\n");
+				printf("DELETE\n");
 			}
 			framePtr->returnVal = mydelete(framePtr->arg0);
 			break;
 		case SVC_FGETC:
 			if (MYFAT_DEBUG){
-			printf("FGETC\n");
+				printf("FGETC\n");
 			}
 			framePtr->returnVal = myfgetc(framePtr->descrf, framePtr->filename);
 			break;
 		case SVC_FPUTC:
 			if (MYFAT_DEBUG){
-			printf("FPUTC\n");
+				printf("FPUTC\n");
 			}
 			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->bufp);
 			break;
 		case SVC_FPUTS:
 			if (MYFAT_DEBUG){
-			printf("FPUTS\n");
+				printf("FPUTS\n");
 			}
 			framePtr->returnVal = myfputs(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_FGETS:
 			if (MYFAT_DEBUG){
-			printf("FGETS\n");
+				printf("FGETS\n");
 			}
 			framePtr->returnVal = myfgets(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_MALLOC:
 			if (MYFAT_DEBUG){
-			printf("MALLOC\n");
+				printf("MALLOC\n");
 			}
 			framePtr->returnVal = myMalloc(framePtr->unsInt);
 			break;
 		case SVC_FREE:
 			if (MYFAT_DEBUG){
-			printf("FREE\n");
+				printf("FREE\n");
 			}
 			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
 			break;

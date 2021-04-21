@@ -536,7 +536,7 @@ int cmd_pot2ser(int argc, char* argv[]){
   i = 0;
 	char* myOutput = SVC_malloc(16); //string output
 	for (int i = 0; i < 16; i++){
-		myOutput[i] == '\0';
+		myOutput[i] = '\0';
 	}
 	const unsigned long int delayCount = 0x7ffff;
 	while (SVC_fgetc(sw1, 'a') != 1){
@@ -871,7 +871,6 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 /*main shell function*/
 
 int shell(void){
-  const unsigned long int delayCount = 0x7ffff;
   long long gmtTime = timestamp_to_ms();
   SVC_settime(&gmtTime); //set default time to GMT
   if (UARTIO){
