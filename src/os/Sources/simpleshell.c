@@ -938,7 +938,7 @@ int shell(void){
     }
     //check if command exists in struct
     for (int i = 0; i < NUMCOMMANDS; i++){
-      if (MYFAT_DEBUG_LITE){
+      if (MYFAT_DEBUG){
       	printf("%s compared to %s \n", argv[0], commands[i].name);
       }
       if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){

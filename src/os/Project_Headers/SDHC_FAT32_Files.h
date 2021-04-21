@@ -188,8 +188,6 @@ int find_curr_stream(struct stream* fileptr);
 
 int curr_sector_from_offset(struct stream* userptr);
 
-char* filename_clean(char* filename);
-
 uint32_t find_free_cluster();
 
 int dir_extend_dir(int dirPos, uint32_t currCluster);
@@ -202,16 +200,20 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 
 int filename_verify(char* filename, int len);
 
+char* filename_clean(char* filename);
+
+char* clean_dir_name(char* dirtyName);
+
 int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i);
 
 int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);
 
 int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint8_t data[BLOCK]);
 
-void print_attr(struct dir_entry_8_3* dir_entry, char* search);
+void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount);
+
+void print_addl_attr(struct dir_entry_8_3 *dir_entry);
 
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry);
-
-char* clean_dir_name(char* dirtyName);
 
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */
