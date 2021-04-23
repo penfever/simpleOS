@@ -93,4 +93,6 @@ void PDB0Isr(void);
 
 void PDB0Action(void);
 
+int pdb0_one_shot_timer(uint16_t* delayCount);
+
 #endif /* ifndef _PDB_H */

@@ -121,7 +121,12 @@ uint16_t date_format_FAT(){
   if (myMonth == 12 && MYFAT_DEBUG){
     printf("Month returned invalid date. Please check for errors. \n");
   }
-  return (curr_date.year << 9) | ((myMonth + 1) << 5) | (curr_date.day << 0);
+  return ((curr_date.year-1980) << 9) | ((myMonth + 1) << 5) | (curr_date.day << 0);
+}
+
+uint16_t time_format_FAT(){
+  struct date_time curr_date = get_time();
+  return ((curr_date.hour) << 11) | ((curr_date.minute) << 5) | (curr_date.second << 0);
 }
 
 void print_time(struct date_time curr_date){
@@ -156,10 +161,10 @@ int count_leap_years(int inputYear){
 	return count;
 }
 
-long long timestamp_to_ms(){
+unsigned long long timestamp_to_ms(){
   char* comDate = __DATE__;
   char* comTime = __TIME__;
-  long long returnTimeInSeconds = 0;
+  unsigned long long returnTimeInSeconds = 0;
   unsigned int thisYear = ((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'));
   returnTimeInSeconds += ((thisYear-1980)*SECYEAR); //years
   returnTimeInSeconds += count_leap_years(thisYear)*SECDAY;//adjust for leap years
@@ -173,9 +178,22 @@ long long timestamp_to_ms(){
                                 : (comDate[0] == 'D') ? 333                                                             // Dec
                                 : 0;
   returnTimeInSeconds += thisMonth * SECDAY; //months
-  returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
+  returnTimeInSeconds += ((10*(comDate[4]-'0')+(comDate[5]-'0'))-1)*SECDAY; //days, -1 because it starts on the first
   returnTimeInSeconds += (10*(comTime[6]-'0')+(comTime[7]-'0')); //seconds
   returnTimeInSeconds += (10*(comTime[3]-'0')+(comTime[4]-'0'))*60; //minutes
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours
+  return returnTimeInSeconds*1000;
+}
+
+unsigned long long ymdhm_to_ms(int inputYear, int inputMonth, int inputDay, int inputHour, int inputMinute){
+  unsigned long long returnTimeInSeconds = 0;
+  returnTimeInSeconds += ((inputYear-1980)*SECYEAR); //years
+  returnTimeInSeconds += count_leap_years(inputYear)*SECDAY;//adjust for leap years
+  for (int i = 1; i < inputMonth; i ++){
+    returnTimeInSeconds += (allMonths[i].offset*SECDAY);
+  }
+  returnTimeInSeconds += (inputDay-1)*SECDAY; //days, -1 because it starts on the first
+  returnTimeInSeconds += inputHour*SECHOUR; //hours
+  returnTimeInSeconds += inputMinute*60; //minutes
   return returnTimeInSeconds*1000;
 }

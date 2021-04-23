@@ -127,6 +127,21 @@ int cmd_date(int argc, char *argv[]){
   if (argc != 2){
   	return E_NUMARGS;
   }
+  if (argv[1][4] == '-' && argv[1][7] == argv[1][4] && argv[1][10] == 'T'){ //ISO 8601 handling
+    int year, month, day, hour, minute;
+    char c;
+    int fieldsRead = sscanf(argv[1], "%d-%d-%d%c%d%c%d", &year, &month, &day, &c, &hour, &c, &minute);
+    if (fieldsRead != 7){
+        return E_NOINPUT;
+    }
+    else{
+      unsigned long long resultVal = ymdhm_to_ms(year, month, day, hour, minute);
+      return SVC_settime(&resultVal);
+    }
+    if (MYFAT_DEBUG){
+      printf("fieldsRead is %d, year, month, day end are %d, %d, %d, %d, %d. \n", fieldsRead, year, month, day, hour, minute);
+    }
+  }
   long long setTime;
   if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
   	return E_NOINPUT;
@@ -259,12 +274,12 @@ int cmd_fopen(int argc, char *argv[]){
 	char* filename = argv[1];
 	char m = argv[2][0];
 	file_descriptor myfile = 0;
-	//svcInit_SetSVCPriority(7);
 	err = SVC_fopen(&myfile, filename, m);
 	if (err != 0){
 		return err;
 	}
 	char* output = SVC_malloc(64);
+  memset(output, '\0', 64);
 	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
 	SVC_fputs(io_dev, output, strlen(output));
 	SVC_free(output);
@@ -280,7 +295,6 @@ int cmd_fclose(int argc, char *argv[]){
 	if ((descrf = (file_descriptor)hex_dec_oct(argv[1])) == 0){
 		return E_NOINPUT;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err = SVC_fclose(descrf);
 	if (err == 0){
 		char* msg = "File close successful \n";
@@ -294,7 +308,6 @@ int cmd_create(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	return SVC_create(argv[1]);
 }
 
@@ -303,7 +316,6 @@ int cmd_delete(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	return SVC_delete(argv[1]);
 }
 
@@ -389,7 +401,7 @@ int cmd_ls(int argc, char *argv[]){
 	if (argc > 2){
 		return E_NUMARGS;
 	}
-	if (argv == 1){
+	if (argc == 1){
 		return SVC_dir_ls(0);
 	}
 	if (argv[1][0] != '0' && argv[1][0] != '1'){
@@ -414,21 +426,21 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  file_descriptor myTS2 = 0;
-	err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
-	if (err != 0){
-		return err;
-	}
-  file_descriptor myTS3 = 0;
-	err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
-	if (err != 0){
-		return err;
-	}
-  file_descriptor myTS4 = 0;
-	err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
-	if (err != 0){
-		return err;
-	}
+	  file_descriptor myTS2 = 0;
+		err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
+		if (err != 0){
+			return err;
+		}
+	  file_descriptor myTS3 = 0;
+		err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
+		if (err != 0){
+			return err;
+		}
+	  file_descriptor myTS4 = 0;
+		err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
+		if (err != 0){
+			return err;
+		}
 	file_descriptor E1 = 0;
 	err = SVC_fopen(&E1, "dev_E1", 'r');
 	if (err != 0){
@@ -449,39 +461,49 @@ int cmd_touch2led(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  char* bufp = " ";
-	const unsigned long int delayCount = 0x7ffff;
+	uint32_t ts1Val = 0;
+	uint32_t ts2Val = 0;
+	uint32_t ts3Val = 0;
+	uint32_t ts4Val = 0;
+	char* bufp = "a";
 	while(TRUE) {
-		int val = (SVC_fgetc(myTS1, bufp) && SVC_fgetc(myTS2, bufp) && SVC_fgetc(myTS3, bufp) && SVC_fgetc(myTS4, bufp));
-		if(val){
+		SVC_fgetc(myTS1, (char*)&ts1Val);
+		SVC_fgetc(myTS2, (char*)&ts2Val);
+		SVC_fgetc(myTS3, (char*)&ts3Val);
+		SVC_fgetc(myTS4, (char*)&ts4Val);
+		uint8_t sumVal = ts1Val && ts2Val && ts3Val && ts4Val;
+		if(sumVal){
 			break;
 		}
-		delay(delayCount);
-		if(SVC_fgetc(myTS1, bufp)) {
+		if(ts1Val){
 		  SVC_fgetc(E1, bufp); //fgetc turns LED on
-			} else {
+		} 
+		else {
 		  SVC_fputc(E1, 'a'); //fputc turns LED off
 		}
-		if(SVC_fgetc(myTS2, bufp)) {
-		  SVC_fgetc(E4, bufp); //fgetc turns LED on
-			} else {
-		  SVC_fputc(E4, 'a'); //fputc turns LED off
+		if(ts2Val){
+		  SVC_fgetc(E4, bufp); //fgetc turns YELLOW LED on
+		} 
+		else {
+		  SVC_fputc(E4, 'a'); //fputc turns YELLOW LED off
 		}
-		if(SVC_fgetc(myTS3, bufp)) {
+		if(ts3Val) {
 		  SVC_fgetc(E3, bufp); //fgetc turns LED on
-			} else {
+		} 
+		else {
 		  SVC_fputc(E3, 'a'); //fputc turns LED off
 		}
-		if(SVC_fgetc(myTS4, bufp)) {
-		  SVC_fgetc(E2, bufp); //fgetc turns LED on
-			} else {
-		  SVC_fputc(E2, 'a'); //fputc turns LED off
+		if(ts4Val) {
+		  SVC_fgetc(E2, bufp); //fgetc turns BLUE LED on
+		} 
+		else {
+		  SVC_fputc(E2, 'a'); //fputc turns BLUE LED off
 		}
 	}
-  SVC_fputc(E1, 'a'); //fputc turns LED off
-  SVC_fputc(E2, 'a'); //fputc turns LED off
-  SVC_fputc(E3, 'a'); //fputc turns LED off
-  SVC_fputc(E4, 'a'); //fputc turns LED off
+	  SVC_fputc(E1, 'a'); //fputc turns LED off
+	  SVC_fputc(E2, 'a'); //fputc turns LED off
+	  SVC_fputc(E3, 'a'); //fputc turns LED off
+	  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		return err;
@@ -525,7 +547,6 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (argc != 1){
 		return E_NUMARGS;
 	}
-	//svcInit_SetSVCPriority(7);
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
@@ -537,21 +558,23 @@ int cmd_pot2ser(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+	uint32_t* potVal = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
+	*potVal = 128;
 	char* myOutput = SVC_malloc(16); //string output
+  memset(myOutput, '\0', 16);
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1, 'a') != 1){
+	while (SVC_fgetc(sw1, "a") != 1){
 		delay(delayCount);
-		err = SVC_fgetc(pot, (char *)i);
+		err = SVC_fgetc(pot, (char *)potVal);
 		if (err != 0){
 			return err;
 		}
-		longInt2hex(*i, myOutput);
+		longInt2hex(*potVal, myOutput);
 		SVC_fputs(io_dev, myOutput, strlen(myOutput));
 		SVC_fputc(io_dev, '\r');
 		SVC_fputc(io_dev, '\n');
 	}
-	SVC_free(i);
+	SVC_free(potVal);
 	SVC_free(myOutput);
 	SVC_fclose(pot);
 	return SVC_fclose(sw1);
@@ -623,7 +646,7 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	const unsigned long int delayCount = 0x7ffff;
-  char* bufp = " ";
+	char* bufp = " ";
 	while (SVC_fgetc(sw2, 'a') != 3){
 		delay(delayCount);
 		int switchState = switchScan();
@@ -817,7 +840,7 @@ void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len){
 int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen){
   uint16_t left_pos = 0;
   uint32_t argc = 0; //use 1-indexing on argc
-  uint16_t cleanLen = 0;
+  int cleanLen = 0;
   int right_pos = 0;
   for (; right_pos < cmdLen; right_pos++){
     if (user_cmd[right_pos] == BACKSLASH){ //escape character handling
@@ -872,8 +895,7 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 /*main shell function*/
 
 int shell(void){
-  const unsigned long int delayCount = 0x7ffff;
-  long long gmtTime = timestamp_to_ms();
+  unsigned long long gmtTime = timestamp_to_ms();
   SVC_settime(&gmtTime); //set default time to GMT
   if (UARTIO){
 	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
@@ -917,11 +939,13 @@ int shell(void){
     int user_cmd_offset = 0;
     //parse string into argv
     for (int i = 0; i < argc; i++){
-      argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
+      size_t arrSize = sizeof(char)*(arg_len[i]+1);
+      argv[i]=(char*)SVC_malloc(arrSize);
       if (argv[i] == NULL) {
         error_checker(E_MALLOC);
         continue;
       }
+      memset(argv[i], '\0', arrSize);
       if (MYFAT_DEBUG){
           printf("argument %d: ", i);
       }
@@ -940,7 +964,7 @@ int shell(void){
     }
     //check if command exists in struct
     for (int i = 0; i < NUMCOMMANDS; i++){
-      if (MYFAT_DEBUG_LITE){
+      if (MYFAT_DEBUG){
       	printf("%s compared to %s \n", argv[0], commands[i].name);
       }
       if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){

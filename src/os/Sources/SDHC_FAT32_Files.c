@@ -134,37 +134,37 @@ int write_cache(){
  * Prints additional directory attributes
  */
 
-void dir_entry_print_attributes(struct dir_entry_8_3 *dir_entry){
+void print_addl_attr(struct dir_entry_8_3 *dir_entry){
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_READ_ONLY){
 		if (UARTIO){
-			putsNLIntoBuffer("READ_ONLY");
+			putsNLIntoBuffer("READ_ONLY \n");
 		}
 		else if (MYFAT_DEBUG_LITE){
-			printf("READ_ONLY");	
+			printf("READ_ONLY \n");	
 		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_HIDDEN){
 		if (UARTIO){
-			putsNLIntoBuffer("Hidden");
+			putsNLIntoBuffer("Hidden \n");
 		}
 		else if (MYFAT_DEBUG_LITE){
-			printf("Hidden");	
+			printf("Hidden \n");	
 		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_SYSTEM){
 		if (UARTIO){
-			putsNLIntoBuffer("System");
+			putsNLIntoBuffer("System \n");
 		}
 		else if (MYFAT_DEBUG_LITE){
-			printf("System");	
+			printf("System \n");	
 		}
 	}
 	if(dir_entry->DIR_Attr & DIR_ENTRY_ATTR_VOLUME_ID){
 		if (UARTIO){
-			putsNLIntoBuffer("Volume ID");
+			putsNLIntoBuffer("Volume ID \n");
 		}
 		else if (MYFAT_DEBUG_LITE){
-			printf("Volume ID");	
+			printf("Volume ID \n");	
 		}
 	}
 }
@@ -200,10 +200,7 @@ int dir_ls(int full){
     if (err != 0){
     	return err;
     }
-//    struct dir_entry_8_3 *dir_entry = (struct dir_entry_8_3 *)MOUNT->data;
-//    if (dir_entry->DIR_Attr != DIR_ENTRY_ATTR_DIRECTORY){ //TODO: implement other CWD at some point
-//    	return E_NOINPUT;
-//    }
+	latestSector = logicalSector;
     err = read_all(MOUNT->data, logicalSector, NULL);
     return err;
 }
@@ -211,8 +208,17 @@ int dir_ls(int full){
 /*read_all is a loop that traverses a single logical sector, returns search matches if search is enabled.
 SIDE EFFECT: If search is enabled, this function updates global latestSector with the sector number of the found file*/
 int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
+	int err;
+	if (search != NULL){
+	    int logicalSector = first_sector_of_cluster(MOUNT->cwd_cluster);
+	    err = dir_get_cwd(&logicalSector, data);
+	    if (err != 0){
+	    	return err;
+	    }
+		latestSector = logicalSector;
+	}
 	int finished = LOOP_CONTD;
-	int numSector = 0;
+	int numSector = 1;
 	g_numSector = &numSector;
 	int totalSector = 0;
 	uint32_t currCluster = MOUNT->cwd_cluster;
@@ -220,118 +226,102 @@ int read_all(uint8_t data[BLOCK], int logicalSector, char* search){
 	if (g_unusedSeek == FOUND_AND_RETURNING){
 		return 0;
 	}
-	    while (finished == LOOP_CONTD){
-	        if (numSector < sectors_per_cluster){
-	        	totalSector ++;
-	        	numSector ++;
-	        	logicalSector ++; //advance logicalsector pointer
-	            if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
-	            	return E_IO;
-	            }
-	        }
-	        else{
-		    	currCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
-		    	logicalSector = first_sector_of_cluster(currCluster); //takes a cluster as an argument
-	        	numSector = 0;
-	        	totalSector ++;
-	        }
-	    	finished = dir_read_sector_search(data, logicalSector, search, currCluster);
-	    	if (g_unusedSeek == FOUND_AND_RETURNING){
-	    		return 0;
-	    	}
-			latestSector = logicalSector;
-	    }
-		if(MYFAT_DEBUG){
-			int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
-			char output[64] = {'\0'};
-			sprintf(output, "Total entries in other sectors = %d. \n", entries);
-			printf(output);
+	while (finished == LOOP_CONTD){
+		if (numSector < sectors_per_cluster){
+			totalSector ++;
+			numSector ++;
+			logicalSector ++; //advance logicalsector pointer
+			if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, logicalSector, &card_status, data)){ //attempt another read
+				return E_IO;
+			}
 		}
-	    return finished;
+		else{
+			uint32_t nextCluster = read_FAT_entry(MOUNT->rca, currCluster); //returns a FAT entry
+			logicalSector = first_sector_of_cluster(nextCluster); //takes a cluster as an argument
+			currCluster = nextCluster;
+			numSector = 0;
+			totalSector ++;
+		}
+		finished = dir_read_sector_search(data, logicalSector, search, currCluster);
+		if (g_unusedSeek == FOUND_AND_RETURNING){
+			return 0;
+		}
+		latestSector = logicalSector;
+	}
+	if(MYFAT_DEBUG){
+		int entries = totalSector * bytes_per_sector/sizeof(struct dir_entry_8_3);
+		char output[64] = {'\0'};
+		sprintf(output, "Total entries in other sectors = %d. \n", entries);
+		printf(output);
+	}
+	return finished;
 }
 
 int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search, uint32_t currCluster){//make attr printing optional
-		int i;
-		int err;
-	    struct dir_entry_8_3 *dir_entry;
-	    int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
-	    for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
-	    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
-	    		//we've reached the end of the directory
-	    		if (search != NULL){
-	    			return E_SEARCH; //file not found
-	    		}
-	    		if (g_unusedSeek == TRUE){
-	    			//extend the directory, load the cache, set the flag and return
-	    			if ((err = dir_extend_dir(i, currCluster)) != 0){
-	    				return err;
-	    			}
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
-	    				return err;
-	    			}
-	    			g_unusedSeek = FOUND_AND_RETURNING;
-	    			return 0;
-	    		}
-    			if(UARTIO){
-    	    		char output[64] = {' '};
-        			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
-        			putsNLIntoBuffer(output);
+	int i;
+	int err;
+	struct dir_entry_8_3 *dir_entry;
+	int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
+	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
+    	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
+    		//we've reached the end of the directory
+    		if (search != NULL){
+    			return E_SEARCH; //file not found
+    		}
+    		if (g_unusedSeek == TRUE){
+    			//extend the directory, load the cache, set the flag and return
+    			if ((err = dir_extend_dir(i, currCluster)) != 0){
+    				return err;
     			}
-	    	return 0;
-	    	}
-	    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
-	    		//this directory is unused
-	    		if (unused == NULL){
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
-	    				return err;
-	    			}
-	    			if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-		    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
-	    			}
-	    		}
-	    		if (g_unusedSeek == TRUE){
-	    			if ((err = load_cache(logicalSector, data, i)) != 0){
-	    				return err;
-	    			}
-	    			g_unusedSeek = FOUND_AND_RETURNING;
-	    			return 0;
-	    		}
-	    		if(MYFAT_DEBUG){
-	    			printf("Sector %d, entry %d is unused\n", logicalSector, i);
-	    		}
-	    		continue;
-	    	}
-	    	else if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK)== DIR_ENTRY_ATTR_LONG_NAME){
-	    		//long file name
+    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+    				return err;
+    			}
+    			g_unusedSeek = FOUND_AND_RETURNING;
+    			return 0;
+    		}
+			if(UARTIO){
 	    		char output[64] = {' '};
-    			sprintf(output, "Sector %d, entry %d has a long file name\n", logicalSector, i);
-    			if (g_printAll){
-        			putsNLIntoBuffer(output);
+    			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
+    			putsNLIntoBuffer(output);
+			}
+    	return 0;
+    	}
+    	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
+    		//this directory entry is unused
+    		if (unused == NULL || g_unusedSeek == TRUE){
+    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+    				return err;
     			}
-    			else if (MYFAT_DEBUG){
-	    			printf(output);
+	    		if (g_unusedSeek == TRUE){
+	    			g_unusedSeek = FOUND_AND_RETURNING;
 	    		}
-	    	}
-	    	else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
-	    		char output[64] = {'\0'};
-    			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
-    			if (g_printAll){
-        			putsNLIntoBuffer(output);
-    			}
-    			else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			printf(output);
+	    		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+	    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
 	    		}
-	    		continue;
-	    	}
-	    	
-	    	print_attr(dir_entry, search); //print appropriate attributes
-	    	
+    		}
+    		continue;
+    	}
+		else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
+			char output[64] = {'\0'};
+			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
+			if (g_printAll || MYFAT_DEBUG_LITE){
+				putsNLIntoBuffer(output);
+			}
+			else if (MYFAT_DEBUG){
+				printf(output);
+			}
+			continue;
+		}
+		else{
+			//there is a file -- perform search comparison and print attributes if needed
+			print_attr(dir_entry, search, i); 
 			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
-	    	if(!noMatch){
-	    		return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
-	    	}
-	    }
-	    return LOOP_CONTD; //end of sector reached, continue loop in read_all
+			if(!noMatch){
+				return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
+			}
+		}
+	}
+	return LOOP_CONTD; //end of sector reached, continue loop in read_all
 }
 
 int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint8_t data[BLOCK]){
@@ -381,17 +371,29 @@ char* clean_dir_name(char* dirtyName){
 	}
 	return dirname;
 }
-/*print_attr prints all requested information either to the debug console,
+/*print_attr prints all requested FAT32 information either to the debug console,
  * or to the UART, or both.*/
-void print_attr(struct dir_entry_8_3* dir_entry, char* search){
+void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount){
+	if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK) == DIR_ENTRY_ATTR_LONG_NAME){
+		//long file name
+		char output[64] = {'\0'};
+		sprintf(output, "Sector %d, entry %d has a long file name\n", latestSector, entryCount);
+		if (g_printAll || MYFAT_DEBUG_LITE){
+			putsNLIntoBuffer(output);
+		}
+		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+			putsNL(output);
+		}
+		return; //Do not attempt to print long file names -- not implemented
+	}
 	int hasExtension = (0 != strncmp((const char*) &dir_entry->DIR_Name[8], "   ", 3));
-	char output[64] = {' '};
+	char output[32] = {'\0'};
 	sprintf(output, "%.8s%c%.3s\n", dir_entry->DIR_Name, hasExtension ? '.' : ' ', &dir_entry->DIR_Name[8]);
-	if(UARTIO && search == NULL && g_deleteFlag == FALSE && g_readFlag == FALSE){
+	if(search == NULL && g_deleteFlag == FALSE && g_readFlag == FALSE){
 		putsNLIntoBuffer(output);
 		if(g_printAll){
 			putsNLIntoBuffer("Attributes: ");
-			dir_entry_print_attributes(dir_entry);
+			print_addl_attr(dir_entry);
 			putsNLIntoBuffer("\n");
 		}
 	}
@@ -399,7 +401,7 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 		printf("%s \n", output);
 		if(g_printAll){
 			printf("Attributes: ");
-			dir_entry_print_attributes(dir_entry);
+			print_addl_attr(dir_entry);
 			printf("\n");
 		}
 	}
@@ -408,8 +410,8 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search){
 		printf(" First Cluster: %lu\n", firstCluster);
 		printf("First sector of cluster: %lu\n", first_sector_of_cluster(firstCluster));
 	}
-	sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 	if (g_printAll){
+		sprintf(output, " Size: %lu\n\n\n", dir_entry->DIR_FileSize);
 		putsNLIntoBuffer(output);
 	}
 	else if (MYFAT_DEBUG){
@@ -422,11 +424,19 @@ int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
 	MOUNT->writeSector = logicalSector; //updates writeSector
 	memcpy(MOUNT->data, data, BLOCK);
 	cached = (struct dir_entry_8_3*)MOUNT->data; //point to cache
+	unused = cached;
 	cached += i; //walk to current dir_entry
     return 0;
 }
 
-//TODO: load_cluster_cache?
+int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
+	MOUNT->writeSector = logicalSector; //updates writeSector
+    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
+    	return E_IO;
+    }
+	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
+    return 0;
+}
 
 /**
  * Search for filename in cwd and return its first cluster number in firstCluster
@@ -468,6 +478,12 @@ int dir_find_file(char *filename, uint32_t *firstCluster){
  * this filename
  * Returns an error code if there is no more space to create the regular file
  */
+/**
+ * Create a new empty regular file in the cwd with name filename
+ * Returns an error code if a regular file or directory already exists with
+ * this filename
+ * Returns an error code if there is no more space to create the regular file
+ */
 int dir_create_file(char *filename){
 	int len = strlen(filename);
 	int err;
@@ -475,9 +491,6 @@ int dir_create_file(char *filename){
 		return err;
 	}
 	uint32_t myCluster;
-	if (dir_find_file(filename, &myCluster) == 0){
-		return E_SEARCH;
-	}
 	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
 		g_unusedSeek = TRUE;
 		dir_ls(0); //fills unused slot and copies data to MOUNT->data
@@ -485,6 +498,9 @@ int dir_create_file(char *filename){
 			return E_FREE; //no free dir_entry could be created (out of space)
 		}
 		g_unusedSeek = FALSE;
+	}
+	if (dir_find_file(filename, &myCluster) == 0){
+		return E_SEARCH;
 	}
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
     	return E_IO;
@@ -565,15 +581,17 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 
 int dir_set_attr_newfile(char* filename, int len){
 	int i = 0;
+	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
 	unused->DIR_Attr = (uint8_t)0x00;
 	unused->DIR_NTRes = 0;		/* Offset 12 */
 	unused->DIR_CrtTimeHundth = 0;		/* Offset 13 */
-	unused->DIR_CrtTime = 0;			/* Offset 14 */
-	unused->DIR_CrtDate = 0;			/* Offset 16 */
-	unused->DIR_LstAccDate = 0;		/* Offset 18 */
+	unused->DIR_CrtTime = time;			/* Offset 14 */
+	unused->DIR_CrtDate = date;			/* Offset 16 */
+	unused->DIR_LstAccDate = date;		/* Offset 18 */
 	unused->DIR_FstClusHI = 0;		/* Offset 20 */
 	unused->DIR_WrtTime = 0;			/* Offset 22 */
 	unused->DIR_WrtDate = 0;			/* Offset 24 */
@@ -583,14 +601,22 @@ int dir_set_attr_newfile(char* filename, int len){
 }
 
 int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
+	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	writeEntry->DIR_FstClusHI = newFile >> 16;  //TODO: error check this math. mask the 16 low order bits of newFile;
 	writeEntry->DIR_FstClusLO = newFile & 0x0000FFFF;  //mask the 16 high order bits of newFile;
 	writeEntry->DIR_FileSize = writeSize;
+	unused->DIR_WrtTime = time;			/* Offset 22 */
+	unused->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 
 int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry){
+	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	writeEntry->DIR_FileSize = writeSize;
+	unused->DIR_WrtTime = time;			/* Offset 22 */
+	unused->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 
@@ -606,7 +632,6 @@ int dir_set_attr_close(struct dir_entry_8_3* writeEntry){
 0x2A through 0x2F, 0x3A through 0x3F, 0x5B through 0x5D, and 0x7C
 �For our implementation, we will not allow any character with values less than 0x20
 �Implies: No special characters */
-
 int filename_verify(char* filename, int len){
 	if (len != 11){
 		return E_NOINPUT;

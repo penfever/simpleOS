@@ -46,7 +46,7 @@
         g_noFS = FALSE;
     }
     svcInit_SetSVCPriority(15);
-    privUnprivileged();
+    //privUnprivileged();
     int err = shell();
     if (MYFAT_DEBUG){
     	printf("Shell exits with code %d \n", err);

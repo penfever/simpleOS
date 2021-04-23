@@ -31,7 +31,6 @@ int g_tsInit = FALSE;
 /*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
  * to open file filename, log it in the current PID's PCB, and return a pointer
  * handler. It returns an error code on failure.*/
-
 int myfopen (file_descriptor* descr, char* filename, char mode){
 	int len = strlen(filename);
 	int err;
@@ -86,22 +85,12 @@ void process_strname(char* fileProc, char* filename){
 		}
 	}
 	else{
-		fileProc[10] = filename[len-1];
-		fileProc[10] = mytoupper(fileProc[10]);
-		fileProc[9] = filename[len-2];
-		fileProc[9] = mytoupper(fileProc[9]);
-		fileProc[8] = filename[len-3];
-		fileProc[8] = mytoupper(fileProc[8]);
+		fileProc[10] = mytoupper(filename[len-1]);
+		fileProc[9] = mytoupper(filename[len-2]);
+		fileProc[8] = mytoupper(filename[len-3]);
 		for (int i = 0; i < len-4; ++i){
-			fileProc[i] = filename[i];
-			fileProc[i] = mytoupper(fileProc[i]);
+			fileProc[i] = mytoupper(filename[i]);
 		}
-	}
-}
-
-char mytoupper(char c){
-	if ((c >= 'a') && (c <= 'z')){
-		return c - 32;
 	}
 }
 
@@ -267,20 +256,23 @@ int myfgetc (file_descriptor descr, char* bufp){
 
 int tsi_fgetc(file_descriptor descr) {
 	struct stream* userptr = (struct stream*)descr;
+	int res;
 	if (userptr->minorId == dev_TSI1){
-		int res = electrode_in(0);
-		return res;
+		res = electrode_in(0);
 	}
-	if (userptr->minorId == dev_TSI2){
-		return electrode_in(1);
+	else if (userptr->minorId == dev_TSI2){
+		res = electrode_in(1);
 	}
-	if (userptr->minorId == dev_TSI3){
-		return electrode_in(2);
+	else if (userptr->minorId == dev_TSI3){
+		res = electrode_in(2);
 	}
-	if (userptr->minorId == dev_TSI4){
-		return electrode_in(3);
+	else if (userptr->minorId == dev_TSI4){
+		res = electrode_in(3);
 	}
-	return E_DEV;
+	else {
+		res = E_DEV;
+	}
+	return res;
 }
 
 int adc_fgetc(file_descriptor descr) {
@@ -289,7 +281,8 @@ int adc_fgetc(file_descriptor descr) {
 		return adc_read(ADC_CHANNEL_POTENTIOMETER);
 	}
 	if (userptr->minorId == dev_temp){
-		return adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+		unsigned int temp = adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+		return temp;
 	}
 	return E_DEV;
 }
@@ -316,24 +309,6 @@ int pushb_fgetc(file_descriptor descr){
 	}
 	if (MYFAT_DEBUG){
 		putsNLIntoBuffer("Pushbutton sw1, sw2 are not pressed \n");
-	}
-	return 0;
-}
-
-/*LED_fgetc is defined as 'on'*/
-int led_fgetc(file_descriptor descr){
-	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorId == dev_E1){
-        ledOrangeOn();
-	}
-	if (userptr->minorId == dev_E2){
-        ledBlueOn();
-	}
-	if (userptr->minorId == dev_E3){
-        ledGreenOn();
-	}
-	if (userptr->minorId == dev_E4){
-        ledYellowOn();
 	}
 	return 0;
 }
@@ -380,9 +355,11 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		return E_EOF;
 	}
 	int charsreadp;
-	err = file_getbuf(descr, bufp, buflen, &charsreadp);
+	if ((err = file_getbuf(descr, bufp, buflen, &charsreadp)) != 0){
+		return err;
+	}
 	bufp[buflen] = '\0';
-	return bufp;
+	return 0; //TODO: why was this return bufp?
 }
 
 int myfputc (file_descriptor descr, char bufp){
@@ -425,6 +402,23 @@ int myfputc (file_descriptor descr, char bufp){
 	return err;
 }
 
+/*LED_fgetc is defined as 'on'*/
+int led_fgetc(file_descriptor descr){
+	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorId == dev_E1){
+        ledOrangeOn();
+	}
+	if (userptr->minorId == dev_E2){
+        ledBlueOn();
+	}
+	if (userptr->minorId == dev_E3){
+        ledGreenOn();
+	}
+	if (userptr->minorId == dev_E4){
+        ledYellowOn();
+	}
+	return 0;
+}
 /*led_fputc is defined as off*/
 int led_fputc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
@@ -435,7 +429,7 @@ int led_fputc(file_descriptor descr){
         ledBlueOff();
 	}
 	if (userptr->minorId == dev_E3){
-        ledOrangeOff();
+        ledGreenOff();
 	}
 	if (userptr->minorId == dev_E4){
         ledYellowOff();
@@ -472,7 +466,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 
 int mycreate(char* filename){
 	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
@@ -481,7 +475,7 @@ int mycreate(char* filename){
 		return E_DEV;
 	}
 	if (g_noFS){
-		return E_NOFS; //TODO: errcheck E_NOFS
+		return E_NOFS;
 	}
 	//filename processing for FAT32 compliance
 	char* fileProc = "           ";
@@ -491,7 +485,7 @@ int mycreate(char* filename){
 
 int mydelete(char* filename){
 	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;

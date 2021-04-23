@@ -76,6 +76,7 @@
 #include "devices.h"
 #include "datetime.h"
 #include "uart.h"
+#include "pdb.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -88,7 +89,6 @@ struct frame {
 		file_descriptor* descr;
 		file_descriptor descrf;
 		unsigned int unsInt;
-		void* vptr;
 	};
 	union {
 		int r1;
@@ -116,55 +116,6 @@ struct frame {
 
 /* Issue the SVC (Supervisor Call) instruction (See A7.7.175 on page A7-503 of the
  * ARM�v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
-#ifdef __GNUC__
-void __attribute__((naked)) __attribute__((noinline)) SVCEndive(void) {
-	__asm("svc %0" : : "I" (SVC_ENDIVE));
-	__asm("bx lr");
-}
-#else
-void __attribute__((never_inline)) SVCEndive(void) {
-	__asm("svc %0" : : "I" (SVC_ENDIVE));
-}
-#endif
-
-#ifdef __GNUC__
-void __attribute__((naked)) __attribute__((noinline)) SVCBroccoliRabe(int arg0) {
-	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
-	__asm("bx lr");
-}
-#else
-void __attribute__((never_inline)) SVCBroccoliRabe(int arg0) {
-	__asm("svc %0" : : "I" (SVC_BROCCOLIRABE));
-}
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVCJicama(int arg0) {
-	__asm("svc %0" : : "I" (SVC_JICAMA));
-	__asm("bx lr");
-}
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVCJicama(int arg0) {
-	__asm("svc %0" : : "I" (SVC_JICAMA));
-}
-#endif
-
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVCArtichoke(int arg0, int arg1, int arg2, int arg3) {
-	__asm("svc %0" : : "I" (SVC_ARTICHOKE));
-	__asm("bx lr");
-}
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVCArtichoke(int arg0, int arg1, int arg2, int arg3) {
-	__asm("svc %0" : : "I" (SVC_ARTICHOKE));
-}
-#endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
@@ -298,19 +249,6 @@ int __attribute__((never_inline)) SVC_free(void* ptr) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVC_ischar(file_descriptor descrf) {
-	__asm("svc %0" : : "I" (SVC_ISCHAR));
-	__asm("bx lr");
-}
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVC_ischar(file_descriptor descrf) {
-	__asm("svc %0" : : "I" (SVC_ISCHAR));
-}
-#endif
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wreturn-type"
 int __attribute__((naked)) __attribute__((noinline)) SVC_dir_ls(int full) {
 	__asm("svc %0" : : "I" (SVC_DIR_LS));
 	__asm("bx lr");
@@ -347,32 +285,6 @@ int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
 	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
 }
 #endif
-
-int SVCArtichokeImpl(int arg0, int arg1, int arg2, int arg3) {
-	int sum;
-	
-	printf("SVC ARTICHOKE has been called\n");
-
-	printf("First parameter is %d\n", arg0);
-	printf("Second parameter is %d\n", arg1);
-	printf("Third parameter is %d\n", arg2);
-	printf("Fourth parameter is %d\n", arg3);
-
-	sum = arg0+arg1+arg2+arg3;
-	printf("Returning %d\n", sum);
-
-	return sum;
-}
-
-int SVC_ischarImpl(file_descriptor descrf){
-	struct stream* userptr = (struct stream*)descrf;
-	if (find_curr_stream(userptr) == FALSE){
-		return E_NOINPUT;
-	}
-	if (userptr->minorId == dev_UART2){
-		return uartGetcharPresent(UART2_BASE_PTR);
-	}
-}
 
 /* This function sets the priority at which the SVCall handler runs (See
  * B3.2.11, System Handler Priority Register 2, SHPR2 on page B3-723 of
@@ -481,31 +393,6 @@ void svcHandlerInC(struct frame *framePtr) {
 				((unsigned char *)framePtr->returnAddr)[-2]);
 	}
 	switch(((unsigned char *)framePtr->returnAddr)[-2]) {
-		case SVC_ENDIVE:
-			printf("ENDIVE\n");
-	
-			//printf("xPSR = 0x%08x\n", framePtr->xPSR);
-			if(framePtr->xPSR & XPSR_FRAME_ALIGNED_MASK) {
-				//printf("Padding added to frame\n");
-			} else {
-				//printf("No padding added to frame\n");
-			}
-			break;
-		case SVC_BROCCOLIRABE:
-			printf("BROCCOLIRABE\n");
-			//printf("Only parameter is %d\n", framePtr->arg0);
-			break;
-		case SVC_JICAMA:
-			printf("JICAMA\n");
-			//printf("Only parameter is %d\n", framePtr->arg0);
-			framePtr->returnVal = framePtr->arg0*2;
-			//printf("Returning %d\n", framePtr->returnVal);
-			break;
-		case SVC_ARTICHOKE:
-			printf("ARTICHOKE\n");
-			framePtr->returnVal = SVCArtichokeImpl(framePtr->arg0,
-					framePtr->arg1, framePtr->arg2, framePtr->arg3);
-			break;
 		case SVC_FOPEN:
 			if (MYFAT_DEBUG){
 				printf("FOPEN\n");
@@ -521,54 +408,51 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_CREATE:
 			if (MYFAT_DEBUG){
-			printf("CREATE\n");
+				printf("CREATE\n");
 			}
-			framePtr->returnVal = mycreate(framePtr->filename);
+			framePtr->returnVal = mycreate(framePtr->arg0);
 			break;
 		case SVC_DELETE:
 			if (MYFAT_DEBUG){
-			printf("DELETE\n");
+				printf("DELETE\n");
 			}
-			framePtr->returnVal = mydelete(framePtr->filename);
+			framePtr->returnVal = mydelete(framePtr->arg0);
 			break;
 		case SVC_FGETC:
 			if (MYFAT_DEBUG){
-			printf("FGETC\n");
+				printf("FGETC\n");
 			}
 			framePtr->returnVal = myfgetc(framePtr->descrf, framePtr->filename);
 			break;
 		case SVC_FPUTC:
 			if (MYFAT_DEBUG){
-			printf("FPUTC\n");
+				printf("FPUTC\n");
 			}
 			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->bufp);
 			break;
 		case SVC_FPUTS:
 			if (MYFAT_DEBUG){
-			printf("FPUTS\n");
+				printf("FPUTS\n");
 			}
 			framePtr->returnVal = myfputs(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_FGETS:
 			if (MYFAT_DEBUG){
-			printf("FGETS\n");
+				printf("FGETS\n");
 			}
 			framePtr->returnVal = myfgets(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_MALLOC:
 			if (MYFAT_DEBUG){
-			printf("MALLOC\n");
+				printf("MALLOC\n");
 			}
 			framePtr->returnVal = myMalloc(framePtr->unsInt);
 			break;
 		case SVC_FREE:
 			if (MYFAT_DEBUG){
-			printf("FREE\n");
+				printf("FREE\n");
 			}
-			framePtr->returnVal = myFreeErrorCode(framePtr->vptr);
-			break;
-		case SVC_ISCHAR:
-			framePtr->returnVal = SVC_ischarImpl(framePtr->descrf);
+			framePtr->returnVal = myFreeErrorCode(framePtr->arg0);
 			break;
 		case SVC_DIR_LS:
 			framePtr->returnVal = dir_ls(framePtr->arg0);
