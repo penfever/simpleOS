@@ -264,6 +264,7 @@ int cmd_fopen(int argc, char *argv[]){
 		return err;
 	}
 	char* output = SVC_malloc(64);
+  memset(output, '\0', 64);
 	sprintf(output, "fopen success \n FILE* is 0x%x \n", (unsigned int)myfile);
 	SVC_fputs(io_dev, output, strlen(output));
 	SVC_free(output);
@@ -545,9 +546,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	uint32_t* potVal = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	*potVal = 128;
 	char* myOutput = SVC_malloc(16); //string output
-	for (int i = 0; i < 16; i++){
-		myOutput[i] = NULLCHAR;
-	}
+  memset(myOutput, '\0', 16);
 	const unsigned long int delayCount = 0x7ffff;
 	while (SVC_fgetc(sw1, "a") != 1){
 		delay(delayCount);
@@ -826,7 +825,7 @@ void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len){
 int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen){
   uint16_t left_pos = 0;
   uint32_t argc = 0; //use 1-indexing on argc
-  uint16_t cleanLen = 0;
+  int cleanLen = 0;
   int right_pos = 0;
   for (; right_pos < cmdLen; right_pos++){
     if (user_cmd[right_pos] == BACKSLASH){ //escape character handling
@@ -925,11 +924,13 @@ int shell(void){
     int user_cmd_offset = 0;
     //parse string into argv
     for (int i = 0; i < argc; i++){
-      argv[i]=(char*)SVC_malloc(sizeof(char)*(arg_len[i]+1));
+      size_t arrSize = sizeof(char)*(arg_len[i]+1);
+      argv[i]=(char*)SVC_malloc(arrSize);
       if (argv[i] == NULL) {
         error_checker(E_MALLOC);
         continue;
       }
+      memset(argv[i], '\0', arrSize);
       if (MYFAT_DEBUG){
           printf("argument %d: ", i);
       }

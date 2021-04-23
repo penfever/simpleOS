@@ -85,22 +85,12 @@ void process_strname(char* fileProc, char* filename){
 		}
 	}
 	else{
-		fileProc[10] = filename[len-1];
-		fileProc[10] = mytoupper(fileProc[10]);
-		fileProc[9] = filename[len-2];
-		fileProc[9] = mytoupper(fileProc[9]);
-		fileProc[8] = filename[len-3];
-		fileProc[8] = mytoupper(fileProc[8]);
+		fileProc[10] = mytoupper(filename[len-1]);
+		fileProc[9] = mytoupper(filename[len-2]);
+		fileProc[8] = mytoupper(filename[len-3]);
 		for (int i = 0; i < len-4; ++i){
-			fileProc[i] = filename[i];
-			fileProc[i] = mytoupper(fileProc[i]);
+			fileProc[i] = mytoupper(filename[i]);
 		}
-	}
-}
-
-char mytoupper(char c){
-	if ((c >= 'a') && (c <= 'z')){
-		return c - 32;
 	}
 }
 
@@ -476,7 +466,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 
 int mycreate(char* filename){
 	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
@@ -485,7 +475,7 @@ int mycreate(char* filename){
 		return E_DEV;
 	}
 	if (g_noFS){
-		return E_NOFS; //TODO: errcheck E_NOFS
+		return E_NOFS;
 	}
 	//filename processing for FAT32 compliance
 	char* fileProc = "           ";
@@ -495,7 +485,7 @@ int mycreate(char* filename){
 
 int mydelete(char* filename){
 	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
+		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;

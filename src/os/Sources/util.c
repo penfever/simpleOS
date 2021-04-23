@@ -68,3 +68,11 @@ void longInt2hex(unsigned long int i, char *string) {
   i -= i/0x10 * 0x10;
   string[7] = nibble2hex((unsigned char) i);
 }
+
+/*mytoupper converts a character to uppercase, if it is a letter between a and z.*/
+char mytoupper(char c){
+	if ((c >= 'a') && (c <= 'z')){
+		c = c - 32;
+	}
+	return c;
+}

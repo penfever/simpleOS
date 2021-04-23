@@ -623,7 +623,6 @@ int dir_set_attr_close(struct dir_entry_8_3* writeEntry){
 0x2A through 0x2F, 0x3A through 0x3F, 0x5B through 0x5D, and 0x7C
 �For our implementation, we will not allow any character with values less than 0x20
 �Implies: No special characters */
-
 int filename_verify(char* filename, int len){
 	if (len != 11){
 		return E_NOINPUT;

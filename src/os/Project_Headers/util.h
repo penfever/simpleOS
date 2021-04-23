@@ -34,4 +34,6 @@ void shortInt2hex(unsigned short int i, char *string);
    placed in the first eight characters pointed to by "string." */
 void longInt2hex(unsigned long int i, char *string);
 
+char mytoupper(char c);
+
 #endif /* ifndef _UTIL_H */
