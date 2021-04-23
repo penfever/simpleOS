@@ -156,10 +156,10 @@ int count_leap_years(int inputYear){
 	return count;
 }
 
-long long timestamp_to_ms(){
+unsigned long long timestamp_to_ms(){
   char* comDate = __DATE__;
   char* comTime = __TIME__;
-  long long returnTimeInSeconds = 0;
+  unsigned long long returnTimeInSeconds = 0;
   unsigned int thisYear = ((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'));
   returnTimeInSeconds += ((thisYear-1980)*SECYEAR); //years
   returnTimeInSeconds += count_leap_years(thisYear)*SECDAY;//adjust for leap years
@@ -173,7 +173,7 @@ long long timestamp_to_ms(){
                                 : (comDate[0] == 'D') ? 333                                                             // Dec
                                 : 0;
   returnTimeInSeconds += thisMonth * SECDAY; //months
-  returnTimeInSeconds += (10*(comDate[4]-'0')+(comDate[5]-'0'))*SECDAY; //days
+  returnTimeInSeconds += ((10*(comDate[4]-'0')+(comDate[5]-'0'))-1)*SECDAY; //days, -1 because it starts on the first
   returnTimeInSeconds += (10*(comTime[6]-'0')+(comTime[7]-'0')); //seconds
   returnTimeInSeconds += (10*(comTime[3]-'0')+(comTime[4]-'0'))*60; //minutes
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours

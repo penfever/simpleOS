@@ -50,4 +50,4 @@ void print_time(struct date_time curr_date);
 uint16_t date_format_FAT();
 
 /*Converts compiler timestamp to ms since MS-DOS epoch.*/
-long long timestamp_to_ms();
+unsigned long long timestamp_to_ms();

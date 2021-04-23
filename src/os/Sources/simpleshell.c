@@ -880,7 +880,7 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 /*main shell function*/
 
 int shell(void){
-  long long gmtTime = timestamp_to_ms();
+  unsigned long long gmtTime = timestamp_to_ms();
   SVC_settime(&gmtTime); //set default time to GMT
   if (UARTIO){
 	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
