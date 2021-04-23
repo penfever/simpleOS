@@ -127,6 +127,21 @@ int cmd_date(int argc, char *argv[]){
   if (argc != 2){
   	return E_NUMARGS;
   }
+  if (argv[1][4] == '-' && argv[1][7] == argv[1][4] && argv[1][10] == 'T'){ //ISO 8601 handling
+    int year, month, day, hour, minute;
+    char c;
+    int fieldsRead = sscanf(argv[1], "%d-%d-%d%c%d%c%d", &year, &month, &day, &c, &hour, &c, &minute);
+    if (fieldsRead != 7){
+        return E_NOINPUT;
+    }
+    else{
+      unsigned long long resultVal = ymdhm_to_ms(year, month, day, hour, minute);
+      return SVC_settime(&resultVal);
+    }
+    if (MYFAT_DEBUG){
+      printf("fieldsRead is %d, year, month, day end are %d, %d, %d, %d, %d. \n", fieldsRead, year, month, day, hour, minute);
+    }
+  }
   long long setTime;
   if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
   	return E_NOINPUT;

@@ -51,3 +51,6 @@ uint16_t date_format_FAT();
 
 /*Converts compiler timestamp to ms since MS-DOS epoch.*/
 unsigned long long timestamp_to_ms();
+
+/*Converts total of (year, month, day, hour, minute) to milliseconds.*/
+unsigned long long ymdhm_to_ms(int inputYear, int inputMonth, int inputDay, int inputHour, int inputMinute);

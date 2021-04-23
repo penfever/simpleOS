@@ -179,3 +179,16 @@ unsigned long long timestamp_to_ms(){
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours
   return returnTimeInSeconds*1000;
 }
+
+unsigned long long ymdhm_to_ms(int inputYear, int inputMonth, int inputDay, int inputHour, int inputMinute){
+  unsigned long long returnTimeInSeconds = 0;
+  returnTimeInSeconds += ((inputYear-1980)*SECYEAR); //years
+  returnTimeInSeconds += count_leap_years(inputYear)*SECDAY;//adjust for leap years
+  for (int i = 1; i < inputMonth; i ++){
+    returnTimeInSeconds += (allMonths[i].offset*SECDAY);
+  }
+  returnTimeInSeconds += (inputDay-1)*SECDAY; //days, -1 because it starts on the first
+  returnTimeInSeconds += inputHour*SECHOUR; //hours
+  returnTimeInSeconds += inputMinute*60; //minutes
+  return returnTimeInSeconds*1000;
+}
