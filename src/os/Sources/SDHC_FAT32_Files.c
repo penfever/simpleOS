@@ -582,13 +582,14 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 int dir_set_attr_newfile(char* filename, int len){
 	int i = 0;
 	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
 		unused->DIR_Name[i] = (uint8_t)filename[i];
 	}
 	unused->DIR_Attr = (uint8_t)0x00;
 	unused->DIR_NTRes = 0;		/* Offset 12 */
 	unused->DIR_CrtTimeHundth = 0;		/* Offset 13 */
-	unused->DIR_CrtTime = 0;			/* Offset 14 */
+	unused->DIR_CrtTime = time;			/* Offset 14 */
 	unused->DIR_CrtDate = date;			/* Offset 16 */
 	unused->DIR_LstAccDate = date;		/* Offset 18 */
 	unused->DIR_FstClusHI = 0;		/* Offset 20 */
@@ -600,14 +601,22 @@ int dir_set_attr_newfile(char* filename, int len){
 }
 
 int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry, uint32_t newFile){
+	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	writeEntry->DIR_FstClusHI = newFile >> 16;  //TODO: error check this math. mask the 16 low order bits of newFile;
 	writeEntry->DIR_FstClusLO = newFile & 0x0000FFFF;  //mask the 16 high order bits of newFile;
 	writeEntry->DIR_FileSize = writeSize;
+	unused->DIR_WrtTime = time;			/* Offset 22 */
+	unused->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 
 int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry){
+	uint16_t date = date_format_FAT();
+	uint16_t time = time_format_FAT();
 	writeEntry->DIR_FileSize = writeSize;
+	unused->DIR_WrtTime = time;			/* Offset 22 */
+	unused->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 

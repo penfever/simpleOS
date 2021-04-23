@@ -121,7 +121,12 @@ uint16_t date_format_FAT(){
   if (myMonth == 12 && MYFAT_DEBUG){
     printf("Month returned invalid date. Please check for errors. \n");
   }
-  return (curr_date.year << 9) | ((myMonth + 1) << 5) | (curr_date.day << 0);
+  return ((curr_date.year-1980) << 9) | ((myMonth + 1) << 5) | (curr_date.day << 0);
+}
+
+uint16_t time_format_FAT(){
+  struct date_time curr_date = get_time();
+  return ((curr_date.hour) << 11) | ((curr_date.minute) << 5) | (curr_date.second << 0);
 }
 
 void print_time(struct date_time curr_date){
