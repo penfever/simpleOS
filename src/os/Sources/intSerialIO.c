@@ -40,6 +40,7 @@
 #include "uart.h"
 #include "nvic.h"
 #include "priv.h"
+#include "devices.h"
 
 /* The buffer to store characters input from serial port 2 */
 char serialPort2InputBuffer[SERIAL_PORT_2_INPUT_BUFFER_SIZE];
@@ -76,7 +77,7 @@ volatile int interruptNeitherTDREnorRDRFCount = 0;
 void interruptSerialPort2(void) {
 	uint32_t status;
 	char ch;
-	
+	systick_pause();
 	interruptCount++;
 
 	status = UART2_S1;
@@ -154,9 +155,9 @@ void interruptSerialPort2(void) {
                                        	   SERIAL_PORT_2_INPUT_BUFFER_SIZE;
 			serialPort2InputCharCount++;
 		}
-
 		/* If there is no room in the input buffer for this character; discard it */
 	}
+	systick_resume();
 }
 
 /*****************************************************************************/

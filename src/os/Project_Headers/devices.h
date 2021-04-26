@@ -126,6 +126,10 @@ void TSI_Init(void);
 
 void SysTickHandler(void);
 
-void systick_init();
+void systick_init(void);
+
+void systick_pause(void);
+
+void systick_resume(void);
 
 #endif

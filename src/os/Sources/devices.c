@@ -213,3 +213,19 @@ void systick_init(void){
     SYST_CSR |= CSRINIT;
     return;
 }
+
+/*Toggles systick resume*/
+void systick_resume(void){
+	g_pause_counter --;
+	if (g_pause_counter > 0){
+	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
+	}
+}
+
+/*Toggles systick pause*/
+void systick_pause(void){
+	g_pause_counter ++;
+	if (g_pause_counter == 1){
+	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
+	}
+}

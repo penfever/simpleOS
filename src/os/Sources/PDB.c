@@ -20,6 +20,7 @@
 #include "mcg.h"
 #include "simpleshell.h"
 #include "myerror.h"
+#include "devices.h"
 
 /* For an overall description of the Programmable Delay Block (PDB), see
  * Chapter 43 on page 1193 of the K70 Sub-Family Reference Manual, Rev. 2,
@@ -106,12 +107,14 @@ void PDB0Stop(void) {
  * PDB 0 Interrupt Service Routine (ISR)
  */
 void PDB0Isr(void) {
+	systick_pause();
 	/* Clear the Interrupt Flag */
 	PDB0_SC &= ~PDB_SC_PDBIF_MASK;
 
 	/* Perform the user's action */
 	PDB0Stop();
 	g_timerExpired = TRUE; //timerExpired is now true
+	systick_resume();
 }
 
 /*pdb0 one shot timer sets the pdb timer to a one-shot value determined by delayCount (ranging ~7.8ms to 1000ms)
