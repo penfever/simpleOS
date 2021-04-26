@@ -254,23 +254,28 @@ is the size in bytes of the storage needed by the caller.  The myMalloc
 function should allocate an appropriately sized region of memory and it 
 should return a pointer to (i.e., the address of) the first byte of that region. */
 void* myMalloc(unsigned int size){
+    disable_interrupts();
     void* return_ptr = NULL;
     if (size >= MAX - MEMSTRUCT || size <= 0){ //returns error if size is invalid
+        enable_interrupts();
         return NULL;
     }
     size = round_size(size);
     if (first == NULL){
         if ((first = init_struct(first)) == NULL){ //build initial struct
+            enable_interrupts();
             return NULL;
         }
     }
     return_ptr = first_fit(first, size);
     if (return_ptr == NULL){
+        enable_interrupts();
         return NULL;
     }
     else{
         return_ptr = subdivide((struct mem_region*)return_ptr, size);
     }
+    enable_interrupts();
     return return_ptr;
 }
 
@@ -278,17 +283,22 @@ void* myMalloc(unsigned int size){
 myFreeErrorCode returns an int to indicate success or failure of the
 storage deallocation request. */
 int myFreeErrorCode(void *ptr){
+    disable_interrupts();
 	struct mem_region* memPtr = (struct mem_region*)ptr - 1; //steps back from data region to mem-region
     int match_val = free_match(first, ptr);
     if (match_val == E_FREE){ //case: pointer not found in memory 
+        enable_interrupts();
         return E_FREE;
     }
     if (memPtr->pid != getCurrentPid()){ //case: PIDs do not match
+        enable_interrupts();
         return E_FREE_PERM;
     }
     else{
+        enable_interrupts();
         return 0; //success
     }
+    enable_interrupts();
     return E_FREE; //should never reach this point
 }
 

@@ -114,6 +114,8 @@ struct frame {
 	int xPSR;
 };
 
+uint32_t g_interrupt_count;
+
 /* Issue the SVC (Supervisor Call) instruction (See A7.7.175 on page A7-503 of the
  * ARM�v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
 #ifdef __GNUC__
@@ -470,5 +472,21 @@ void svcHandlerInC(struct frame *framePtr) {
 		}
 	if (MYFAT_DEBUG){
 		printf("Exiting svcHandlerInC\n");
+	}
+}
+
+/*Routines for safely enabling and disabling interrupts across the OS.*/
+void disable_interrupts(void){
+	if (g_interrupt_count == 0){
+		__asm("cpsid i");
+	}
+	g_interrupt_count ++;
+}
+
+void enable_interrupts(void){
+	g_interrupt_count --;
+	if (g_interrupt_count <= 0){
+		g_interrupt_count = 0;
+		__asm("cpsie i");
 	}
 }

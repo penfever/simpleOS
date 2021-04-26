@@ -219,20 +219,20 @@ void systick_init(void){
 
 /*Toggles systick resume. Note: atomic operation, because g_pause_counter is a semaphore.*/
 void systick_resume(void){
-	__asm("cpsid i");
+	disable_interrupts();
 	g_pause_counter --;
 	if (g_pause_counter > 0){
 	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
 	}
-	__asm("cpsie i");
+	enable_interrupts();
 }
 
 /*Toggles systick pause. Note: atomic operation, because g_pause_counter is a semaphore.*/
 void systick_pause(void){
-	__asm("cpsid i");
+	disable_interrupts();
 	g_pause_counter ++;
 	if (g_pause_counter == 1){
 	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
 	}
-	__asm("cpsie i");
+	enable_interrupts();
 }

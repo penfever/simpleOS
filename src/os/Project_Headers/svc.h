@@ -53,4 +53,7 @@ int SVC_dir_ls(int full);
 int SVC_settime(long long *newTime);
 int SVC_pdb0oneshottimer(uint16_t* delayCount);
 
+void disable_interrupts(void);
+void enable_interrupts(void);
+
 #endif /* ifndef _SVC_H */

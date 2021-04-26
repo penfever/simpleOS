@@ -27,10 +27,10 @@ struct months allMonths[] = {{"January", 0, 31},
 
 int set_time(long long *newTime){
      /* Disable interrupts (PRIMASK is set) */
-     __asm("cpsid i");
+     disable_interrupts();
      curTime = *newTime;
      /* Allows interrupts (PRIMASK is cleared) */
-     __asm("cpsie i");
+     enable_interrupts();
      flexTimer0Init(1875);
      flexTimer0Start();
      return 0;
@@ -38,10 +38,10 @@ int set_time(long long *newTime){
 
 void date_time_incr(){
      /* Disable interrupts (PRIMASK is set) */
-     __asm("cpsid i");
+     disable_interrupts();
      curTime += 1;
      /* Allows interrupts (PRIMASK is cleared) */
-     __asm("cpsie i");
+     enable_interrupts();
 }
 
 struct date_time get_time(){
