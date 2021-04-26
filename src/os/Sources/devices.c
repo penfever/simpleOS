@@ -13,6 +13,8 @@
 #include "uart.h"
 #include "mcg.h"
 #include "sdram.h"
+#include "svc.h"
+#include "intSerialIO.h"
 
 uint32_t g_systick_count = 0;
 
@@ -191,11 +193,14 @@ int electrode_in(int electrodeNumber) {
 /*Systick interrupt handlers and routines*/
 
 void SysTickHandler(void){
-     g_systick_count ++;
-     if (SYST_CSR >> 15 == 1){
-          char* output[16];
-          sscanf(output, "%d \n", g_systick_count);
-          uartPrintsNL(output);;
+    g_systick_count ++;
+	if (MYFAT_DEBUG){
+		printf("tick %d\n", g_systick_count);
+	}
+    //call scheduler
+     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
+     if (test1 != 0){
+    	 //the systick was interrupted, handle accordingly
      }
 }
 
@@ -203,8 +208,8 @@ void systick_init(void){
 	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |
 			SCB_SHPR3_PRI_14(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
 
-     SYST_RVR = QUANTUM;
-     SYST_CVR = 0;
-     SYST_CSR | CSRINIT;
-     return;
+    SYST_RVR = QUANTUM;
+    SYST_CVR = 0;
+    SYST_CSR |= CSRINIT;
+    return;
 }

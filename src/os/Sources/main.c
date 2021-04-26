@@ -16,9 +16,9 @@
 
 	int main(void){
 	int error;
-	if ((error = init_clocks_sdram()) != 0){
+	if ((error = init_clocks_sdram_systick()) != 0){
 		if (MYFAT_DEBUG){
-			printf("sdram/MCG error \n");
+			printf("sdram/MCG/systick error \n");
 		}
 		exit(-4);
 	}
