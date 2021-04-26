@@ -18,6 +18,7 @@
 #include "nvic.h"
 #include "flexTimer.h"
 #include "dateTime.h"
+#include "devices.h"
 
 /* For an overall description of the FlexTimer, see 43.4 on labeled
  * page 1251 (PDF page 1258) of the K70 Sub-Family Reference Manual,
@@ -150,6 +151,7 @@ void flexTimer0Stop(void) {
  * FlexTimer 0 Interrupt Service Routine (ISR)
  */
 void flexTimer0Isr(void) {
+	systick_pause();
   /* The TOF bit is cleared by reading the SC register while TOF is set
    * and then writing a 0 to TOF bit */
 	
@@ -183,4 +185,5 @@ void flexTimer0Isr(void) {
 
   /* Increments system date and time by 1ms (see dateTime.c for implementation details) */
   date_time_incr();
+  systick_resume();
 }

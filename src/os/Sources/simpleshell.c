@@ -22,6 +22,7 @@
 /*Globals*/
 int g_noFS = TRUE;
 uint8_t g_timerExpired = TRUE;
+uint8_t g_randVal;
 file_descriptor io_dev;
 
 /*Structs*/
@@ -47,6 +48,7 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
                 {"memchk", cmd_memchk},
+                {"malval", cmd_malval},
                 {"fopen", cmd_fopen},
                 {"fclose", cmd_fclose},
                 {"fgetc", cmd_fgetc},
@@ -256,7 +258,31 @@ int cmd_memchk(int argc, char *argv[]){
       return E_MEMCHK;
     }
   }
-	char* msg = "memchk successful \n";
+	char* msg = "memchk success \n";
+	SVC_fputs(io_dev, msg, strlen(msg));
+	return 0;
+}
+
+/*stress-testing function for malloc and free to uncover errors.*/
+int cmd_malfree(int argc, char *argv[]){
+	int err;
+	uint8_t randVal = g_randVal;
+	char** malVal[100];
+	for (int i = 0; i < 100; i++){
+		if (randVal > 100){
+			randVal = 1;
+		}
+		if ((malVal[i] = SVC_malloc(randVal)) == NULL){
+		  return E_MALLOC;
+		}
+		randVal ++;
+	}
+	for (int i = 0; i < 100; i++){
+		if ((err = SVC_free((void *)malVal[i])) != 0){
+			return err;
+		}
+	}
+	char* msg = "malfree success \n";
 	SVC_fputs(io_dev, msg, strlen(msg));
 	return 0;
 }
@@ -893,9 +919,9 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 }
 
 /*main shell function*/
-
 int shell(void){
   unsigned long long gmtTime = timestamp_to_ms();
+  g_randVal = (gmtTime % 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
   SVC_settime(&gmtTime); //set default time to GMT
   if (UARTIO){
 	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device

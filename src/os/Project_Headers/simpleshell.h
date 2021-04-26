@@ -72,6 +72,7 @@ int cmd_help(int argc, char *argv[]);
 int cmd_clockdate(int argc, char *argv[]);
 int cmd_malloc(int argc, char *argv[]);
 int cmd_free(int argc, char *argv[]);
+int cmd_malfree(int argc, char *argv[]);
 int cmd_memset(int argc, char *argv[]);
 int cmd_memchk(int argc, char *argv[]);
 int cmd_memorymap(int argc, char *argv[]);
