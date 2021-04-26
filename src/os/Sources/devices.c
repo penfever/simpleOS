@@ -14,6 +14,8 @@
 #include "mcg.h"
 #include "sdram.h"
 
+uint32_t g_systick_count = 0;
+
 struct pcb* currentPCB;
 struct pcb op_sys;
 struct pcb op_sys = 
@@ -86,8 +88,8 @@ int uart_init(int baud){
 	return 0;
 }
 
-
-int init_clocks_sdram(){
+/*init_clocks_sdram_systick initializes mcg, sdram and the systick timer according to specified defaults.*/
+int init_clocks_sdram_systick(){
 	mcgInit();
 	  /* So now,
 	   *  Core clock = 120 MHz
@@ -97,6 +99,7 @@ int init_clocks_sdram(){
 	   *  DDR clock = 150 MHz
 	   *  MCGIRCLK (internal reference clock) is inactive */
 	sdramInit();
+	systick_init();
 	return 0;
 }
 
@@ -185,4 +188,23 @@ int electrode_in(int electrodeNumber) {
 	return oscCount > electrodeHW[electrodeNumber].threshold;
 }
 
+/*Systick interrupt handlers and routines*/
 
+void SysTickHandler(void){
+     g_systick_count ++;
+     if (SYST_CSR >> 15 == 1){
+          char* output[16];
+          sscanf(output, "%d \n", g_systick_count);
+          uartPrintsNL(output);;
+     }
+}
+
+void systick_init(void){
+	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |
+			SCB_SHPR3_PRI_14(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
+
+     SYST_RVR = QUANTUM;
+     SYST_CVR = 0;
+     SYST_CSR | CSRINIT;
+     return;
+}
