@@ -15,8 +15,11 @@
 #include "sdram.h"
 #include "svc.h"
 #include "intSerialIO.h"
+#include "myerror.h"
+#include "simpleshell.h"
 
 uint32_t g_systick_count = 0;
+uint32_t g_pause_counter = 0;
 
 struct pcb* currentPCB;
 struct pcb op_sys;
@@ -198,10 +201,10 @@ void SysTickHandler(void){
 		printf("tick %d\n", g_systick_count);
 	}
     //call scheduler
-     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
-     if (test1 != 0){
-    	 //the systick was interrupted, handle accordingly
-     }
+//     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
+//     if (test1 != 0){
+//    	 //the systick was interrupted, handle accordingly
+//     }
 }
 
 void systick_init(void){

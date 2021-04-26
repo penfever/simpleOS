@@ -361,7 +361,6 @@ void svcHandlerInC(struct frame *framePtr);
 
 #ifdef __GNUC__
 void __attribute__((naked)) svcHandler(void) {
-	systick_pause();
 	__asm("\n\
             tst		lr, #4\n\
 			ite		eq\n\
@@ -371,7 +370,6 @@ void __attribute__((naked)) svcHandler(void) {
 			bl		svcHandlerInC\n\
 			pop		{pc}\n\
 			");
-	systick_resume();
 }
 #else
 __asm void svcHandler(void) {

@@ -48,7 +48,7 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
                 {"memchk", cmd_memchk},
-                {"malval", cmd_malval},
+                {"malfree", cmd_malfree},
                 {"fopen", cmd_fopen},
                 {"fclose", cmd_fclose},
                 {"fgetc", cmd_fgetc},
@@ -277,6 +277,7 @@ int cmd_malfree(int argc, char *argv[]){
 		}
 		randVal ++;
 	}
+	memoryMap();
 	for (int i = 0; i < 100; i++){
 		if ((err = SVC_free((void *)malVal[i])) != 0){
 			return err;
@@ -921,7 +922,7 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 /*main shell function*/
 int shell(void){
   unsigned long long gmtTime = timestamp_to_ms();
-  g_randVal = (gmtTime % 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
+  g_randVal = ((gmtTime / 1000)% 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
   SVC_settime(&gmtTime); //set default time to GMT
   if (UARTIO){
 	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
