@@ -18,6 +18,7 @@
 #include "uartNL.h"
 #include "intSerialIO.h"
 #include "dateTime.h"
+#include "procs.h"
 
 /* All functions return an int which indicates success if 0 and an
    error code otherwise (only some errors are listed) */

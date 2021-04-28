@@ -1,0 +1,69 @@
+#define NEWPROC_DEF 100000
+
+typedef uint32_t pid_t;
+
+extern struct pcb* g_activePCB;
+
+struct spawnData {
+     uint32_t stackSize;
+     pid_t *spawnedPidPtr;
+};
+
+struct pcb {
+    char* procName;
+    pid_t pid;
+    enum state{
+         0 = running,
+         1 = ready,
+         2 = blocked
+     };
+     /*Each PCB must have a pointer to the memory allocated for that process' stack.  That value will be the address returned when you allocate a new stack for the process.  It is the lowest address in the memory allocated for the stack.  It will never change during the lifetime of that process.  Let's call that location in the PCB the stackBaseAddress.*/
+    uint32_t* procStackBase;
+    /*Each PCB must have a stored SP which is the value of the SP when a process is preempted by the SysTick interrupt.  This stored SP must be initialized correctly when a new process is created.*/
+    uint32_t* procStackCur;
+    uint32_t stackSize;
+    uint32_t runTimeInSysticks;
+    uint8_t kill_pending;
+     struct pcb* nextPCB;
+     /*data owned by this process*/
+     struct stream openFiles[MAXOPEN];
+     uint32_t* malArgc;
+     char* malArgv[];
+};
+
+/*Placeholder scheduler for testing purposes*/
+void* temp_sched(void* sp);
+
+/*Given an sp, and a pointer to pcb, scheduler saves copy of sp to an appropriate field inside the pcb. This function only saves the sp of the quantum-expired process. it saves it to the sp field in the pcb. Currently running PCB must always be the first item pointed to by the global in order for this to work.*/
+void* rr_sched(void* sp);
+
+char* get_proc_name(int main(int argc, char* argv[]));
+
+/*spawn spawns a new process*/
+int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn);
+
+/*kill sets the state of PCB with targetPid to terminate*/
+int kill(pid_t targetPid);
+
+/*kill calls this, but it can also be called when a process terminates. This function breaks down a PCB and frees its memory.*/
+void pcb_destructor(struct pcb* thisPCB);
+
+/*Returns pid of current process*/
+pid_t pid(void);
+
+/*given a pid, returns a pcb struct*/
+pcb_struct* pid_struct(pid_t pid);
+
+/*determines next free pid number returns it as pid_t*/
+pid_t get_next_free_pid(void);
+
+void walk_pid_table_pid(maxPid);
+
+void yield(void);
+
+void block(void);
+
+/* sets the targetPid process to ready state */
+int wake(pid_t targetPid);
+
+void wait(pid_t targetPid);

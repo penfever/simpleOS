@@ -20,6 +20,9 @@
 #define SVC_PriorityShift 4
 
 // Implemented SVC numbers
+#define SVC_SPAWN 1
+#define SVC_YIELD 2
+#define SVC_BLOCK 3
 #define SVC_FOPEN 4
 #define SVC_FCLOSE 5
 #define SVC_CREATE 6
@@ -30,9 +33,12 @@
 #define SVC_FREE 11
 #define SVC_FPUTS 12
 #define SVC_FGETS 13
+#define SVC_WAKE 14
 #define SVC_DIR_LS 15
 #define SVC_SETTIME 16
 #define SVC_PDBONESHOT 17
+#define SVC_KILL 18
+#define SVC_WAIT 19
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
@@ -52,6 +58,12 @@ int SVC_free(void *ptr);
 int SVC_dir_ls(int full);
 int SVC_settime(long long *newTime);
 int SVC_pdb0oneshottimer(uint16_t* delayCount);
+int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn);
+void SVC_yield(void);
+void SVC_block(void);
+int SVC_wake(pid_t targetPid);
+int SVC_kill(pid_t targetPid);
+void SVC_wait(pid_t targetPid);
 
 void disable_interrupts(void);
 void enable_interrupts(void);

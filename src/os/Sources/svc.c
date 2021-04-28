@@ -77,6 +77,7 @@
 #include "datetime.h"
 #include "uart.h"
 #include "pdb.h"
+#include "procs.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -287,6 +288,84 @@ int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
 	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+	__asm("svc %0" : : "I" (SVC_SPAWN));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+	__asm("svc %0" : : "I" (SVC_SPAWN));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) void SVC_yield(void) {
+	__asm("svc %0" : : "I" (SVC_YIELD));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) void SVC_yield(void) {
+	__asm("svc %0" : : "I" (SVC_YIELD));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) void SVC_block(void) {
+	__asm("svc %0" : : "I" (SVC_BLOCK));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) void SVC_block(void) {
+	__asm("svc %0" : : "I" (SVC_BLOCK));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) int SVC_wake(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAKE));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) int SVC_wake(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAKE));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) int SVC_kill(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_KILL));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) int SVC_kill(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_KILL));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) void SVC_wait(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAIT));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) void SVC_wait(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAIT));
+}
+#endif
 
 /* This function sets the priority at which the SVCall handler runs (See
  * B3.2.11, System Handler Priority Register 2, SHPR2 on page B3-723 of
@@ -464,6 +543,24 @@ void svcHandlerInC(struct frame *framePtr) {
 			break;
 		case SVC_PDBONESHOT:
 			framePtr->returnVal = pdb0_one_shot_timer(framePtr->arg0);
+			break;
+		case SVC_SPAWN:
+			framePtr->returnVal = spawn(framePtr->arg0, framePtr->arg1, framePtr->arg2, framePtr->arg3);
+			break;
+		case SVC_YIELD:
+			framePtr->returnVal = yield(); //TODO: include VOID?
+			break;
+		case SVC_BLOCK:
+			framePtr->returnVal = block();
+			break;
+		case SVC_WAKE:
+			framePtr->returnVal = wake(framePtr->arg0);
+			break;
+		case SVC_KILL:
+			framePtr->returnVal = kill(framePtr->arg0);
+			break;
+		case SVC_WAIT:
+			framePtr->returnVal = wait(framePtr->arg0);
 			break;
 		default:
 			if (MYFAT_DEBUG){

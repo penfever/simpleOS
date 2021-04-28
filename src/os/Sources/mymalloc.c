@@ -11,6 +11,8 @@
 #include "intSerialIO.h"
 #include "sdram.h"
 #include "simpleshell.h"
+#include "procs.h"
+#include "svc.h"
 
 static int node_count = 0;
 

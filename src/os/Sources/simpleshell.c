@@ -18,6 +18,7 @@
 #include "switchcmd.h"
 #include "dateTime.h"
 #include "pdb.h"
+#include "procs.h"
 
 /*Globals*/
 int g_noFS = TRUE;
@@ -65,7 +66,8 @@ struct commandEntry commands[] = {{"date", cmd_date},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
                 {"cat2file", cmd_cat2file},
-                {"flashled", cmd_flashled}
+                {"flashled", cmd_flashled},
+                {"shell", cmd_shell}
 };
 
 /*User Commands*/
@@ -917,6 +919,11 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
   arg_len[MAXARGS] = cleanLen; //store length of string
   arg_len[MAXARGS+1] = argc + 1; //store argc with 1-indexing
   return 0;
+}
+
+/*wrap shell in cmd_shell(argc, argv) so I can spawn it. cmd_shell will just return shell. Alternatively, I can have a different version of spawn just for the shell.*/
+cmd_shell(int argc, char* argv[]){
+     return shell();
 }
 
 /*main shell function*/

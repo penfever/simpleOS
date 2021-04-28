@@ -81,12 +81,6 @@ struct dev_id {
     char *dev_name;
 };
 
-struct pcb {
-    char* proc_name;
-    uint8_t pid;
-    struct stream openFiles[MAXOPEN];
-};
-
 enum minor_id{
 		dev_null = 0,
 		dev_sdhc = 0x99FF0000,
@@ -124,7 +118,7 @@ void TSI_Calibrate(void);
 
 void TSI_Init(void);
 
-void SysTickHandler(void);
+int SysTickHandler(void);
 
 void systick_init(void);
 

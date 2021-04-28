@@ -17,6 +17,7 @@
 #include "intSerialIO.h"
 #include "myerror.h"
 #include "simpleshell.h"
+#include "procs.h"
 
 uint32_t g_systick_count = 0;
 uint32_t g_pause_counter = 0;
@@ -195,11 +196,63 @@ int electrode_in(int electrodeNumber) {
 
 /*Systick interrupt handlers and routines*/
 
-void SysTickHandler(void){
-    g_systick_count ++;
-	if (MYFAT_DEBUG){
-		printf("tick %d\n", g_systick_count);
-	}
+int SysTickHandler(void){
+  uint32_t copyOfSP;
+
+  copyOfSP = 0;
+
+  /* The following assembly language will push registers r4 through r11 onto the stack */
+  __asm("push {r4,r5,r6,r7,r8,r9,r10,r11}");
+
+  /* The following assembly language will push the SVCALLACT and
+   * SVCALLPENDED bits onto the stack (See Application Note AN6:
+   * Interrupt handlers in general and the quantum interrupt handler
+   * in particular) */
+  __asm("ldr  r0, [%[shcsr]]"     "\n"
+	"mov  r1, %[active]"      "\n"
+	"orr  r1, r1, %[pended]"  "\n"
+	"and  r0, r0, r1"         "\n"
+	"push {r0}"
+	:
+	: [shcsr] "r" (&SCB_SHCSR),
+	  [active] "I" (SCB_SHCSR_SVCALLACT_MASK),
+	  [pended] "I" (SCB_SHCSR_SVCALLPENDED_MASK)
+	: "r0", "r1", "memory", "sp");
+
+  /* The following assembly language will put the current main SP
+   * value into the local, automatic variable 'copyOfSP' */
+  __asm("mrs %[mspDest],msp" : [mspDest]"=r"(copyOfSP));
+
+  printf("The current value of MSP is %08x\n", (unsigned int)copyOfSP);
+
+  /* Call the scheduler to find the saved SP of the next process to be
+   * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
+  copyOfSP = temp_sched(copyOfSP);
+
+  /* The following assembly language will write the value of the
+   * local, automatic variable 'copyOfSP' into the main SP */
+  __asm("msr msp,%[mspSource]" : : [mspSource]"r"(copyOfSP) : "sp");
+
+  /* The following assembly language will pop the SVCALLACT and
+   * SVCALLPENDED bits off the stack (and into their registers)*/
+  __asm("pop {r0}"               "\n"
+	"ldr r1, [%[shcsr]]"     "\n"
+	"bic r1, r1, %[active]"  "\n"
+	"bic r1, r1, %[pended]"  "\n"
+	"orr r0, r0, r1"         "\n"
+	"str r0, [%[shcsr]]"
+	:
+	: [shcsr] "r" (&SCB_SHCSR),
+	  [active] "I" (SCB_SHCSR_SVCALLACT_MASK),
+	  [pended] "I" (SCB_SHCSR_SVCALLPENDED_MASK)
+	: "r0", "r1", "sp", "memory");
+
+  /* The following assembly language will pop registers r4 through
+   * r11 off of the stack (and into their registers)*/
+  __asm("pop {r4,r5,r6,r7,r8,r9,r10,r11}");
+
+  return 0;
+}
     //call scheduler
 //     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
 //     if (test1 != 0){
