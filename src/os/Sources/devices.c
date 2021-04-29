@@ -76,17 +76,43 @@ int uart_init(int baud){
 	return 0;
 }
 
-/*init_clocks_sdram_systick initializes mcg, sdram and the systick timer according to specified defaults.*/
-int init_clocks_sdram_systick(){
+/*init_sys initializes all necessary devices for the system to run.*/
+int init_sys(){
+	int error = 0;
+	/*SDRAM and full clock speed*/
+		/* after this,
+	*  Core clock = 120 MHz
+	*  Bus (peripheral) clock = 60 MHz
+	*  FlexBus clock = 40 MHz
+	*  FLASH clock = 20 MHz
+	*  DDR clock = 150 MHz
+	*  MCGIRCLK (internal reference clock) is inactive */
 	mcgInit();
-	  /* So now,
-	   *  Core clock = 120 MHz
-	   *  Bus (peripheral) clock = 60 MHz
-	   *  FlexBus clock = 40 MHz
-	   *  FLASH clock = 20 MHz
-	   *  DDR clock = 150 MHz
-	   *  MCGIRCLK (internal reference clock) is inactive */
 	sdramInit();
+	/*File IO and console IO*/
+	if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+        setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
+        setvbuf(stdout, NULL, _IONBF, 0);	
+    }
+    if ((error = file_structure_mount()) != 0 && MYFAT_DEBUG){
+    	printf("SDHC card could not be mounted. File commands unavailable. \n");
+    }
+    else if (MYFAT_DEBUG){
+    	printf("SDHC card mounted. \n");
+        g_noFS = FALSE;
+    }
+    else{
+        g_noFS = FALSE;
+    }
+	/*SVC interrupt priority, pid, privileged mode*/
+	svcInit_SetSVCPriority(15);
+	pid_t* shellPid = myMalloc(sizeof(pid_t));
+	*shellPid = get_next_free_pid();
+    //privUnprivileged();
+	/*launch shell*/
+	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, shellPid};
+	error = spawn(cmd_shell, 0, NULL, &mySpawnData); //TODO: syntax for function pointer
+	/*scheduler*/
 	systick_init();
 	return 0;
 }
@@ -211,7 +237,7 @@ int SysTickHandler(void){
 
   /* Call the scheduler to find the saved SP of the next process to be
    * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
-  copyOfSP = temp_sched(copyOfSP);
+  copyOfSP = rr_sched(copyOfSP);
 
   /* The following assembly language will write the value of the
    * local, automatic variable 'copyOfSP' into the main SP */

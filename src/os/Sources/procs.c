@@ -16,52 +16,47 @@
 /*temporary*/
 struct pcb op_sys;
 
+char* null_array = NULL;
+
 struct pcb* currentPCB = &op_sys;
 
 pid_t maxPid = 0;
 
-char* get_proc_name(int main(int argc, char* argv[])){ //TODO: NUMCOMMANDS won't compile here
-//     for (int i = 0; i < NUMCOMMANDS; i++){
-//          if (commands[i].functionp == &main){
-//          return commands[i].name;
-//          }
-//     }
-     return NULL;
-}
-
-int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn){
+int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawnData){
      disable_interrupts();
 
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
 
      /*Configure PCB struct*/
 
-     returnPCB->procName = get_proc_name(main);
+     returnPCB->procName = thisSpawnData->procName;
      if (returnPCB->procName == NULL){
           return E_CMD_NOT_FOUND;
      }
-     returnPCB->pid = thisSpawn->spawnedPidPtr;
+     returnPCB->pid = thisSpawnData->spawnedPidPtr;
      returnPCB->state = ready;
-     returnPCB->stackSize = thisSpawn->stackSize;
+     returnPCB->stackSize = thisSpawnData->stackSize;
      returnPCB->procStackBase = (uint32_t*)myMalloc(returnPCB->stackSize); //TODO: switch to pcb_malloc. pointer to base of memory. This will never change. We use this address to free the memory later.
      returnPCB->procStackBase += (returnPCB->stackSize/sizeof(uint32_t*)) - 1; //now points to TOP of memory, since stack grows down. TODO: check this math
      returnPCB->procStackCur = returnPCB->procStackBase;
      returnPCB->killPending = FALSE;
      returnPCB->runTimeInSysticks = 0;
-     //returnPCB->nextPCB = nextPCB; TODO: I don't know what this means
 
      /*malloc space for argc and argv, copy them, assign streams*/
-     //returnPCB->openFiles[0] = ; //TODO: stdin etc the uart
+     myfopen(&returnPCB->openFiles[0], "dev_UART2", 'w'); //open stdin/stdout device
      returnPCB->malArgc = myMalloc(sizeof(uint32_t));
-     returnPCB->malArgc = argc; //TODO: syntax?
+     returnPCB->malArgc = argc;
+     returnPCB->malArgv = (char **)myMalloc((argc + 1) * sizeof(char *)); 
      if (argv == NULL){
-          returnPCB->malArgv == NULL;
+    	 returnPCB->malArgv = NULL;
      }
-     else{
-          //returnPCB->malArgv = myMalloc(sizeof(argv)); //TODO: Find a way to get this syntax to work
-          memcpy(argv, returnPCB->malArgv, sizeof(argv));
+     else {
+          for (int i = 0; i < argc; i++){
+               int argSize = strlen(argv[i]);
+               returnPCB->malArgv[i] = (char*)myMalloc(argSize);
+               memcpy(argv[i], returnPCB->malArgv[i], argSize);
+          }
      }
-
      /*Manipulate stack to resemble systick interrupt. TODO: do I want to change the actual pointer here?*/
      returnPCB->procStackCur -= 23; //Assuming procStackCur points to a valid word, and we don't need the reserved word, we jump down 23 words in memory and build up from there
      *(returnPCB->procStackCur++) = 0; //Word with SVCALLACT & SVCALLPENDED bits
@@ -195,22 +190,15 @@ void* temp_sched(void* sp){
 
 void* rr_sched(void* sp){
      disable_interrupts();
-     /*during first quantum interrupt, do not save state.*/
      struct pcb* schedPCB = currentPCB; //create a pointer to the global for us to work with
      uint32_t currentPid = currentPCB->pid;
+     /*during first quantum interrupt, do not save state.*/
      if (g_systick_count != 1){
-          schedPCB->procStackCur = sp;
+          schedPCB->procStackCur = (uint32_t*)sp; //this saves process state
           schedPCB->runTimeInSysticks ++; //TODO: fix this timer, it's not going to be accurate if a process yields etc
           schedPCB->state = ready;
           schedPCB = schedPCB->nextPCB;
      }
-     //loop 1: terminate all kill_pending processes -- this loop should us back to where we started, the process whose quantum just elapsed
-     while (currentPid != schedPCB->pid){
-          if (schedPCB->killPending == TRUE){
-               pcb_destructor(schedPCB);
-          }
-     }
-     schedPCB = schedPCB->nextPCB;
      while (schedPCB->state != ready){
           if (currentPid == schedPCB->pid){
                return E_FREE_PERM; //we have gone all the way around and not found a ready process. All blocked?
@@ -219,9 +207,14 @@ void* rr_sched(void* sp){
      }
      //convert next process scheduled to run to running state
      schedPCB->state = running;
-     sp = schedPCB->procStackCur; //sp gets saved version of stack pointer
+     sp = (void*)schedPCB->procStackCur; //sp gets saved version of stack pointer
      currentPid = schedPCB->pid;
-     //pcb* schedPCB = schedPCB; TODO: what was this line trying to do?
+     //loop 1: terminate all kill_pending processes -- this loop should us back to where we started, the process whose quantum just elapsed
+     while (currentPid != schedPCB->pid){
+          if (schedPCB->killPending == TRUE){
+               pcb_destructor(schedPCB);
+          }
+     }
      enable_interrupts();
      return sp;
 }

@@ -923,7 +923,16 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 
 /*wrap shell in cmd_shell(argc, argv) so I can spawn it. cmd_shell will just return shell. Alternatively, I can have a different version of spawn just for the shell.*/
 cmd_shell(int argc, char* argv[]){
-     return shell();
+    int error;
+    error = shell();
+    if (MYFAT_DEBUG){
+    	printf("Shell exits with code %d \n", error);
+    }
+	  close_all_devices();   //TODO: turn off all LEDs?
+    if (!g_noFS){
+      file_structure_umount();
+    }
+	  return error;  //TODO: This will return to nothing ...
 }
 
 /*main shell function*/
@@ -931,12 +940,10 @@ int shell(void){
   unsigned long long gmtTime = timestamp_to_ms();
   g_randVal = ((gmtTime / 1000)% 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
   SVC_settime(&gmtTime); //set default time to GMT
-  if (UARTIO){
-	SVC_fopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-	char output[64] = {NULLCHAR};
-	sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
-	SVC_fputs(io_dev, output, strlen(output));
-  }
+  io_dev = (file_descriptor)currentPCB->openFiles[0].minorId; //stdin and stdout
+  char output[64] = {NULLCHAR};
+  sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
+  SVC_fputs(io_dev, output, strlen(output));
   while(TRUE){
     int err;
     char dollar[4] = {NULLCHAR};

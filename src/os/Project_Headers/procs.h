@@ -7,6 +7,7 @@
 typedef uint32_t pid_t;
 
 struct spawnData {
+     char* procName;
      uint32_t stackSize;
      pid_t *spawnedPidPtr;
 };
@@ -32,7 +33,7 @@ struct pcb {
      /*data owned by this process*/
      struct stream openFiles[MAXOPEN];
      uint32_t* malArgc;
-     char* malArgv[];
+     char** malArgv;
 };
 
 extern struct pcb* currentPCB;

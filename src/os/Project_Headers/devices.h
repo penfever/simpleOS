@@ -106,7 +106,7 @@ extern dev_id_t devTable[DEV];
 
 int uart_init(int baud);
 
-int init_clocks_sdram_systick(void);
+int init_sys(void);
 
 void adc_init(void);
 
