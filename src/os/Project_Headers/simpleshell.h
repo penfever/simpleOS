@@ -61,6 +61,7 @@ struct escape_chars {
 };
 
 extern struct escape_chars escapechars[];
+extern struct commandEntry commands[];
 extern int g_noFS;
 extern file_descriptor io_dev;
 extern uint8_t g_timerExpired;

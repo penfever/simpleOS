@@ -35,7 +35,6 @@ static int g_deleteFlag = FALSE;
 static int g_readFlag = FALSE;
 static int g_printAll = FALSE;
 static int* g_numSector = 0;
-struct pcb* currentPCB = &op_sys;
 
 /**
  * Indicates that the microSDHC card is to be made available for these
@@ -352,26 +351,6 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 	return 0;
 }
 
-/*clean_dir_name returns a dir_name with trailing whitespace and file extensions removed.
- * Limited to 16 characters*/
-char* clean_dir_name(char* dirtyName){
-	int myLen = strlen(dirtyName);
-	if (myLen == 0){
-		return ""; //CASE: string is empty
-	}
-	char dirname[16] = {'\0'};
-	int i;
-	for (i = 0; i < myLen; i++){
-		if (dirtyName[i] == 0x20 || dirtyName[i] == 0x2E || dirtyName[i] == 0x00){
-			break;
-		}
-		dirname[i] = dirtyName[i];
-	}
-	if (i < myLen){
-		dirname[i] = '\0';
-	}
-	return dirname;
-}
 /*print_attr prints all requested FAT32 information either to the debug console,
  * or to the UART, or both.*/
 void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount){

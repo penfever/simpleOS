@@ -1,35 +1,41 @@
+#include "devices.h"
+
+#ifndef _PROCS_H
+#define _PROCS_H
 #define NEWPROC_DEF 100000
 
 typedef uint32_t pid_t;
-
-extern struct pcb* g_activePCB;
 
 struct spawnData {
      uint32_t stackSize;
      pid_t *spawnedPidPtr;
 };
 
+enum procState{
+     running = 0,
+     ready = 1,
+     blocked = 2
+ };
+
 struct pcb {
     char* procName;
     pid_t pid;
-    enum state{
-         0 = running,
-         1 = ready,
-         2 = blocked
-     };
+    enum procState state;
      /*Each PCB must have a pointer to the memory allocated for that process' stack.  That value will be the address returned when you allocate a new stack for the process.  It is the lowest address in the memory allocated for the stack.  It will never change during the lifetime of that process.  Let's call that location in the PCB the stackBaseAddress.*/
     uint32_t* procStackBase;
     /*Each PCB must have a stored SP which is the value of the SP when a process is preempted by the SysTick interrupt.  This stored SP must be initialized correctly when a new process is created.*/
     uint32_t* procStackCur;
     uint32_t stackSize;
     uint32_t runTimeInSysticks;
-    uint8_t kill_pending;
+    uint8_t killPending;
      struct pcb* nextPCB;
      /*data owned by this process*/
      struct stream openFiles[MAXOPEN];
      uint32_t* malArgc;
      char* malArgv[];
 };
+
+extern struct pcb* currentPCB;
 
 /*Placeholder scheduler for testing purposes*/
 void* temp_sched(void* sp);
@@ -52,12 +58,12 @@ void pcb_destructor(struct pcb* thisPCB);
 pid_t pid(void);
 
 /*given a pid, returns a pcb struct*/
-pcb_struct* pid_struct(pid_t pid);
+struct pcb* pid_struct(pid_t pid);
 
 /*determines next free pid number returns it as pid_t*/
 pid_t get_next_free_pid(void);
 
-void walk_pid_table_pid(maxPid);
+void walk_pid_table_pid(pid_t maxPid);
 
 void yield(void);
 
@@ -67,3 +73,4 @@ void block(void);
 int wake(pid_t targetPid);
 
 void wait(pid_t targetPid);
+#endif

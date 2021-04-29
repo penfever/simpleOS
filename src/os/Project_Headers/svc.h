@@ -12,6 +12,7 @@
  */
 
 #include "SDHC_FAT32_Files.h"
+#include "procs.h"
 
 #ifndef _SVC_H
 #define _SVC_H

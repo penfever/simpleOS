@@ -202,8 +202,6 @@ int filename_verify(char* filename, int len);
 
 char* filename_clean(char* filename);
 
-char* clean_dir_name(char* dirtyName);
-
 int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i);
 
 int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector);

@@ -49,6 +49,8 @@
 #define QUANTUM 6000000 //50ms default
 #define QUANTUM_INTERRUPT_PRIORITY 14
 
+extern uint32_t g_systick_count;
+
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs
 		UNUSED = 0,
@@ -99,8 +101,6 @@ enum minor_id{
 		dev_TSI4 = 0x03EF0003
 };
 
-extern struct pcb* currentPCB;
-extern struct pcb op_sys;
 typedef struct dev_id dev_id_t;
 extern dev_id_t devTable[DEV];
 

@@ -1,3 +1,5 @@
+#ifndef _DATETIME_H
+#define _DATETIME_H
 #define SECYEAR 31536000
 #define SECDAY 86400
 #define SECHOUR 3600
@@ -57,3 +59,4 @@ unsigned long long timestamp_to_ms();
 
 /*Converts total of (year, month, day, hour, minute) to milliseconds.*/
 unsigned long long ymdhm_to_ms(int inputYear, int inputMonth, int inputDay, int inputHour, int inputMinute);
+#endif

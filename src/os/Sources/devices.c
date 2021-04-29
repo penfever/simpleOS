@@ -22,24 +22,6 @@
 uint32_t g_systick_count = 0;
 uint32_t g_pause_counter = 0;
 
-struct pcb* currentPCB;
-struct pcb op_sys;
-struct pcb op_sys = 
-{
-		"OS", //NAME
-		0, //PID
-		{ //NULL INIT STRUCT "STREAM" ARRAY
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0}
-		}
-};
-
 /* Note below that the counterRegister field is declared to be a pointer
  * to an unsigned 16-bit value that is the counter register for the
  * appropriate channel of TSI0.  Further note that TSI0_CNTR5, for
@@ -223,7 +205,9 @@ int SysTickHandler(void){
    * value into the local, automatic variable 'copyOfSP' */
   __asm("mrs %[mspDest],msp" : [mspDest]"=r"(copyOfSP));
 
-  printf("The current value of MSP is %08x\n", (unsigned int)copyOfSP);
+  if (MYFAT_DEBUG){
+	  printf("The current value of MSP is %08x\n", (unsigned int)copyOfSP);
+  }
 
   /* Call the scheduler to find the saved SP of the next process to be
    * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
@@ -258,7 +242,6 @@ int SysTickHandler(void){
 //     if (test1 != 0){
 //    	 //the systick was interrupted, handle accordingly
 //     }
-}
 
 void systick_init(void){
 	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |

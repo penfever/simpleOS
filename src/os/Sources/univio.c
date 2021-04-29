@@ -22,8 +22,9 @@
 #include "intSerialIO.h"
 #include "PDB.h"
 #include "flexTimer.h"
+#include "procs.h"
 
-static int pid = 0; //temporarily set everything to OS
+//static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
 
 /*Devices to support: pushbuttons, LEDs, FAT32*/
@@ -180,7 +181,7 @@ file_descriptor check_dev_table(char* filename){
 }
 
 int myfclose (file_descriptor descr){
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){ //TODO: fix this so it DIs, walks the PCB struct, and figures out whether 
 		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
@@ -212,7 +213,7 @@ int remove_device_from_PCB(file_descriptor fd){
  * Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
 	int err = 0;
-	if (pid != currentPCB->pid){
+	if (0 != (int)currentPCB->pid){ //TODO: fix
 		return E_FREE_PERM;
 	}
 	struct stream* userptr = (struct stream*)descr;
@@ -348,7 +349,7 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		return E_NOFS;
 	}
 	int err;
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_NOINPUT; //TODO: error checking
 	}
 	if (userptr->cursor + buflen >= userptr->fileSize){
@@ -364,7 +365,7 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 
 int myfputc (file_descriptor descr, char bufp){
 	int err = 0;
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_FREE_PERM;
 	}
 	struct stream* userptr = (struct stream*)descr;
@@ -439,7 +440,7 @@ int led_fputc(file_descriptor descr){
 
 int myfputs (file_descriptor descr, char* bufp, int buflen){
 	int err = -1;
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;
@@ -465,7 +466,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 }
 
 int mycreate(char* filename){
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
@@ -484,7 +485,7 @@ int mycreate(char* filename){
 }
 
 int mydelete(char* filename){
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_FREE_PERM;
 	}
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
@@ -502,7 +503,7 @@ int mydelete(char* filename){
 }
 
 int myseek(file_descriptor descr, uint32_t pos){
-	if (pid != currentPCB->pid){
+	if (0 != currentPCB->pid){
 		return E_FREE_PERM; //TODO: error checking
 	}
 	struct stream* userptr = (struct stream*)descr;

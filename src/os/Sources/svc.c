@@ -291,80 +291,64 @@ int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
 	__asm("svc %0" : : "I" (SVC_SPAWN));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
 #else
-int __attribute__((never_inline)) int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+int __attribute__((never_inline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
 	__asm("svc %0" : : "I" (SVC_SPAWN));
 }
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) void SVC_yield(void) {
+void __attribute__((naked)) __attribute__((noinline)) SVC_yield(void) {
 	__asm("svc %0" : : "I" (SVC_YIELD));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
 #else
-int __attribute__((never_inline)) void SVC_yield(void) {
+void __attribute__((never_inline)) SVC_yield(void) {
 	__asm("svc %0" : : "I" (SVC_YIELD));
 }
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) void SVC_block(void) {
+void __attribute__((naked)) __attribute__((noinline)) SVC_block(void) {
 	__asm("svc %0" : : "I" (SVC_BLOCK));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) void SVC_block(void) {
-	__asm("svc %0" : : "I" (SVC_BLOCK));
-}
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) int SVC_wake(pid_t targetPid) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_wake(pid_t targetPid) {
 	__asm("svc %0" : : "I" (SVC_WAKE));
 	__asm("bx lr");
 }
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) int SVC_wake(pid_t targetPid) {
-	__asm("svc %0" : : "I" (SVC_WAKE));
-}
 #endif
+#pragma GCC diagnostic pop
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) int SVC_kill(pid_t targetPid) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_kill(pid_t targetPid) {
 	__asm("svc %0" : : "I" (SVC_KILL));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) int SVC_kill(pid_t targetPid) {
-	__asm("svc %0" : : "I" (SVC_KILL));
-}
 #endif
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) void SVC_wait(pid_t targetPid) {
+void __attribute__((naked)) __attribute__((noinline)) SVC_wait(pid_t targetPid) {
 	__asm("svc %0" : : "I" (SVC_WAIT));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) void SVC_wait(pid_t targetPid) {
-	__asm("svc %0" : : "I" (SVC_WAIT));
-}
 #endif
 
 /* This function sets the priority at which the SVCall handler runs (See
@@ -548,10 +532,12 @@ void svcHandlerInC(struct frame *framePtr) {
 			framePtr->returnVal = spawn(framePtr->arg0, framePtr->arg1, framePtr->arg2, framePtr->arg3);
 			break;
 		case SVC_YIELD:
-			framePtr->returnVal = yield(); //TODO: include VOID?
+			yield();
+			framePtr->returnVal = NULL; //TODO: yield and block do not return a value. is this syntax OK?
 			break;
 		case SVC_BLOCK:
-			framePtr->returnVal = block();
+			block();
+			framePtr->returnVal = NULL;
 			break;
 		case SVC_WAKE:
 			framePtr->returnVal = wake(framePtr->arg0);
@@ -560,7 +546,8 @@ void svcHandlerInC(struct frame *framePtr) {
 			framePtr->returnVal = kill(framePtr->arg0);
 			break;
 		case SVC_WAIT:
-			framePtr->returnVal = wait(framePtr->arg0);
+			wait(framePtr->arg0);
+			framePtr->returnVal = NULL;
 			break;
 		default:
 			if (MYFAT_DEBUG){
