@@ -561,9 +561,7 @@ void svcHandlerInC(struct frame *framePtr) {
 
 /*Routines for safely enabling and disabling interrupts across the OS.*/
 void disable_interrupts(void){
-	if (g_interrupt_count == 0){
-		__asm("cpsid i");
-	}
+	__asm("cpsid i");
 	g_interrupt_count ++;
 }
 

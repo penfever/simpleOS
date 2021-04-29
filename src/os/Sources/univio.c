@@ -100,6 +100,9 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 //		struct stream userptr = currentPCB->openFiles[0]; 
 //		if (currentPCB->openFiles[0].minorId == dev_UART2){
 			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
+			if (userptr == NULL){
+				return E_FREE;
+			}
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
 			*fd = (file_descriptor *)userptr;
@@ -181,9 +184,6 @@ file_descriptor check_dev_table(char* filename){
 }
 
 int myfclose (file_descriptor descr){
-	if (0 != currentPCB->pid){ //TODO: fix this so it DIs, walks the PCB struct, and figures out whether 
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
@@ -349,9 +349,6 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		return E_NOFS;
 	}
 	int err;
-	if (0 != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
-	}
 	if (userptr->cursor + buflen >= userptr->fileSize){
 		return E_EOF;
 	}
@@ -365,9 +362,6 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 
 int myfputc (file_descriptor descr, char bufp){
 	int err = 0;
-	if (0 != currentPCB->pid){
-		return E_FREE_PERM;
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
@@ -440,9 +434,6 @@ int led_fputc(file_descriptor descr){
 
 int myfputs (file_descriptor descr, char* bufp, int buflen){
 	int err = -1;
-	if (0 != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
@@ -466,9 +457,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 }
 
 int mycreate(char* filename){
-	if (0 != currentPCB->pid){
-		return E_FREE_PERM;
-	}
+	//TODO: no pid restrictions on delete and create. OK?
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
@@ -485,9 +474,7 @@ int mycreate(char* filename){
 }
 
 int mydelete(char* filename){
-	if (0 != currentPCB->pid){
-		return E_FREE_PERM;
-	}
+	//TODO: no pid restrictions on delete and create. OK?
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
@@ -503,9 +490,6 @@ int mydelete(char* filename){
 }
 
 int myseek(file_descriptor descr, uint32_t pos){
-	if (0 != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
 		return E_UNFREE;
@@ -514,7 +498,7 @@ int myseek(file_descriptor descr, uint32_t pos){
 }
 
 int close_all_devices(void){
-	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		currentPCB->openFiles[i].deviceType = UNUSED;
 	}
 	//stop any running timers

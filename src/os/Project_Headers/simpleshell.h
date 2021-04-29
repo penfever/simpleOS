@@ -14,6 +14,7 @@
 #define MAXLEN 256 //accepts chars 0->255, plus newline 256
 #endif
 #define MAXARGS 32 //accepts args 0->32
+#define SHELLPID 1
 #define NULLCHAR '\0'
 #define HELPBLOCK "Welcome to the simple shell! \r\n"\
                   "Here are a few commands you can try: \r\n"\

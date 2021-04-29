@@ -38,9 +38,6 @@ struct pcb {
 
 extern struct pcb* currentPCB;
 
-/*Placeholder scheduler for testing purposes*/
-void* temp_sched(void* sp);
-
 /*Given an sp, and a pointer to pcb, scheduler saves copy of sp to an appropriate field inside the pcb. This function only saves the sp of the quantum-expired process. it saves it to the sp field in the pcb. Currently running PCB must always be the first item pointed to by the global in order for this to work.*/
 void* rr_sched(void* sp);
 
@@ -52,14 +49,17 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 /*kill sets the state of PCB with targetPid to terminate*/
 int kill(pid_t targetPid);
 
-/*kill calls this, but it can also be called when a process terminates. This function breaks down a PCB and frees its memory.*/
-void pcb_destructor(struct pcb* thisPCB);
+/*kill calls this, but it can also be called when a process terminates. This function breaks down a PCB and frees its memory.
+when a process ends (naturally or when killed), any open streams need to be closed 
+and the storage used for its PCB and for its stack must be reclaimed.  In addition, 
+all dynamically-allocated (malloc'ed) storage owned by the process that is ending 
+needs to be freed. How do we ensure this? Maybe by calling our pid_less malloc and 
+freeing everything associated with that process's pid ...
+*/
+int pcb_destructor(struct pcb* thisPCB);
 
 /*Returns pid of current process*/
-pid_t pid(void);
-
-/*given a pid, returns a pcb struct*/
-struct pcb* pid_struct(pid_t pid);
+pid_t getCurrentPid(void);
 
 /*determines next free pid number returns it as pid_t*/
 pid_t get_next_free_pid(void);
@@ -73,5 +73,6 @@ void block(void);
 /* sets the targetPid process to ready state */
 int wake(pid_t targetPid);
 
+/*Process A waits for process B to complete*/
 void wait(pid_t targetPid);
 #endif

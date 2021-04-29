@@ -87,7 +87,7 @@ int file_structure_mount(void){
  * Returns an error code if the file structure is not mounted
  */
 int file_structure_umount(void){
-	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		if (currentPCB->openFiles[i].deviceType == FAT32){
 			currentPCB->openFiles[i].deviceType = UNUSED;
 		}
@@ -690,7 +690,7 @@ uint32_t find_free_cluster(){
  */
 int dir_delete_file(char *filename){
 	//For current PCB only
-	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
 		if (strncmp(&currentPCB->openFiles[i].fileName, filename, 11) == 0){ //TODO: check comparison validity
 			return E_FREE_PERM; 
 		}
@@ -752,7 +752,7 @@ int file_open(char *filename, file_descriptor *descrp){
 }
 
 struct stream* find_open_stream(){
-	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){
 		if (currentPCB->openFiles[i].deviceType == UNUSED){
 			struct stream *fileptr = &(currentPCB->openFiles[i]); //fileptr now points to the allocated Stream
 			return fileptr;
@@ -762,7 +762,7 @@ struct stream* find_open_stream(){
 }
 
 int find_curr_stream(struct stream* fileptr){
-	for (int i = 3; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
 		if (&(currentPCB->openFiles[i]) == fileptr){
 			return TRUE;
 		}
@@ -779,7 +779,7 @@ int find_curr_stream(struct stream* fileptr){
 int file_close(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
 	int err;
-	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){
 		if (userptr == &(currentPCB->openFiles[i])){ //match found
 			g_readFlag = TRUE;
 			uint32_t myCluster = 0;

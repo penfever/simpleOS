@@ -18,8 +18,6 @@ struct mem_region {
 
 int round_size(int size);
 
-uint8_t getCurrentPid();
-
 struct mem_region* init_struct(struct mem_region* first);
 
 void memoryMap(void);

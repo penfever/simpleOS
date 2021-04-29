@@ -110,12 +110,6 @@ void compact_next(struct mem_region* curr){ //CURR on REGION boundary
     }
 }
 
-/* You should implement an accessor function named getCurrentPID that returns the PID contained
-in the PCB of the current process (i.e., in the PCB pointed to by currentPCB). */
-uint8_t getCurrentPid(){
-    return currentPCB->pid;
-}
-
 /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
