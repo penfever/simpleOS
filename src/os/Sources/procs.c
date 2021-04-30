@@ -64,9 +64,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      currAddr += returnPCB->stackSize - 4; //Moves "pointer" 99996 bytes
      returnPCB->procStackCur = (uint32_t*)currAddr; //procStackCur now addresses TOP of memory, since stack grows down 
      /*malloc space for argc and argv, copy them, assign streams*/
-     file_descriptor* dummy = myMalloc(sizeof(file_descriptor));
-     myfopen(dummy, "dev_UART2", 'w'); //open stdin/stdout device
-     myFree(dummy);
+     myfopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
      returnPCB->malArgc = myMalloc(sizeof(uint32_t));
      *(returnPCB->malArgc) = argc;
      returnPCB->malArgv = (char **)myMalloc((argc + 1) * sizeof(char *)); 
@@ -261,18 +259,18 @@ void* rr_sched(void* sp){
      struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
      uint32_t currentPid = currentPCB->pid;
      /*during first quantum interrupt, do not save state.*/
-     if (g_systick_count != 0){
-          schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
-          schedPCB->runTimeInSysticks ++; //TODO: fix this timer, it's not going to be accurate
+     if (g_firstrun_flag != 0){
+          *(schedPCB->procStackCur) = (uint32_t *)sp; //this saves process state
+          schedPCB->runTimeInSysticks ++; //TODO: fix this timer
           schedPCB->state = ready;
           schedPCB = schedPCB->nextPCB;
      }
      else{
-    	 g_systick_count = 1;
+    	 g_firstrun_flag = 1;
      }
      while (schedPCB->state != ready){
           if (currentPid == schedPCB->pid){
-               return E_FREE_PERM; //we have gone all the way around and not found a ready process. All blocked?
+               error_checker(E_FREE_PERM); //we have gone all the way around and not found a ready process. All blocked?
           }
           schedPCB = schedPCB->nextPCB;
      }

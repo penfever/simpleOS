@@ -19,7 +19,7 @@
 #include "simpleshell.h"
 #include "procs.h"
 
-uint32_t g_systick_count = 0;
+uint32_t g_firstrun_flag = 0;
 uint32_t g_pause_counter = 0;
 
 /* Note below that the counterRegister field is declared to be a pointer

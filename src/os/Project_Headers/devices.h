@@ -49,7 +49,7 @@
 #define QUANTUM 6000000 //50ms default
 #define QUANTUM_INTERRUPT_PRIORITY 14
 
-extern uint32_t g_systick_count;
+extern uint32_t g_firstrun_flag;
 
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs

@@ -49,7 +49,7 @@ int error_checker(int return_value){
     char* output = myMalloc(64);
     sprintf(output, "error %d: %s \r\n", return_value, buffer);
 	SVC_fputs(io_dev, output, strlen(output));
-    if (MYFAT_DEBUG){
+    if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
     	printf(output);
     }
 	myFree(output);
