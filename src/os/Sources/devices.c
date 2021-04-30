@@ -19,6 +19,7 @@
 #include "simpleshell.h"
 #include "procs.h"
 #include "mymalloc.h"
+#include "priv.h"
 
 uint32_t g_firstrun_flag = 0;
 uint32_t g_pause_counter = 0;
@@ -105,16 +106,16 @@ int init_sys(){
     else{
         g_noFS = FALSE;
     }
-	/*SVC interrupt priority, pid, privileged mode*/
+	/*SVC interrupt priority, pid*/
 	svcInit_SetSVCPriority(15);
 	pid_t *shellPid = myMalloc(sizeof(pid_t*));
 	*shellPid = get_next_free_pid();
-    //privUnprivileged();
 	/*launch shell*/
 	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, shellPid};
 	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
 	/*scheduler*/
 	systick_init();
+    privUnprivileged();
 	return error;
 }
 
