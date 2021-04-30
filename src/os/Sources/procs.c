@@ -12,6 +12,7 @@
 #include "intSerialIO.h"
 #include "dateTime.h"
 #include "simpleshell.h"
+#include "delay.h"
 
 char* null_array = NULL;
 
@@ -21,7 +22,6 @@ pid_t maxPid = 0;
 
 int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawnData){
      disable_interrupts();
-
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
      /*Null out all openFiles memory (this avoids junk data causing file errors)*/
      for (int i = 0; i < MAXOPEN; i++){
@@ -40,6 +40,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      }
      else if(currentPCB->nextPCB == currentPCB){
           currentPCB->nextPCB = returnPCB;
+          returnPCB->nextPCB = currentPCB;
      }
      else{
           struct pcb* lastPCB = currentPCB->nextPCB;
@@ -170,11 +171,11 @@ int kill(pid_t targetPid){
 }
 
 int pcb_destructor(struct pcb* thisPCB){
-     disable_interrupts();
      int err = 0;
      /*disconnect PCB from the chain*/
+     disable_interrupts();
      struct pcb* lastPCB = thisPCB->nextPCB;
-     while (lastPCB->nextPCB != currentPCB){
+     while (lastPCB->nextPCB != thisPCB){
           lastPCB = lastPCB->nextPCB;
      }
      lastPCB->nextPCB = thisPCB->nextPCB;
@@ -281,9 +282,21 @@ void wait(pid_t targetPid){
 }
 
 void* rr_sched(void* sp){
-     //disable_interrupts();
      struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
      uint32_t currentPid = currentPCB->pid;
+     /*check for kill pending on current process*/
+     if (schedPCB->killPending == TRUE){
+     	disable_interrupts();
+     	currentPCB = currentPCB->nextPCB;
+     	int err = 0;
+     	if ((err = pcb_destructor(schedPCB)) != 0){
+     		if (MYFAT_DEBUG){
+     			printf("pcb_destructor error #%d \n", err);
+     		}
+     	}
+     	schedPCB = currentPCB;
+     	enable_interrupts();
+     }
      /*during first quantum interrupt, do not save state.*/
      if (g_firstrun_flag != 0){
           schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
@@ -305,17 +318,5 @@ void* rr_sched(void* sp){
      currentPCB = schedPCB;
      sp = (void *)schedPCB->procStackCur; //sp gets saved version of stack pointer
      currentPid = schedPCB->pid;
-     //loop 1: terminate all kill_pending processes -- this loop should us back to where we started, the process whose quantum just elapsed
-     while (currentPid != schedPCB->pid){
-          if (schedPCB->killPending == TRUE){
-               int err = 0;
-               if ((err = pcb_destructor(schedPCB)) != 0){
-                    if (MYFAT_DEBUG){
-                         printf("pcb_destructor error #%d \n", err);
-                    }
-               }
-          }
-     }
-     //enable_interrupts();
      return sp;
 }
