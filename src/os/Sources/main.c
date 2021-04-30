@@ -13,6 +13,7 @@
 #include "svc.h"
 #include "priv.h"
 #include "intSerialIO.h"
+#include "delay.h"
 
 	int main(void){
 	int error;
@@ -24,6 +25,6 @@
 	}
     //main.c, after init. after calling spawn, main just enters an infinite loop. we never think of it again. It will never run again, we can forget it.
     while (TRUE){
-        delay(10000);
+        ;
     }
 }

@@ -147,7 +147,10 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
 void set_kill(void){
 	kill(currentPCB->pid);
-	return;
+     while(TRUE){
+          yield();
+     }
+     return;
 }
 
 int kill(pid_t targetPid){
@@ -270,9 +273,11 @@ void wait(pid_t targetPid){
           }
      }
      while (walkPCB->killPending == FALSE){
+          yield();
           //set this process's status to blocked?
     	 //yield?
      }
+     yield();
      return;
 }
 

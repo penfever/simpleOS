@@ -18,6 +18,7 @@
 #include "myerror.h"
 #include "simpleshell.h"
 #include "procs.h"
+#include "mymalloc.h"
 
 uint32_t g_firstrun_flag = 0;
 uint32_t g_pause_counter = 0;
@@ -106,7 +107,7 @@ int init_sys(){
     }
 	/*SVC interrupt priority, pid, privileged mode*/
 	svcInit_SetSVCPriority(15);
-	pid_t* shellPid = myMalloc(sizeof(pid_t));
+	pid_t *shellPid = myMalloc(sizeof(pid_t*));
 	*shellPid = get_next_free_pid();
     //privUnprivileged();
 	/*launch shell*/

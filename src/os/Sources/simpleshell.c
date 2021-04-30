@@ -694,7 +694,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	const unsigned long int delayCount = 0x7ffff;
 	char* bufp = " ";
 	while (SVC_fgetc(sw2, 'a') != 3){
-		delay(delayCount);
+		//delay(delayCount);
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
@@ -1006,7 +1006,7 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 int cmd_shell(int argc, char* argv[]){
     int error;
     error = shell();
-    return 0;
+    return error;
 }
 
 /*main shell function*/

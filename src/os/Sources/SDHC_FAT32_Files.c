@@ -680,6 +680,7 @@ uint32_t find_free_cluster(){
 		}
 		return 0; //free cluster not found
 	}
+	return 0;
 }
 
 /**
