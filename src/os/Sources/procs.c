@@ -36,6 +36,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      //Now that memory is allocated, we link our new PCB into the chain.
      if (currentPCB == NULL){
           currentPCB = returnPCB;
+          currentPCB->nextPCB = returnPCB;
      }
      else if(currentPCB->nextPCB == currentPCB){
           currentPCB->nextPCB = returnPCB;
@@ -125,9 +126,12 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      *(returnPCB->procStackCur++) = 12; //R12
      
      *(returnPCB->procStackCur++) = (uint32_t)set_kill; //LR (R14) is where you will go if the program you invoke returns. This code sends to the function pcb_destructor
-     
-     *(returnPCB->procStackCur++) = (uint32_t)main; //PC gets main I think? Jamie says: you just take whatever the name of the command is, and you stick it into this word.
-     
+     if (returnPCB->pid == SHELLPID){
+         *(returnPCB->procStackCur++) = (uint32_t)shell; //if PID is 1, shell goes here
+     }
+     else{
+         *(returnPCB->procStackCur++) = (uint32_t)main; //otherwise, cmd goes here
+     }
      *(returnPCB->procStackCur) = 0x01000000; /* xPSR , "bottom" of stack 
      IN BINARY
      00000001000000000000000000000000
@@ -260,7 +264,7 @@ void* rr_sched(void* sp){
      uint32_t currentPid = currentPCB->pid;
      /*during first quantum interrupt, do not save state.*/
      if (g_firstrun_flag != 0){
-          *(schedPCB->procStackCur) = (uint32_t *)sp; //this saves process state
+          schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
           schedPCB->runTimeInSysticks ++; //TODO: fix this timer
           schedPCB->state = ready;
           schedPCB = schedPCB->nextPCB;
@@ -276,7 +280,7 @@ void* rr_sched(void* sp){
      }
      //convert next process scheduled to run to running state
      schedPCB->state = running;
-     sp = (void*)schedPCB->procStackCur; //sp gets saved version of stack pointer
+     sp = (void *)schedPCB->procStackCur; //sp gets saved version of stack pointer
      currentPid = schedPCB->pid;
      //loop 1: terminate all kill_pending processes -- this loop should us back to where we started, the process whose quantum just elapsed
      while (currentPid != schedPCB->pid){
