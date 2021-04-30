@@ -830,8 +830,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, *shellPid};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
+    SVC_wait(*shellPid);
     SVC_free(shellPid);
     return err;
   }
@@ -840,9 +841,11 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, *shellPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
+    SVC_wait(*shellPid);
     SVC_free(shellPid);
+    //wait
     return err;
   }
   /*CASE: flashled*/
@@ -850,8 +853,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, *shellPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
+    SVC_wait(*shellPid);
     SVC_free(shellPid);
     return err;
   }

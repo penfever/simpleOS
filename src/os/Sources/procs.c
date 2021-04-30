@@ -115,9 +115,9 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      
      *(returnPCB->procStackCur++) = 0xFFFFFFF9; //PER AN10, Thread mode, main stack. It might be that LR gets magic number automatically.
      
-     *(returnPCB->procStackCur++) = returnPCB->malArgc; //R0
+     *(returnPCB->procStackCur++) = (uint32_t)returnPCB->malArgc; //R0
      
-     *(returnPCB->procStackCur++) = returnPCB->malArgv; //R1
+     *(returnPCB->procStackCur++) = (uint32_t)returnPCB->malArgv; //R1
      
      *(returnPCB->procStackCur++) = 2; //R2
      
@@ -144,7 +144,8 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 }
 
 void set_kill(void){
-	return kill(currentPCB->pid);
+	kill(currentPCB->pid);
+	return;
 }
 
 int kill(pid_t targetPid){
@@ -189,7 +190,7 @@ int pcb_destructor(struct pcb* thisPCB){
           return err;
      }
      /*free all argv and argc*/
-     for (int i = 0; i <= thisPCB->malArgc; i ++){
+     for (int i = 0; i <= *(thisPCB->malArgc); i++){
           if (thisPCB->malArgv[i] != NULL){
                if ((err = myFreeErrorCode(thisPCB->malArgv[i])) != 0){
                     return err;
@@ -207,7 +208,7 @@ int pcb_destructor(struct pcb* thisPCB){
           return err;
      }
      enable_interrupts();
-     return;
+     return 0;
 }
 
 pid_t getCurrentPid(void){
@@ -255,7 +256,28 @@ int wake(pid_t targetPid){
 }
 
 void wait(pid_t targetPid){
-     ;
+     uint32_t currentPid = currentPCB->pid;
+     struct pcb *walkPCB = currentPCB;
+     if (walkPCB->pid != targetPid){
+          disable_interrupts();
+          do{
+               walkPCB = walkPCB->nextPCB;
+          }
+          while (walkPCB->pid != targetPid && walkPCB->pid != currentPid);
+          if (currentPid == walkPCB->pid){
+               enable_interrupts();
+               error_checker(E_FREE_PERM);
+               return; //we have gone all the way around and not found a ready process. All blocked?
+          }
+          enable_interrupts();
+     }
+     while (walkPCB->killPending == FALSE){
+          delay(QUANTUM);
+     }
+     /*Wait two more systicks to ensure scheduled kill has occurred.*/
+     delay(QUANTUM);
+     delay(QUANTUM);
+     return;
 }
 
 void* rr_sched(void* sp){
