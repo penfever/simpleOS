@@ -823,17 +823,16 @@ int cmd_spawn(int argc, char* argv[]){
     return E_NUMARGS;
   }
   /*get pid for process to be spawned*/
-  pid_t* shellPid = SVC_malloc(sizeof(pid_t));
-  *shellPid = get_next_free_pid();
+  pid_t shellPid;
+  shellPid = get_next_free_pid();
   /*CASE: touch2led*/
   if (strncmp(argv[1], commands[20].name, strlen(commands[20].name)) != 0){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(*shellPid);
-    SVC_free(shellPid);
+    SVC_wait(shellPid);
     return err;
   }
   /*CASE: pb2led*/
@@ -841,10 +840,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(*shellPid);
-    SVC_free(shellPid);
+    SVC_wait(shellPid);
     //wait
     return err;
   }
@@ -853,13 +851,11 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, shellPid};
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(*shellPid);
-    SVC_free(shellPid);
+    SVC_wait(shellPid);
     return err;
   }
-  SVC_free(shellPid);
   return E_NOINPUT;
 }
 

@@ -163,10 +163,7 @@ int kill(pid_t targetPid){
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if kill cannot find targetPid
      enable_interrupts();
-//     yield();
-     while(TRUE){
-    	 ;
-     }
+     yield();
 	return 0;
 }
 
@@ -179,6 +176,7 @@ int pcb_destructor(struct pcb* thisPCB){
           lastPCB = lastPCB->nextPCB;
      }
      lastPCB->nextPCB = thisPCB->nextPCB;
+     enable_interrupts();
      /*close all streams*/
      for (int i = 0; i < MAXOPEN; i++){
           thisPCB->openFiles[i].deviceType = UNUSED;
@@ -191,7 +189,7 @@ int pcb_destructor(struct pcb* thisPCB){
           return err;
      }
      /*free all argv and argc*/
-     for (int i = 0; i <= *(thisPCB->malArgc); i++){
+     for (int i = 0; i < *(thisPCB->malArgc); i++){
           if (thisPCB->malArgv[i] != NULL){
                if ((err = myFreeErrorCode(thisPCB->malArgv[i])) != 0){
                     return err;
@@ -208,7 +206,6 @@ int pcb_destructor(struct pcb* thisPCB){
      if ((err = myFreeErrorCode(thisPCB)) != 0){
           return err;
      }
-     enable_interrupts();
      return 0;
 }
 
@@ -223,29 +220,29 @@ pid_t get_next_free_pid(void){
 }
 
 void walk_pid_table_pid(pid_t maxPid){
-     disable_interrupts();
      struct pcb* walkPCB = currentPCB;
      if (walkPCB == NULL){
-         enable_interrupts();
          return;
      }
      pid_t curPid = walkPCB->pid;
      if (maxPid == curPid){
           maxPid ++;
      }
+     disable_interrupts();
      walkPCB = walkPCB->nextPCB;
+     enable_interrupts();
      while(curPid != walkPCB->pid){
           if (maxPid == walkPCB->pid){
                maxPid ++;
                walk_pid_table_pid(maxPid);
           }
      }
-     enable_interrupts();
      return;
 }
 
 void yield(void){
-     ;
+     delay(QUANTUM);
+     return;
 }
 
 void block(void){
@@ -265,19 +262,15 @@ void wait(pid_t targetPid){
                walkPCB = walkPCB->nextPCB;
           }
           while (walkPCB->pid != targetPid && walkPCB->pid != currentPid);
+          enable_interrupts();
           if (currentPid == walkPCB->pid){
-               enable_interrupts();
                error_checker(E_FREE_PERM);
                return; //we have gone all the way around and not found a ready process. All blocked?
           }
-          enable_interrupts();
      }
      while (walkPCB->killPending == FALSE){
           delay(QUANTUM);
      }
-     /*Wait two more systicks to ensure scheduled kill has occurred.*/
-     delay(QUANTUM);
-     delay(QUANTUM);
      return;
 }
 
@@ -287,10 +280,11 @@ void* rr_sched(void* sp){
      /*check for kill pending on current process*/
      if (schedPCB->killPending == TRUE){
      	disable_interrupts();
+    	g_firstrun_flag = 0; //we should not save state of a process we are killing
      	currentPCB = currentPCB->nextPCB;
      	int err = 0;
      	if ((err = pcb_destructor(schedPCB)) != 0){
-     		if (MYFAT_DEBUG){
+     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
      			printf("pcb_destructor error #%d \n", err);
      		}
      	}
