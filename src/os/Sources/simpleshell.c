@@ -40,34 +40,36 @@ struct escape_chars escapechars[] = {
     {'"', 34}
 };
 
-struct commandEntry commands[] = {{"date", cmd_date},
+struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"echo", cmd_echo},
                 {"exit", cmd_exit},
                 {"help", cmd_help},
                 {"malloc", cmd_malloc},
-                {"free", cmd_free},
+                {"free", cmd_free}, //5
                 {"memorymap", cmd_memorymap},
                 {"memset", cmd_memset},
                 {"memchk", cmd_memchk},
                 {"malfree", cmd_malfree},
-                {"fopen", cmd_fopen},
+                {"fopen", cmd_fopen}, //10
                 {"fclose", cmd_fclose},
                 {"fgetc", cmd_fgetc},
                 {"fgets", cmd_fgets},
                 {"fputc", cmd_fputc},
-                {"fputs", cmd_fputs},
+                {"fputs", cmd_fputs}, //15
                 {"create", cmd_create},
                 {"delete", cmd_delete},
                 {"seek", cmd_seek},
                 {"ls", cmd_ls},
-                {"touch2led", cmd_touch2led},
+                {"touch2led", cmd_touch2led}, //20
                 {"pot2ser", cmd_pot2ser},
                 {"therm2ser", cmd_therm2ser},
                 {"pb2led", cmd_pb2led},
                 {"catfile", cmd_catfile},
-                {"cat2file", cmd_cat2file},
+                {"cat2file", cmd_cat2file}, //25
                 {"flashled", cmd_flashled},
-                {"shell", cmd_shell}
+                {"shell", cmd_shell},
+                {"spawn", cmd_spawn},
+                {"kill", cmd_kill}
 };
 
 /*User Commands*/
@@ -101,6 +103,10 @@ int cmd_exit(int argc, char *argv[]){
   SVC_free(first);
   first = NULL;
   SVC_fclose(io_dev);
+  close_all_devices();
+  if (!g_noFS){
+    file_structure_umount();
+  }
   exit(0);
 }
 
@@ -808,6 +814,62 @@ int cmd_flashled(int argc, char* argv[]){
   }
   return 0;
 }
+/*   The spawn command will take a single argument which is one of
+   touch2led, pb2led, or flashled and will spawn off a process to run
+   that code.*/
+int cmd_spawn(int argc, char* argv[]){
+  int err = 0;
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  /*get pid for process to be spawned*/
+  pid_t* shellPid = SVC_malloc(sizeof(pid_t));
+  *shellPid = get_next_free_pid();
+  /*CASE: touch2led*/
+  if (strncmp(argv[1], commands[20].name, strlen(commands[20].name)) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, shellPid};
+    err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
+    SVC_free(shellPid);
+    return err;
+  }
+  /*CASE: pb2led*/
+  if (strncmp(argv[1], commands[23].name, strlen(commands[23].name)) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, shellPid};
+    err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
+    SVC_free(shellPid);
+    return err;
+  }
+  /*CASE: flashled*/
+  if (strncmp(argv[1], commands[26].name, strlen(commands[26].name)) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, shellPid};
+    err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
+    SVC_free(shellPid);
+    return err;
+  }
+  SVC_free(shellPid);
+  return E_NOINPUT;
+}
+
+/*cmd_kill shell command takes a single
+ argument which is the PID of the process to be killed.
+ and kills that process.*/
+int cmd_kill(int argc, char* argv[]){
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  pid_t killPid = (pid_t)hex_dec_oct(argv[1]);
+  check_overflow(killPid);
+  return SVC_kill(killPid);
+}
 
 /*String processing functions*/
 
@@ -921,18 +983,10 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
   return 0;
 }
 
-/*wrap shell in cmd_shell(argc, argv) so I can spawn it. cmd_shell will just return shell. Alternatively, I can have a different version of spawn just for the shell.*/
+/*This is a dummy shell function to pass into spawn.*/
 cmd_shell(int argc, char* argv[]){
     int error;
     error = shell();
-    if (MYFAT_DEBUG){
-    	printf("Shell exits with code %d \n", error);
-    }
-	  close_all_devices();   //TODO: turn off all LEDs?
-    if (!g_noFS){
-      file_structure_umount();
-    }
-	  return error;  //TODO: This will return to nothing ...
 }
 
 /*main shell function*/

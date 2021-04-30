@@ -114,7 +114,7 @@ int init_sys(){
 	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
 	/*scheduler*/
 	systick_init();
-	return 0;
+	return error;
 }
 
 void adc_init(void) {
