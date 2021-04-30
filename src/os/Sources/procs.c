@@ -45,7 +45,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
           while (lastPCB->nextPCB != currentPCB){
                lastPCB = lastPCB->nextPCB;
           }
-          returnPCB->nextPCB = &currentPCB;
+          returnPCB->nextPCB = currentPCB;
           lastPCB->nextPCB = returnPCB;
      }
      /*Configure PCB struct*/
@@ -60,9 +60,9 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      returnPCB->killPending = FALSE;
      returnPCB->runTimeInSysticks = 0;
      returnPCB->procStackBase = (uint32_t*)myMalloc(returnPCB->stackSize); //TODO: switch to pcb_malloc. pointer to base of memory. This will never change. We use this address to free the memory later.
-     uint32_t currAddr = (uint32_t)(*(returnPCB->procStackBase)); //Copy pointer address to avoid changing procStackBase when procStackCur changes
-     currAddr += ((returnPCB->stackSize/sizeof(uint32_t*)) - 1); //Moves "pointer" 24999 4-byte memory words
-     *(returnPCB->procStackCur) = (uint32_t*)currAddr; //procStackCur now addresses TOP of memory, since stack grows down 
+     uint32_t currAddr = (uint32_t)(returnPCB->procStackBase); //Copy pointer address to avoid changing procStackBase when procStackCur changes
+     currAddr += returnPCB->stackSize - 4; //Moves "pointer" 99996 bytes
+     returnPCB->procStackCur = (uint32_t*)currAddr; //procStackCur now addresses TOP of memory, since stack grows down 
      /*malloc space for argc and argv, copy them, assign streams*/
      file_descriptor* dummy = myMalloc(sizeof(file_descriptor));
      myfopen(dummy, "dev_UART2", 'w'); //open stdin/stdout device
@@ -80,59 +80,69 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
                memcpy(argv[i], returnPCB->malArgv[i], argSize);
           }
      }
-     /*Manipulate stack to resemble systick interrupt. TODO: pointer goes crazy intermittently when I change it*/
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) - 23;
+     /*Manipulate stack to resemble systick interrupt.*/
+     returnPCB->procStackCur -= 23;
      //Assuming procStackCur points to a valid word, and we don't need the reserved word, we jump down 23 words in memory and build up from there
-     currAddr = (uint32_t)(*(returnPCB->procStackCur));
-     returnPCB->procStackCur = 0; //Word with SVCALLACT & SVCALLPENDED bits
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 4; //R4
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 5; //R5
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 6; //R6
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = currAddr; //R7 must point to the EMPTY WORD just "above" R11, per lecture 12 at 2:50:14
-     returnPCB->procStackCur = 8; //R8
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 9; //R9
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 10; //R10
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 11; //R11
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 0; //empty word begins Stack Contents Pushed by Entry Code to SysTick Handler
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 0; //copyofsp will be overwritten when scheduler returns
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 0; //empty word
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 4; //value of R4 for new process (arbitrary)
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 7; //value of R7 for new process (arbitrary)
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 0xFFFFFFF9; //PER AN10, Thread mode, main stack. It might be that LR gets magic number automatically.
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = returnPCB->malArgc; //R0
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = returnPCB->malArgv; //R1
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 2; //R2
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 3; //R3
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 12; //R12
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = pcb_destructor(returnPCB); //LR (R14) is where you will go if the program you invoke returns. This code sends to the function pcb_destructor
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = returnPCB->procName; //PC gets main I think? Jamie says: you just take whatever the name of the command is, and you stick it into this word.
-     *(returnPCB->procStackCur) = *(returnPCB->procStackCur) + 1;
-     returnPCB->procStackCur = 0x01000100; /* xPSR , "bottom" of stack 
+     //currAddr = (uint32_t)returnPCB->procStackCur;
+     *(returnPCB->procStackCur++) = 0; //Word with SVCALLACT & SVCALLPENDED bits
+     
+     *(returnPCB->procStackCur++) = 4; //R4
+     
+     *(returnPCB->procStackCur++) = 5; //R5
+     
+     *(returnPCB->procStackCur++) = 6; //R6
+
+     *(returnPCB->procStackCur) = (uint32_t)(returnPCB->procStackCur+5); //R7 must point to the EMPTY WORD just "above" R11, per lecture 12 at 2:50:14
+     
+     returnPCB->procStackCur++;
+     
+     *(returnPCB->procStackCur++) = 8; //R8
+     
+     *(returnPCB->procStackCur++) = 9; //R9
+     
+     *(returnPCB->procStackCur++) = 10; //R10
+     
+     *(returnPCB->procStackCur++) = 11; //R11
+     
+     *(returnPCB->procStackCur++) = 0; //empty word begins Stack Contents Pushed by Entry Code to SysTick Handler
+     
+     *(returnPCB->procStackCur++) = 0; //copyofsp will be overwritten when scheduler returns
+     
+     *(returnPCB->procStackCur++) = 0; //empty word
+     
+     *(returnPCB->procStackCur++) = 4; //value of R4 for new process (arbitrary)
+     
+     *(returnPCB->procStackCur++) = 7; //value of R7 for new process (arbitrary)
+     
+     *(returnPCB->procStackCur++) = 0xFFFFFFF9; //PER AN10, Thread mode, main stack. It might be that LR gets magic number automatically.
+     
+     *(returnPCB->procStackCur++) = returnPCB->malArgc; //R0
+     
+     *(returnPCB->procStackCur++) = returnPCB->malArgv; //R1
+     
+     *(returnPCB->procStackCur++) = 2; //R2
+     
+     *(returnPCB->procStackCur++) = 3; //R3
+     
+     *(returnPCB->procStackCur++) = 12; //R12
+     
+     *(returnPCB->procStackCur++) = (uint32_t)set_kill; //LR (R14) is where you will go if the program you invoke returns. This code sends to the function pcb_destructor
+     
+     *(returnPCB->procStackCur++) = (uint32_t)main; //PC gets main I think? Jamie says: you just take whatever the name of the command is, and you stick it into this word.
+     
+     *(returnPCB->procStackCur) = 0x01000000; /* xPSR , "bottom" of stack 
      IN BINARY
-     00000001000000000000000100000000
+     00000001000000000000000000000000
+     Could also be 1 << 24
      */
+     returnPCB->procStackCur -= 22;
+     
      enable_interrupts();
      return 0;
+}
+
+void set_kill(void){
+	return kill(currentPCB->pid);
 }
 
 int kill(pid_t targetPid){
@@ -147,7 +157,11 @@ int kill(pid_t targetPid){
                break;
           }
           walkPCB = walkPCB->nextPCB;
-     } while (currentPid != walkPCB->pid); //TODO: as currently written, this does not send an error if kill cannot find targetPid
+     }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if kill cannot find targetPid
+     yield();
+     while(TRUE){
+    	 ;
+     }
      enable_interrupts();
 	return 0;
 }
@@ -173,14 +187,17 @@ int pcb_destructor(struct pcb* thisPCB){
           return err;
      }
      /*free all argv and argc*/
-     for (int i = 0; i <= argc; i ++){
-          if (argv[i] != NULL){
-               if ((err = myFreeErrorCode(argv[i])) != 0){
+     for (int i = 0; i <= thisPCB->malArgc; i ++){
+          if (thisPCB->malArgv[i] != NULL){
+               if ((err = myFreeErrorCode(thisPCB->malArgv[i])) != 0){
                     return err;
                }
           }
      }
-     if ((err = myFreeErrorCode(argv)) != 0){
+     if ((err = myFreeErrorCode(thisPCB->malArgv)) != 0){
+          return err;
+     }
+     if ((err = myFreeErrorCode(thisPCB->malArgc)) != 0){
           return err;
      }
      /*free the pcb itself*/
@@ -240,15 +257,18 @@ void wait(pid_t targetPid){
 }
 
 void* rr_sched(void* sp){
-     disable_interrupts();
-     struct pcb* schedPCB = currentPCB; //create a pointer to the global for us to work with
+     //disable_interrupts();
+     struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
      uint32_t currentPid = currentPCB->pid;
      /*during first quantum interrupt, do not save state.*/
-     if (g_systick_count != 1){
-          schedPCB->procStackCur = (uint32_t*)sp; //this saves process state
-          schedPCB->runTimeInSysticks ++; //TODO: fix this timer, it's not going to be accurate if a process yields etc
+     if (g_systick_count != 0){
+          schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
+          schedPCB->runTimeInSysticks ++; //TODO: fix this timer, it's not going to be accurate
           schedPCB->state = ready;
           schedPCB = schedPCB->nextPCB;
+     }
+     else{
+    	 g_systick_count = 1;
      }
      while (schedPCB->state != ready){
           if (currentPid == schedPCB->pid){
@@ -271,6 +291,6 @@ void* rr_sched(void* sp){
                }
           }
      }
-     enable_interrupts();
+     //enable_interrupts();
      return sp;
 }

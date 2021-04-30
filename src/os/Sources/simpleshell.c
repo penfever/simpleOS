@@ -940,7 +940,7 @@ int shell(void){
   unsigned long long gmtTime = timestamp_to_ms();
   g_randVal = ((gmtTime / 1000)% 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
   SVC_settime(&gmtTime); //set default time to GMT
-  io_dev = (file_descriptor)currentPCB->openFiles[0].minorId; //stdin and stdout
+  io_dev = &(currentPCB->openFiles[0]); //stdin and stdout
   char output[64] = {NULLCHAR};
   sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
   SVC_fputs(io_dev, output, strlen(output));

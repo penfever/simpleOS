@@ -111,7 +111,7 @@ int init_sys(){
     //privUnprivileged();
 	/*launch shell*/
 	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, shellPid};
-	error = spawn(cmd_shell, 0, NULL, &mySpawnData); //TODO: syntax for function pointer
+	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
 	/*scheduler*/
 	systick_init();
 	return 0;

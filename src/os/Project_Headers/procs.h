@@ -22,9 +22,15 @@ struct pcb {
     char* procName;
     pid_t pid;
     enum procState state;
-     /*Each PCB must have a pointer to the memory allocated for that process' stack.  That value will be the address returned when you allocate a new stack for the process.  It is the lowest address in the memory allocated for the stack.  It will never change during the lifetime of that process.  Let's call that location in the PCB the stackBaseAddress.*/
+     /*Each PCB must have a pointer to the memory allocated for that process' stack.  
+      * That value will be the address returned when you allocate a new stack for the process.  
+      * It is the lowest address in the memory allocated for the stack.  
+      * It will never change during the lifetime of that process.  
+      * Let's call that location in the PCB the stackBaseAddress.*/
     uint32_t* procStackBase;
-    /*Each PCB must have a stored SP which is the value of the SP when a process is preempted by the SysTick interrupt.  This stored SP must be initialized correctly when a new process is created.*/
+    /*Each PCB must have a stored SP which is the value of the SP when 
+     * a process is preempted by the SysTick interrupt.  This stored SP 
+     * must be initialized correctly when a new process is created.*/
     uint32_t* procStackCur;
     uint32_t stackSize;
     uint32_t runTimeInSysticks;
@@ -48,6 +54,9 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
 /*kill sets the state of PCB with targetPid to terminate*/
 int kill(pid_t targetPid);
+
+/*set_kill sets a process to kill itself*/
+void set_kill(void);
 
 /*kill calls this, but it can also be called when a process terminates. This function breaks down a PCB and frees its memory.
 when a process ends (naturally or when killed), any open streams need to be closed 
