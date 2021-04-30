@@ -69,7 +69,9 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"flashled", cmd_flashled},
                 {"shell", cmd_shell},
                 {"spawn", cmd_spawn},
-                {"kill", cmd_kill}
+                {"kill", cmd_kill},
+                {"multitask", cmd_multitask},
+                {"ps", cmd_ps}
 };
 
 /*User Commands*/
@@ -889,6 +891,21 @@ int cmd_kill(int argc, char* argv[]){
   check_overflow(killPid);
   return SVC_kill(killPid);
 }
+
+/*Implement a "ps" shell command that lists all processes in the PCB chain: 
+the PID, the program name (i.e., argv[0]), the process state, and CPU time used.
+You must not disable interrupts while performing the output from ps.  Instead, 
+while traversing the PCB list you should store the relevant information in malloc'ed 
+memory that will be output once you re-enable interrupts.*/
+int cmd_ps(int argc, char* argv[]){
+  struct pcbPS curPS;
+      char* procName;
+    pid_t pid;
+    enum procState state;
+    uint32_t runTimeInSysticks;
+  snprintf(output, "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
+}
+
 
 /*String processing functions*/
 

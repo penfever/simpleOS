@@ -18,6 +18,12 @@ enum procState{
      blocked = 2
  };
 
+ 
+struct stateString {
+  char *name;
+  int state;
+};
+
 struct pcb {
     char* procName;
     pid_t pid;

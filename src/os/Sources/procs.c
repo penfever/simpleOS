@@ -19,6 +19,12 @@ char* null_array = NULL;
 
 struct pcb* currentPCB = NULL;
 
+struct stateString stateStr[] = { {"running", 0},
+                                  {"ready", 1},
+                                  {"blocked", 2},
+                                  {"kill pending", 3}
+};
+
 pid_t maxPid = 0;
 
 int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawnData){
@@ -148,9 +154,8 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
 void set_kill(void){
 	kill(currentPCB->pid);
-     while(TRUE){
-          yield();
-     }
+     block();
+     yield();
      return;
 }
 
@@ -161,7 +166,10 @@ int kill(pid_t targetPid){
      disable_interrupts();
      struct pcb* walkPCB = currentPCB;
      do{
-          if (walkPCB->pid == targetPid){
+          if (walkPCB->pid == SHELLPID && walkPCB->state == blocked){
+               wake(SHELLPID); //TODO: this only works if shell is parent, which it is for all currently extant processes
+          }
+          else if (walkPCB->pid == targetPid){
                walkPCB->killPending = TRUE;
                break;
           }
@@ -250,14 +258,35 @@ void yield(void){
 }
 
 void block(void){
-     ;
+     currentPCB->state = blocked;
+     yield();
 }
 
 int blockPid(pid_t targetPid){
-     ;
+     struct pcb* walkPCB = currentPCB;
+     disable_interrupts();
+     do{
+          if (walkPCB->pid == targetPid){
+               walkPCB->state = blocked;
+               break;
+          }
+          walkPCB = walkPCB->nextPCB;
+     }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
+     enable_interrupts();
+	return 0;
 }
 
 int wake(pid_t targetPid){
+     struct pcb* walkPCB = currentPCB;
+     disable_interrupts();
+     do{
+          if (walkPCB->pid == targetPid){
+               walkPCB->state = ready;
+               break;
+          }
+          walkPCB = walkPCB->nextPCB;
+     }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
+     enable_interrupts();
 	return 0;
 }
 
@@ -276,13 +305,10 @@ void wait(pid_t targetPid){
                return; //we have gone all the way around and not found a ready process. All blocked?
           }
      }
-     while (walkPCB->killPending == FALSE){
-          yield();
-          //set this process's status to blocked?
-    	 //yield?
-     }
-     yield();
-     return;
+     // while (walkPCB->killPending == FALSE){
+     //      yield();
+     // }
+     block();
 }
 
 void* rr_sched(void* sp){
