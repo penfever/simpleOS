@@ -76,8 +76,9 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      else {
           for (int i = 0; i < argc; i++){
                int argSize = strlen(argv[i]);
-               returnPCB->malArgv[i] = (char*)myMalloc(argSize);
-               memcpy(argv[i], returnPCB->malArgv[i], argSize);
+               returnPCB->malArgv[i] = (char*)myMalloc(argSize+1);
+               strcpy(returnPCB->malArgv[i], argv[i]);
+               returnPCB->malArgv[i][argSize] = '\0';
           }
      }
      /*Manipulate stack to resemble systick interrupt.*/
@@ -269,7 +270,8 @@ void wait(pid_t targetPid){
           }
      }
      while (walkPCB->killPending == FALSE){
-          delay(QUANTUM);
+          //set this process's status to blocked?
+    	 //yield?
      }
      return;
 }

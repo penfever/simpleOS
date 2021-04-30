@@ -105,7 +105,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			}
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
-			*fd = (file_descriptor *)userptr;
+			*fd = (file_descriptor)userptr;
 			intSerialIOInit();
 			return 0;
 //		}
@@ -167,7 +167,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		return E_DEV;
 	}
 	userptr->minorId = devicePtr; //This should macro to the correct minorId
-	*fd = (file_descriptor *)userptr; //device pointer becomes user pointer
+	*fd = (file_descriptor)userptr; //device pointer becomes user pointer
 	return 0;
 }
 
@@ -213,9 +213,6 @@ int remove_device_from_PCB(file_descriptor fd){
  * Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
 	int err = 0;
-	if (0 != (int)currentPCB->pid){ //TODO: fix
-		return E_FREE_PERM;
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
