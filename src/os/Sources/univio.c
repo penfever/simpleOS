@@ -131,22 +131,22 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	if (devicePtr >= PUSHB_MIN && devicePtr <= PUSHB_MAX){
 		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
-		if (UARTIO){
-			putsNLIntoBuffer("Pushbutton initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("Pushbutton initialized. \n");
 		}
 	}
 	else if (devicePtr >= LED_MIN && devicePtr <= LED_MAX){
 		userptr->deviceType = LED;
 		ledInitAll();
-		if (UARTIO){
-			putsNLIntoBuffer("LED initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("LED initialized. \n");
 		}
 	}
 	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
 		userptr->deviceType = ADC;
 		adc_init();
-		if (UARTIO){
-			putsNLIntoBuffer("ADC initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("ADC initialized. \n");
 		}
 	}
 	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
@@ -156,8 +156,8 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			TSI_Calibrate();
 			g_tsInit = TRUE;
 		}
-		if (UARTIO){
-			putsNLIntoBuffer("TSI initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("TSI initialized. \n");
 		}
 	}
 	else{
@@ -292,24 +292,24 @@ int adc_fgetc(file_descriptor descr) {
 int pushb_fgetc(file_descriptor descr){
 	if (sw1In() && sw2In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw1, sw2 are pressed \n");
+			printf("Pushbutton sw1, sw2 are pressed \n");
 		}
 		return 3;
 	}
 	else if (sw1In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw1 is pressed \n");
+			printf("Pushbutton sw1 is pressed \n");
 		}
 		return 1;
 	}
 	else if (sw2In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw2 is pressed \n");
+			printf("Pushbutton sw2 is pressed \n");
 		}
 		return 2;
 	}
 	if (MYFAT_DEBUG){
-		putsNLIntoBuffer("Pushbutton sw1, sw2 are not pressed \n");
+		printf("Pushbutton sw1, sw2 are not pressed \n");
 	}
 	return 0;
 }
@@ -450,8 +450,8 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		}
 		err = file_putbuf(descr, &bufp, buflen);
 	}
-	if (err == 0 && UARTIO){
-		putsNLIntoBuffer("fputc success\r\n");
+	if (err == 0 && MYFAT_DEBUG){
+		printf("fputc success\r\n");
 	}
 	return err;
 }

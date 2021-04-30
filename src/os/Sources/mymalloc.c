@@ -37,11 +37,6 @@ init_struct then fills in the correct values for 'free', 'size' and 'pid' for th
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
 	first = (struct mem_region*)SDRAM_START;
-//    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-//    	char* output = "K70 malloc fail \n";
-//    	uartPutsNL(UART2_BASE_PTR, output);
-//        return NULL;
-//    }
     g_lower_bound = SDRAM_START; //pointers to lower and upper memory bounds
     g_upper_bound = SDRAM_END;
     node_count += 1;
@@ -49,7 +44,6 @@ struct mem_region* init_struct(struct mem_region* first){
     first->size = MAX - MEMSTRUCT;
     first->pid = getCurrentPid();
     return first;
-    //subdivide memory
 }
 
 /* subdivide accepts as a parameter a struct representing a region of memory to be subdivided and a size in bytes to be 
@@ -159,10 +153,7 @@ void memoryMap(void){
 }
 
 void walk_struct_err(){
-	if (UARTIO){
-		putsNLIntoBuffer("walk_struct error (check memory bounds)\n");
-	}
-	else if (MYFAT_DEBUG){
+	if (MYFAT_DEBUG){
 		printf("walk_struct error (check memory bounds)\n");
 	}
 	cmd_exit(1, NULL);

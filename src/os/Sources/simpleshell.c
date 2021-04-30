@@ -454,7 +454,12 @@ int cmd_ls(int argc, char *argv[]){
 int cmd_touch2led(int argc, char* argv[]){
 	int err;
 	if (argc != 1){
-		return E_NUMARGS;
+    if (strncmp(argv[0], "spawn", 5) == 0){
+      ;
+    }
+    else{
+		  return E_NUMARGS;
+    }
 	}
 	file_descriptor myTS1 = 0;
 	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
@@ -636,7 +641,8 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1, 'a') != 1){
+	char c = 'a';
+	while (SVC_fgetc(sw1, &c) != 1){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -657,7 +663,12 @@ int cmd_therm2ser(int argc, char* argv[]){
         yellow LED.  End when both SW1 and SW2 are depressed.*/
 int cmd_pb2led(int argc, char* argv[]){
 	if (argc != 1){
-		return E_NUMARGS;
+    if (strncmp(argv[0], "spawn", 5) == 0){
+      ;
+    }
+    else{
+		  return E_NUMARGS;
+    }
 	}
 	int err;
 	file_descriptor sw1;
@@ -781,10 +792,18 @@ It toggles the orange LED on and off every argv[1] milliseconds
 until sw1 is pushed.*/
 int cmd_flashled(int argc, char* argv[]){
   int err = 0;
-  if (argc != 2){
-		return E_NUMARGS;
+  uint16_t delayCount;
+	if (argc != 2){
+    if (strncmp(argv[0], "spawn", 5) == 0){
+      delayCount = hex_dec_oct(argv[2]);
+    }
+    else{
+		  return E_NUMARGS;
+    }
 	}
-  uint16_t delayCount = hex_dec_oct(argv[1]); 
+  if (argc == 2){
+    delayCount = hex_dec_oct(argv[1]); 
+  }
   if (delayCount < 0 || delayCount > 127){
     return E_NOINPUT;
   }
@@ -984,9 +1003,10 @@ int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t c
 }
 
 /*This is a dummy shell function to pass into spawn.*/
-cmd_shell(int argc, char* argv[]){
+int cmd_shell(int argc, char* argv[]){
     int error;
     error = shell();
+    return 0;
 }
 
 /*main shell function*/
@@ -995,7 +1015,7 @@ int shell(void){
   g_randVal = ((gmtTime / 1000)% 100) + 1; //establishes semi-random value between 1 and 100 for future reference by other functions
   SVC_settime(&gmtTime); //set default time to GMT
   char output[64] = {NULLCHAR};
-  sprintf(output, "Your STDIN/STDOUT file is %x \n", io_dev);
+  sprintf(output, "Your STDIN/STDOUT file is %x \n", (unsigned int)io_dev);
   SVC_fputs(io_dev, output, strlen(output));
   while(TRUE){
     int err;

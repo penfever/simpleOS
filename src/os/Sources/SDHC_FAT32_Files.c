@@ -279,10 +279,10 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			g_unusedSeek = FOUND_AND_RETURNING;
     			return 0;
     		}
-			if(UARTIO){
+			if(MYFAT_DEBUG_LITE){
 	    		char output[64] = {' '};
     			sprintf(output, "Reached end of directory at sector %d, entry %d. \n", logicalSector, i);
-    			putsNLIntoBuffer(output);
+    			printf(output);
 			}
     	return 0;
     	}
@@ -304,10 +304,10 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 		else if((dir_entry->DIR_Attr == DIR_ENTRY_ATTR_DIRECTORY)){
 			char output[64] = {'\0'};
 			sprintf(output, "Sector %d, entry %d is a directory\n", logicalSector, i);
-			if (g_printAll || MYFAT_DEBUG_LITE){
+			if (g_printAll){
 				putsNLIntoBuffer(output);
 			}
-			else if (MYFAT_DEBUG){
+			if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
 				printf(output);
 			}
 			continue;
@@ -342,7 +342,7 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 	if(MYFAT_DEBUG){
 		char output[64] = {'\0'};
 		sprintf(output, "Sector %d, entry %d is a match \n", logicalSector, i);
-		putsNLIntoBuffer(output);
+		printf(output);
 	}
 	else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		printf("Sector %d, entry %d is a match \n", logicalSector, i);
@@ -358,11 +358,11 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount){
 		//long file name
 		char output[64] = {'\0'};
 		sprintf(output, "Sector %d, entry %d has a long file name\n", latestSector, entryCount);
-		if (g_printAll || MYFAT_DEBUG_LITE){
+		if (g_printAll){
 			putsNLIntoBuffer(output);
 		}
-		else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-			putsNL(output);
+		if (MYFAT_DEBUG){
+			printf(output);
 		}
 		return; //Do not attempt to print long file names -- not implemented
 	}
