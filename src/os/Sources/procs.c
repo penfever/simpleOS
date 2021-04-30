@@ -161,11 +161,11 @@ int kill(pid_t targetPid){
           }
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if kill cannot find targetPid
-     yield();
+     enable_interrupts();
+//     yield();
      while(TRUE){
     	 ;
      }
-     enable_interrupts();
 	return 0;
 }
 
@@ -302,6 +302,7 @@ void* rr_sched(void* sp){
      }
      //convert next process scheduled to run to running state
      schedPCB->state = running;
+     currentPCB = schedPCB;
      sp = (void *)schedPCB->procStackCur; //sp gets saved version of stack pointer
      currentPid = schedPCB->pid;
      //loop 1: terminate all kill_pending processes -- this loop should us back to where we started, the process whose quantum just elapsed
