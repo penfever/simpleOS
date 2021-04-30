@@ -13,6 +13,7 @@
 #include "dateTime.h"
 #include "simpleshell.h"
 #include "delay.h"
+#include "MK70F12.h"
 
 char* null_array = NULL;
 
@@ -245,11 +246,14 @@ void walk_pid_table_pid(pid_t maxPid){
 }
 
 void yield(void){
-     delay(QUANTUM);
-     return;
+     SCB_ICSR |= SCB_ICSR_PENDSVSET_MASK;
 }
 
 void block(void){
+     ;
+}
+
+int blockPid(pid_t targetPid){
      ;
 }
 

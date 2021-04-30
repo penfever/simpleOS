@@ -384,6 +384,14 @@ void svcInit_SetSVCPriority(unsigned char priority) {
 			SCB_SHPR2_PRI_11(priority << SVC_PriorityShift);
 }
 
+void pendSVInit_SetpendSVPriority(unsigned char priority) {
+	if(priority > SVC_MaxPriority)
+		return;
+
+	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |
+			SCB_SHPR3_PRI_14(priority << SVC_PriorityShift);
+}
+
 void svcHandlerInC(struct frame *framePtr);
 
 /* Exception return behavior is detailed in B1.5.8 on page B1-652 of the

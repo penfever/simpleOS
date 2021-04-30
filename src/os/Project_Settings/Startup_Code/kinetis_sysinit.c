@@ -60,7 +60,6 @@ void HardFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void MemManage_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void BusFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void UsageFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
-//void SVC_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void DebugMonitor_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void PendSV_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void SysTick_Handler() __attribute__ ((weak, alias("Default_Handler")));
@@ -83,7 +82,7 @@ void (* const InterruptVector[])() __attribute__ ((section(".vectortable"))) = {
   svcHandler,			/* Vector 11: SuperVisor Call (SVCall) */
   DebugMonitor_Handler,		/* Vector 12: Debug Monitor */
   0,				/* Vector 13 */
-  PendSV_Handler,		/* Vector 14: Pendable request for system
+  SysTickHandler,		/* Vector 14: Pendable request for system
 				   service (PendSV) */
   SysTickHandler,		/* Vector 15: System Tick Timer (SysTick) */
 

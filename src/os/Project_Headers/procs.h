@@ -84,6 +84,10 @@ void yield(void);
 /* sets the current process to blocked state */
 void block(void);
 
+/* sets the targetPid process to blocked state */
+/* returns indication of success */
+int blockPid(pid_t targetPid);
+
 /* sets the targetPid process to ready state */
 int wake(pid_t targetPid);
 

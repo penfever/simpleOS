@@ -106,8 +106,9 @@ int init_sys(){
     else{
         g_noFS = FALSE;
     }
-	/*SVC interrupt priority, pid*/
+	/*SVC, pendSV interrupt priority, pid*/
 	svcInit_SetSVCPriority(15);
+	pendSVInit_SetpendSVPriority(14);
 	pid_t *shellPid = myMalloc(sizeof(pid_t*));
 	*shellPid = get_next_free_pid();
 	/*launch shell*/

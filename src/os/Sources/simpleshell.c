@@ -103,10 +103,10 @@ int cmd_exit(int argc, char *argv[]){
   SVC_free(first);
   first = NULL;
   SVC_fclose(io_dev);
-  close_all_devices();
-  if (!g_noFS){
-    file_structure_umount();
-  }
+  //close_all_devices(); TODO: bugfix -- closing devices no longer works
+//  if (!g_noFS){
+//    file_structure_umount();
+//  }
   exit(0);
 }
 

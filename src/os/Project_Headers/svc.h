@@ -43,6 +43,7 @@
 
 void svcInit_SetSVCPriority(unsigned char priority);
 void svcHandler(void);
+void pendSVInit_SetpendSVPriority(unsigned char priority);
 
 int SVC_fopen(file_descriptor* descr, char* filename, char mode);
 int SVC_fclose(file_descriptor descrf);
