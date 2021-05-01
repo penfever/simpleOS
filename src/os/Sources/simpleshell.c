@@ -70,7 +70,7 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"shell", cmd_shell},
                 {"spawn", cmd_spawn},
                 {"kill", cmd_kill},
-                {"multitask", cmd_multitask},
+                {"multitask", cmd_multitask}, //30
                 {"ps", cmd_ps},
                 {"uartsendmsg", cmd_uartsendmsg}
 };
@@ -865,7 +865,6 @@ int cmd_spawn(int argc, char* argv[]){
     struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
     SVC_wait(shellPid);
-    //wait
     return err;
   }
   /*CASE: flashled*/
@@ -876,6 +875,16 @@ int cmd_spawn(int argc, char* argv[]){
     struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
     SVC_wait(shellPid);
+    return err;
+  }
+  /*CASE: uartsendmsg*/
+  if (strncmp(argv[1], commands[32].name, strlen(commands[32].name)) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &shellPid};
+    err = SVC_spawn(commands[32].functionp, argc, argv, &thisSpawnData);
+    //SVC_wait(shellPid);
     return err;
   }
   return E_NOINPUT;
@@ -902,15 +911,17 @@ int cmd_ps(int argc, char* argv[]){
   char* stateStrLoc = SVC_malloc(16);
   struct pcb* walkPCB = currentPCB;
   disable_interrupts();
-  char** malPS = (char **)SVC_malloc((g_curPCBCount) * sizeof(char *));
+  /*because interrupts are disabled, SVC calls cannot be made.*/
+  char** malPS = (char **)myMalloc((g_curPCBCount) * sizeof(char *));
   uint32_t localPCBCount = 0;
   while (localPCBCount < g_curPCBCount){
     for (int i = 0; i < 4; i++){
       if (i == walkPCB->state){
         *stateStrLoc = stateStr[i].name;
+        break;
       }
     }
-    malPS[localPCBCount] = (char *)SVC_malloc(MAXLEN);
+    malPS[localPCBCount] = (char *)myMalloc(64);
     snprintf(malPS[localPCBCount], "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
     localPCBCount ++;
     walkPCB = walkPCB->nextPCB;
@@ -950,9 +961,10 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	char c;
   while (TRUE){
     if (SVC_fgetc(sw2, &c) != 1){
-    	if(spawnFlag){
-    	   yield();
-    	}
+    	;
+//    	if(spawnFlag){
+//    	   yield();
+//    	}
 	}
     else{
         char* output = "sw2 has been pressed. \n";

@@ -1029,7 +1029,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 	if ((err = update_cache(userptr->fileName)) != 0){
 		return err;
 	}
-	if ((err = dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
+	if ((err = dir_set_attr_postwrite(userptr->fileSize, cached)) != 0){
 	    return err; //file entry not found in directory?
 	}
 	MOUNT->dirty = TRUE;
