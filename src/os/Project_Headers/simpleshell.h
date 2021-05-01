@@ -100,6 +100,7 @@ int cmd_spawn(int argc, char* argv[]);
 int cmd_kill(int argc, char* argv[]);
 int cmd_multitask(int argc, char* argv[]);
 int cmd_ps(int argc, char* argv[]);
+int cmd_uartsendmsg(int argc, char* argv[]);
 
 int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen);
 int quote_check(char* user_cmd, uint16_t cmdLen);

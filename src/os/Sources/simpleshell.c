@@ -931,9 +931,10 @@ int cmd_ps(int argc, char* argv[]){
 UART2 output whenever pushbutton S2 is depressed*/
 int cmd_uartsendmsg(int argc, char* argv[]){
   int err = 0;
+  int spawnFlag = FALSE;
 	if (argc != 1){
     if (strncmp(argv[0], "spawn", 5) == 0){
-      ;
+      spawnFlag = TRUE;
     }
     else{
 		  return E_NUMARGS;
@@ -949,10 +950,14 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	char c;
   while (TRUE){
     if (SVC_fgetc(sw2, &c) != 1){
-      yield();
-	  }
-    char* output = "sw2 has been pressed. \n";
-    SVC_fputs(io_dev, output, strlen(output));
+    	if(spawnFlag){
+    	   yield();
+    	}
+	}
+    else{
+        char* output = "sw2 has been pressed. \n";
+        SVC_fputs(io_dev, output, strlen(output));
+    }
   } 
 }
 
