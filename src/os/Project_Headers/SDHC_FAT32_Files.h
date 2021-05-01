@@ -214,4 +214,6 @@ void print_addl_attr(struct dir_entry_8_3 *dir_entry);
 
 int find_and_assign_clusters(int clusReq, struct stream* userptr, uint32_t numCluster, struct dir_entry_8_3* dir_entry);
 
+int update_cache(char* filename);
+
 #endif /* ifndef _SDHC_FAT32_FILES_H_ */

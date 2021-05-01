@@ -71,7 +71,8 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"spawn", cmd_spawn},
                 {"kill", cmd_kill},
                 {"multitask", cmd_multitask},
-                {"ps", cmd_ps}
+                {"ps", cmd_ps},
+                {"uartsendmsg", cmd_uartsendmsg}
 };
 
 /*User Commands*/
@@ -898,7 +899,7 @@ You must not disable interrupts while performing the output from ps.  Instead,
 while traversing the PCB list you should store the relevant information in malloc'ed 
 memory that will be output once you re-enable interrupts.*/
 int cmd_ps(int argc, char* argv[]){
-  char* stateStr == SVC_malloc(16);
+  char* stateStrLoc = SVC_malloc(16);
   struct pcb* walkPCB = currentPCB;
   disable_interrupts();
   char** malPS = (char **)SVC_malloc((g_curPCBCount) * sizeof(char *));
@@ -906,10 +907,10 @@ int cmd_ps(int argc, char* argv[]){
   while (localPCBCount < g_curPCBCount){
     for (int i = 0; i < 4; i++){
       if (i == walkPCB->state){
-        stateStr = stateStr[i].name;
+        *stateStrLoc = stateStr[i].name;
       }
     }
-    char* malPS[localPCBCount] = (char *)SVC_malloc(MAXLEN);
+    malPS[localPCBCount] = (char *)SVC_malloc(MAXLEN);
     snprintf(malPS[localPCBCount], "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
     localPCBCount ++;
     walkPCB = walkPCB->nextPCB;
@@ -918,7 +919,7 @@ int cmd_ps(int argc, char* argv[]){
   SVC_free(stateStr);
   //Now that UART is again enabled, print contents of PS
   for (int i = 0; i < g_curPCBCount; i++){
-    SVC_fputs(malPS[i]);
+    SVC_fputs(io_dev, malPS[i], strlen(malPS[i]));
     SVC_free(malPS[i]);
   }
   //free remaining pointers and return
@@ -944,12 +945,14 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-
+	
+	char c;
   while (TRUE){
     if (SVC_fgetc(sw2, &c) != 1){
       yield();
 	  }
-    SVC_fputs("sw2 has been pressed. \n");
+    char* output = "sw2 has been pressed. \n";
+    SVC_fputs(io_dev, output, strlen(output));
   } 
 }
 

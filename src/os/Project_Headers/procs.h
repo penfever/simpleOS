@@ -6,6 +6,8 @@
 
 typedef uint32_t pid_t;
 
+extern uint32_t g_curPCBCount;
+
 struct spawnData {
      char* procName;
      uint32_t stackSize;
@@ -23,6 +25,8 @@ struct stateString {
   char *name;
   int state;
 };
+
+extern struct stateString stateStr[];
 
 struct pcb {
     char* procName;

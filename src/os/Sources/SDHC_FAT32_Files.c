@@ -31,6 +31,8 @@ struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cached = NULL; //records an unused dir_entry
 static int g_unusedSeek = FALSE;
 struct dir_entry_8_3 *cwd = NULL;
+/*Special flags used for read/write operations. These control cache behavior.
+NOTE: Cache behavior is triggered in a side-effect of file search.*/
 static int g_deleteFlag = FALSE;
 static int g_readFlag = FALSE;
 static int g_printAll = FALSE;
@@ -438,10 +440,7 @@ int dir_find_file(char *filename, uint32_t *firstCluster){
     if (err != 0){
     	return err;
     }
-    if (UARTIO){
-    	putsNLIntoBuffer("Beginning file search. \n");
-    }
-    else if (CONSOLEIO){
+    if (MYFAT_DEBUG){
     	printf("Beginning file search. \n");
     }
     if ((err = read_all(data, logicalSector, filename)) != 0){
@@ -489,9 +488,6 @@ int dir_create_file(char *filename){
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
 		return err;
-	}
-	else if (UARTIO){
-		putsNLIntoBuffer("File created. \n");
 	}
 	else if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		printf("File created. \n");
@@ -586,8 +582,8 @@ int dir_set_attr_firstwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry
 	writeEntry->DIR_FstClusHI = newFile >> 16;  //TODO: error check this math. mask the 16 low order bits of newFile;
 	writeEntry->DIR_FstClusLO = newFile & 0x0000FFFF;  //mask the 16 high order bits of newFile;
 	writeEntry->DIR_FileSize = writeSize;
-	unused->DIR_WrtTime = time;			/* Offset 22 */
-	unused->DIR_WrtDate = date;			/* Offset 24 */
+	writeEntry->DIR_WrtTime = time;			/* Offset 22 */
+	writeEntry->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 
@@ -595,8 +591,8 @@ int dir_set_attr_postwrite(uint32_t writeSize, struct dir_entry_8_3* writeEntry)
 	uint16_t date = date_format_FAT();
 	uint16_t time = time_format_FAT();
 	writeEntry->DIR_FileSize = writeSize;
-	unused->DIR_WrtTime = time;			/* Offset 22 */
-	unused->DIR_WrtDate = date;			/* Offset 24 */
+	writeEntry->DIR_WrtTime = time;			/* Offset 22 */
+	writeEntry->DIR_WrtDate = date;			/* Offset 24 */
 	return 0;
 }
 
@@ -784,7 +780,7 @@ int file_close(file_descriptor descr){
 		if (userptr == &(currentPCB->openFiles[i])){ //match found
 			g_readFlag = TRUE;
 			uint32_t myCluster = 0;
-			if ((err = dir_find_file(userptr->fileName, myCluster)) != 0){
+			if ((err = dir_find_file(userptr->fileName, &myCluster)) != 0){
 				g_readFlag = FALSE;
 				return err;
 			}
@@ -906,20 +902,40 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		return E_FREE_PERM; //File is not open, or wrong type, or does not belong to this PID
 	}
 	if (userptr->mode == 'r' || userptr->mode == 'R'){
-		return E_FREE_PERM; //TODO: error handling
+		return E_FREE_PERM;
 	}
 	if (userptr->mode == 'a' || userptr->mode == 'A'){
 		userptr->cursor = userptr->fileSize; //TODO: append mode -- move cursor to EOF before writing
 	}
+    int err = -1;
+	if ((err = update_cache(userptr->fileName)) != 0){
+		return err;
+	}    
+	/*Now that cache pointer is correct (points to MOUNT->data at the correct dir_entry), we can assign a cluster.
+	 * NOTE: We MUST do this before the cache at MOUNT->data is altered again or the changes will not be
+	 * committed to disk.*/
+    if (userptr->clusterAddr == 0){ //Assign first cluster
+    	uint32_t numCluster = find_free_cluster();
+    	if (numCluster == 0){
+    	 	return E_FREE;
+    	}
+    	int err = -1;
+    	dir_set_attr_firstwrite(buflen, cached, numCluster);
+    	MOUNT->dirty = TRUE;
+    	if ((err = write_cache()) != 0){
+    		return err;
+    	}
+    	userptr->clusterAddr = numCluster;
+    }
+    
     int dirLogicalSector = 0;
     int* dirLogSecPtr = &dirLogicalSector;
-    int err = -1;
     uint8_t dirData[BLOCK];
     err = dir_get_cwd(dirLogSecPtr, dirData);
+    struct dir_entry_8_3* dir_entry = &dirData[0];
     if (err != 0){
     	return err;
     }
-    struct dir_entry_8_3* dir_entry = (struct dir_entry_8_3*)dirData;
 	int charsread = 0;
 	int *charsreadp = &charsread;
     if ((err = read_all(dirData, *dirLogSecPtr, userptr->fileName)) != 0){ //update dirLogicalSector with sector of file to be edited
@@ -928,25 +944,9 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, dirLogicalSector, &card_status, dirData)){ //read correct dir_entry into memory
     	return E_IO;
     }
-    if (userptr->clusterAddr == 0){ //Assign first cluster
-    	uint32_t numCluster = find_free_cluster();
-    	if (numCluster == 0){
-    	 	return E_FREE;
-    	}
-    	int err = -1;
-    	if ((err == dir_set_attr_firstwrite(buflen, dir_entry, numCluster)) != 0){
-    	    return err; //file entry not found in directory?
-    	    //TODO: undo all the writing?
-    	}
-//    	memcpy(&MOUNT->data, &dirData, BLOCK);
-//    	MOUNT->writeSector = dirLogicalSector;
-//    	MOUNT->dirty = TRUE;
-//    	if ((err = write_cache()) != 0){
-//    		return err;
-//    	}
-    	userptr->clusterAddr = numCluster;
-    }
-	uint32_t travelCluster; //TODO: does this work duplicate the work done by curr_sector_from_offset?
+    /*Here, we check if a new cluster is required to complete the write operation.*/
+    //TODO: does this work duplicate the work done by curr_sector_from_offset?
+	uint32_t travelCluster; 
 	int pos = userptr->cursor;
 	const int end = buflen + userptr->cursor; //TODO: errcheck on end? Too large?
     uint32_t clusJump = pos / 512; //Skip ahead this many clusters
@@ -960,7 +960,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     		numCluster = travelCluster; //Cluster where cursor should start
     	}
     	if (travelCluster == 0){ //TODO: make sure clusterAddr is always zeroed out in dir_file_attr
-    		int err = find_and_assign_clusters(clusReq - i, userptr, travelCluster, dir_entry);
+    		int err = find_and_assign_clusters(clusReq - i, userptr, travelCluster, cached);
     		if (err != 0){
     			return E_UNFREE;
     		}
@@ -1026,16 +1026,28 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
 		numSector ++;
 	}
 	userptr->fileSize = userptr->cursor = pos; //update filesize and cursor in PCB struct and dir_entry
+	if ((err = update_cache(userptr->fileName)) != 0){
+		return err;
+	}
 	if ((err = dir_set_attr_postwrite(userptr->fileSize, dir_entry)) != 0){
 	    return err; //file entry not found in directory?
 	}
-	memcpy(&MOUNT->data, &dirData, BLOCK); //cache loaded with udpated dir_entry
-	MOUNT->writeSector = dirLogicalSector;
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
 		return err;
 	}
     return 0;
+}
+
+/*This function updates the global cached pointer so that it points to the file whose attributes we wish to change.
+ * Returns an error code on failure.*/
+int update_cache(char* filename){
+	int err = 0;
+	g_readFlag = TRUE;
+	uint32_t myCluster = 0;
+	err = dir_find_file(filename, &myCluster);
+	g_readFlag = FALSE;
+	return err;
 }
 
 /*Gets clusReq new clusters from the FAT and assigns them to the file pointed to at userptr.*/
