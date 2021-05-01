@@ -898,12 +898,80 @@ You must not disable interrupts while performing the output from ps.  Instead,
 while traversing the PCB list you should store the relevant information in malloc'ed 
 memory that will be output once you re-enable interrupts.*/
 int cmd_ps(int argc, char* argv[]){
-  struct pcbPS curPS;
-      char* procName;
-    pid_t pid;
-    enum procState state;
-    uint32_t runTimeInSysticks;
-  snprintf(output, "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
+  char* stateStr == SVC_malloc(16);
+  struct pcb* walkPCB = currentPCB;
+  disable_interrupts();
+  char** malPS = (char **)SVC_malloc((g_curPCBCount) * sizeof(char *));
+  uint32_t localPCBCount = 0;
+  while (localPCBCount < g_curPCBCount){
+    for (int i = 0; i < 4; i++){
+      if (i == walkPCB->state){
+        stateStr = stateStr[i].name;
+      }
+    }
+    char* malPS[localPCBCount] = (char *)SVC_malloc(MAXLEN);
+    snprintf(malPS[localPCBCount], "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
+    localPCBCount ++;
+    walkPCB = walkPCB->nextPCB;
+  }
+  enable_interrupts();
+  SVC_free(stateStr);
+  //Now that UART is again enabled, print contents of PS
+  for (int i = 0; i < g_curPCBCount; i++){
+    SVC_fputs(malPS[i]);
+    SVC_free(malPS[i]);
+  }
+  //free remaining pointers and return
+  SVC_free(malPS);  
+  return 0;
+}
+
+/*write a program sending a message over 
+UART2 output whenever pushbutton S2 is depressed*/
+int cmd_uartsendmsg(int argc, char* argv[]){
+  int err = 0;
+	if (argc != 1){
+    if (strncmp(argv[0], "spawn", 5) == 0){
+      ;
+    }
+    else{
+		  return E_NUMARGS;
+    }
+	}
+
+  file_descriptor sw2;
+	err = SVC_fopen(&sw2, "dev_sw2", 'r');
+	if (err != 0){
+		return err;
+	}
+
+  while (TRUE){
+    if (SVC_fgetc(sw2, &c) != 1){
+      yield();
+	  }
+    SVC_fputs("sw2 has been pressed. \n");
+  } 
+}
+
+/*
+* takes a single filename argument 
+* creates three processes
+     (First process) copying from UART2 input to the named filename, (Second
+     process) sending a message over UART2 output whenever pushbutton
+     S2 is depressed, (Third process) using the supervisor call for
+     user timer events, flash the orange LED on and off every half a
+     second (the LED will light once a second).
+* The first process (the one that performs input from UART2), will
+     terminate when control-D is entered.  When the shell's multitask
+     command determines that that process has terminated, it will kill
+     the other two processes.*/
+int cmd_multitask(int argc, char* argv[]){
+  //proc1: spawn cat2file
+  //proc2: spawn flashled
+  //proc3: 
+	//wait on process 1
+  //kill 2 and 3
+  return 0;
 }
 
 

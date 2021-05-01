@@ -27,8 +27,11 @@ struct stateString stateStr[] = { {"running", 0},
 
 pid_t maxPid = 0;
 
+uint32_t g_curPCBCount = 0;
+
 int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawnData){
      disable_interrupts();
+     g_curPCBCount ++; //increment current PCB count
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
      /*Null out all openFiles memory (this avoids junk data causing file errors)*/
      for (int i = 0; i < MAXOPEN; i++){
@@ -317,8 +320,9 @@ void* rr_sched(void* sp){
      /*check for kill pending on current process*/
      if (schedPCB->killPending == TRUE){
      	disable_interrupts();
-    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-     	currentPCB = currentPCB->nextPCB;
+    	     g_firstrun_flag = 0; //we should not save state of a process we are killing
+     	g_curPCBCount --; //Decrement length of PCB chain
+          currentPCB = currentPCB->nextPCB;
      	int err = 0;
      	if ((err = pcb_destructor(schedPCB)) != 0){
      		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
