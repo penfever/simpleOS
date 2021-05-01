@@ -910,9 +910,7 @@ memory that will be output once you re-enable interrupts.*/
 int cmd_ps(int argc, char* argv[]){
   char* stateStrLoc = SVC_malloc(16);
   struct pcb* walkPCB = currentPCB;
-  disable_interrupts();
-  /*because interrupts are disabled, SVC calls cannot be made.*/
-  char** malPS = (char **)myMalloc((g_curPCBCount) * sizeof(char *));
+  char** malPS = (char **)SVC_malloc((g_curPCBCount) * sizeof(char *));
   uint32_t localPCBCount = 0;
   while (localPCBCount < g_curPCBCount){
     for (int i = 0; i < 4; i++){
@@ -921,12 +919,13 @@ int cmd_ps(int argc, char* argv[]){
         break;
       }
     }
-    malPS[localPCBCount] = (char *)myMalloc(64);
-    snprintf(malPS[localPCBCount], "PID %d process name is %s, state is %s, running time is %d. \n", walkPCB->pid, walkPCB->procName, stateStr, walkPCB->runTimeInSysticks);
+    malPS[localPCBCount] = (char *)SVC_malloc(64);
+    sprintf(malPS[localPCBCount], "PID %d process name is %s, state is %s, running time is %d. \n", (int)walkPCB->pid, walkPCB->procName, *stateStrLoc, walkPCB->runTimeInSysticks);
     localPCBCount ++;
+    disable_interrupts();
     walkPCB = walkPCB->nextPCB;
+    enable_interrupts();
   }
-  enable_interrupts();
   SVC_free(stateStr);
   //Now that UART is again enabled, print contents of PS
   for (int i = 0; i < g_curPCBCount; i++){
