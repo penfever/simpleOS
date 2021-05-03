@@ -175,6 +175,7 @@ int cmd_malloc(int argc, char *argv[]){
   }
   void* mal_val = NULL;
   long long unsigned int my_size = hex_dec_oct(argv[1]);
+  check_overflow(my_size);
   if ((mal_val = SVC_malloc(my_size)) == NULL){
     return E_MALLOC;
   }
@@ -431,6 +432,7 @@ int cmd_seek(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	unsigned long pos = hex_dec_oct(argv[2]);
+    check_overflow(pos);
 	return myseek(descr, pos);
 }
 
@@ -456,52 +458,80 @@ int cmd_ls(int argc, char *argv[]){
         "depressed."*/
 int cmd_touch2led(int argc, char* argv[]){
 	int err;
+	uint8_t spawnFlag = FALSE;
 	if (argc != 1){
-    if (strncmp(argv[0], "spawn", 5) == 0){
-      ;
-    }
-    else{
-		  return E_NUMARGS;
-    }
+		if (strncmp(argv[0], "spawn", 5) == 0){
+		  spawnFlag = TRUE;
+		}
+		else{
+			if (spawnFlag){
+				SVC_wake(SHELLPID);
+			}
+			return E_NUMARGS;
+		}
 	}
 	file_descriptor myTS1 = 0;
 	err = SVC_fopen(&myTS1, "dev_TSI1", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	  file_descriptor myTS2 = 0;
 		err = SVC_fopen(&myTS2, "dev_TSI2", 'r');
 		if (err != 0){
+			if (spawnFlag){
+				SVC_wake(SHELLPID);
+			}
 			return err;
 		}
 	  file_descriptor myTS3 = 0;
 		err = SVC_fopen(&myTS3, "dev_TSI3", 'r');
 		if (err != 0){
+			if (spawnFlag){
+				SVC_wake(SHELLPID);
+			}
 			return err;
 		}
 	  file_descriptor myTS4 = 0;
 		err = SVC_fopen(&myTS4, "dev_TSI4", 'r');
 		if (err != 0){
+			if (spawnFlag){
+				SVC_wake(SHELLPID);
+			}
 			return err;
 		}
 	file_descriptor E1 = 0;
 	err = SVC_fopen(&E1, "dev_E1", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   file_descriptor E2 = 0;
 	err = SVC_fopen(&E2, "dev_E2", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   file_descriptor E3 = 0;
 	err = SVC_fopen(&E3, "dev_E3", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   file_descriptor E4 = 0;
 	err = SVC_fopen(&E4, "dev_E4", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	uint32_t ts1Val = 0;
@@ -549,35 +579,62 @@ int cmd_touch2led(int argc, char* argv[]){
 	  SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(myTS1);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(myTS2);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(myTS3);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(myTS4);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	err = SVC_fclose(E1);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(E2);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(E3);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   err = SVC_fclose(E4);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
+	}
+	if (spawnFlag){
+		SVC_wake(SHELLPID);
 	}
 	return 0;
 }
@@ -665,33 +722,46 @@ int cmd_therm2ser(int argc, char* argv[]){
 /* 6. pb2led: Continuously copy from SW1 to orange LED and SW2 to
         yellow LED.  End when both SW1 and SW2 are depressed.*/
 int cmd_pb2led(int argc, char* argv[]){
+	uint8_t spawnFlag = FALSE;
 	if (argc != 1){
-    if (strncmp(argv[0], "spawn", 5) == 0){
-      ;
-    }
-    else{
-		  return E_NUMARGS;
-    }
+		if (strncmp(argv[0], "spawn", 5) == 0){
+		  spawnFlag = TRUE;
+		}
+		else{
+			  return E_NUMARGS;
+		}
 	}
 	int err;
 	file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	file_descriptor sw2;
 	err = SVC_fopen(&sw2, "dev_sw2", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	file_descriptor E1;
 	err = SVC_fopen(&E1, "dev_E1", 'r'); //orange
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	file_descriptor E4;
 	err = SVC_fopen(&E4, "dev_E4", 'r'); //yellow
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	const unsigned long int delayCount = 0x7ffff;
@@ -719,15 +789,27 @@ int cmd_pb2led(int argc, char* argv[]){
   SVC_fputc(E4, 'a'); //fputc turns LED off
 	err = SVC_fclose(E1);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	err = SVC_fclose(E4);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	err = SVC_fclose(sw1);
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
+	}
+	if (spawnFlag){
+		SVC_wake(SHELLPID);
 	}
 	return SVC_fclose(sw2);
 }
@@ -796,29 +878,42 @@ until sw1 is pushed.*/
 int cmd_flashled(int argc, char* argv[]){
   int err = 0;
   uint16_t delayCount;
+  uint8_t spawnFlag = FALSE;
 	if (argc != 2){
     if (strncmp(argv[0], "spawn", 5) == 0){
-      delayCount = hex_dec_oct(argv[2]);
+    	spawnFlag = TRUE;
+		delayCount = hex_dec_oct(argv[2]);
+		check_overflow(delayCount);
     }
     else{
-		  return E_NUMARGS;
+		return E_NUMARGS;
     }
 	}
   if (argc == 2){
     delayCount = hex_dec_oct(argv[1]); 
+    check_overflow(delayCount);
   }
   if (delayCount < 0 || delayCount > 127){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
     return E_NOINPUT;
   }
   uint8_t toggle = TRUE;
   file_descriptor sw1;
 	err = SVC_fopen(&sw1, "dev_sw1", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   file_descriptor myE1 = 0;
 	err = SVC_fopen(&myE1, "dev_E1", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
   while(!sw1In()){
@@ -834,6 +929,9 @@ int cmd_flashled(int argc, char* argv[]){
       SVC_pdb0oneshottimer(&delayCount); //timer reset
     }
   }
+	if (spawnFlag){
+		SVC_wake(SHELLPID);
+	}
   return 0;
 }
 /*   The spawn command will take a single argument which is one of
@@ -841,9 +939,6 @@ int cmd_flashled(int argc, char* argv[]){
    that code.*/
 int cmd_spawn(int argc, char* argv[]){
   int err = 0;
-  if (argc != 2){
-    return E_NUMARGS;
-  }
   /*get pid for process to be spawned*/
   pid_t shellPid;
   shellPid = get_next_free_pid();
@@ -852,6 +947,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
+	  if (argc != 2){
+	    return E_NUMARGS;
+	  }
     struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
     SVC_wait(shellPid);
@@ -862,6 +960,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
+	  if (argc != 2){
+	    return E_NUMARGS;
+	  }
     struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
     SVC_wait(shellPid);
@@ -872,6 +973,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
+	  if (argc != 3){
+	    return E_NUMARGS;
+	  }
     struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
     SVC_wait(shellPid);
@@ -882,6 +986,9 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
+	  if (argc != 2){
+	    return E_NUMARGS;
+	  }
     struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[32].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
@@ -915,7 +1022,7 @@ int cmd_ps(int argc, char* argv[]){
   while (localPCBCount < g_curPCBCount){
     for (int i = 0; i < 4; i++){
       if (i == walkPCB->state){
-        *stateStrLoc = stateStr[i].name;
+        *stateStrLoc = *(stateStr[i].name);
         break;
       }
     }
@@ -941,10 +1048,18 @@ int cmd_ps(int argc, char* argv[]){
 UART2 output whenever pushbutton S2 is depressed*/
 int cmd_uartsendmsg(int argc, char* argv[]){
   int err = 0;
-  int spawnFlag = FALSE;
+  file_descriptor uart;
+  uint8_t spawnFlag = FALSE;
 	if (argc != 1){
     if (strncmp(argv[0], "spawn", 5) == 0){
       spawnFlag = TRUE;
+		err = SVC_fopen(&uart, "dev_UART2", 'w');
+		if (err != 0){
+			if (spawnFlag){
+				SVC_wake(SHELLPID);
+			}
+			return err;
+		}
     }
     else{
 		  return E_NUMARGS;
@@ -954,16 +1069,20 @@ int cmd_uartsendmsg(int argc, char* argv[]){
   file_descriptor sw2;
 	err = SVC_fopen(&sw2, "dev_sw2", 'r');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
-	
+
 	char c;
   while (TRUE){
     if (SVC_fgetc(sw2, &c) != 1){
     	;
-//    	if(spawnFlag){
-//    	   yield();
-//    	}
+    	if(spawnFlag){
+    		SVC_wake(SHELLPID);
+    	   yield();
+    	}
 	}
     else{
         char* output = "sw2 has been pressed. \n";
@@ -1238,7 +1357,11 @@ void check_overflow(unsigned long my_num){
 
 /*Helper function accepts a string and returns true if every character in the string is a digit.*/
 int check_digit_all(char* str){
-  for (int i = 0; i < strlen(str); i++){
+	int len = strlen(str);
+	if (len == 0){
+		return TRUE;
+	}
+  for (int i = 0; i < len; i++){
     if (!check_digit(str[i])){
       return FALSE;
     }
