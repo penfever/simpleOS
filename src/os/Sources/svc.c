@@ -575,7 +575,7 @@ void disable_interrupts(void){
 
 void enable_interrupts(void){
 	g_interrupt_count --;
-	if (g_interrupt_count <= 0){
+	if (g_interrupt_count == 0){
 		g_interrupt_count = 0;
 		__asm("cpsie i");
 	}

@@ -72,7 +72,8 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"kill", cmd_kill},
                 {"multitask", cmd_multitask}, //30
                 {"ps", cmd_ps},
-                {"uartsendmsg", cmd_uartsendmsg}
+                {"uartsendmsg", cmd_uartsendmsg},
+                {"busywait", cmd_busywait}
 };
 
 /*User Commands*/
@@ -940,8 +941,8 @@ int cmd_flashled(int argc, char* argv[]){
 int cmd_spawn(int argc, char* argv[]){
   int err = 0;
   /*get pid for process to be spawned*/
-  pid_t shellPid;
-  shellPid = get_next_free_pid();
+  pid_t spawnPid;
+  spawnPid = get_next_free_pid();
   /*CASE: touch2led*/
   if (strncmp(argv[1], commands[20].name, strlen(commands[20].name)) != 0){
     ;
@@ -950,7 +951,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &shellPid};
+    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
     return err;
@@ -963,7 +964,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &shellPid};
+    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
     return err;
@@ -976,7 +977,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 3){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
     return err;
@@ -989,7 +990,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &shellPid};
+    struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[32].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
     return err;
@@ -998,11 +999,24 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
-    struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_DEF, &shellPid};
+    pid_t spawnPidAlso;
+    spawnPidAlso = get_next_free_pid();
+    struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_DEF, &spawnPidAlso};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnDataAlso);
     SVC_wait(SHELLPID);
+    return err;
+  }
+  if (strncmp(argv[1], "busywait", 8) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[33].name, NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(commands[33].functionp, argc, argv, &thisSpawnData);
+//    struct spawnData thisSpawnDataAlso = {commands[33].name, NEWPROC_DEF, &shellPid};
+//    err = SVC_spawn(commands[33].functionp, argc, argv, &thisSpawnDataAlso);
+//    SVC_wait(SHELLPID);
     return err;
   }
   return E_NOINPUT;
@@ -1246,6 +1260,12 @@ int cmd_shell(int argc, char* argv[]){
     int error;
     error = shell();
     return error;
+}
+
+int cmd_busywait(int argc, char* argv[]){
+	while(TRUE){
+		;
+	}
 }
 
 /*main shell function*/

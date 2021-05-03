@@ -78,7 +78,8 @@ needs to be freed. How do we ensure this? Maybe by calling our pid_less malloc a
 freeing everything associated with that process's pid ...*/
 int pcb_destructor(struct pcb* thisPCB);
 
-/*Returns pid of current process*/
+/*If spawn is active, getCurrentPid returns spawnPCB's pid.
+ * Otherwise, it returns the currently running PCB's pid.*/
 pid_t getCurrentPid(void);
 
 /*determines next free pid number returns it as pid_t*/

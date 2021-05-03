@@ -19,6 +19,8 @@ char* null_array = NULL;
 
 struct pcb* currentPCB = NULL;
 
+struct pcb* spawnPCB = NULL;
+
 struct stateString stateStr[] = { {"running", 0},
                                   {"ready", 1},
                                   {"blocked", 2},
@@ -33,6 +35,8 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      disable_interrupts();
      g_curPCBCount ++; //increment current PCB count
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
+     spawnPCB = returnPCB;
+     returnPCB->pid = *(thisSpawnData->spawnedPidPtr);
      /*Null out all openFiles memory (this avoids junk data causing file errors)*/
      for (int i = 0; i < MAXOPEN; i++){
     	 returnPCB->openFiles[i].clusterAddr = 0;
@@ -66,7 +70,6 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      if (returnPCB->procName == NULL){
           return E_CMD_NOT_FOUND;
      }
-     returnPCB->pid = *(thisSpawnData->spawnedPidPtr);
      returnPCB->state = ready;
      returnPCB->stackSize = thisSpawnData->stackSize;
      returnPCB->killPending = FALSE;
@@ -125,7 +128,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      
      *(returnPCB->procStackCur++) = 7; //value of R7 for new process (arbitrary)
      
-     *(returnPCB->procStackCur++) = 0xFFFFFFF9; //PER AN10, Thread mode, main stack. It might be that LR gets magic number automatically.
+     *(returnPCB->procStackCur++) = 0xFFFFFFF9; //PER AN10, Thread mode, main stack.
      
      *(returnPCB->procStackCur++) = (uint32_t)returnPCB->malArgc; //R0
      
@@ -150,7 +153,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      Could also be 1 << 24
      */
      returnPCB->procStackCur -= 22;
-     
+     spawnPCB = NULL;
      enable_interrupts();
      return 0;
 }
@@ -226,6 +229,12 @@ int pcb_destructor(struct pcb* thisPCB){
 }
 
 pid_t getCurrentPid(void){
+	if (spawnPCB != NULL){
+		return spawnPCB->pid;
+	}
+	else if (spawnPCB == NULL && currentPCB == NULL){
+		return SHELLPID;
+	}
 	return currentPCB->pid;
 }
 
@@ -336,8 +345,8 @@ void* rr_sched(void* sp){
         	     	enable_interrupts();
         	     }
               disable_interrupts();
-               walkPCB = walkPCB->nextPCB;
-               enable_interrupts();
+              walkPCB = walkPCB->nextPCB;
+              enable_interrupts();
 
           }while (walkPCB->pid != currentPCB->pid);
      /*during first quantum interrupt, do not save state.*/
