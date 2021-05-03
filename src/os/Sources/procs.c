@@ -275,6 +275,7 @@ int blockPid(pid_t targetPid){
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
      enable_interrupts();
+     yield();
 	return 0;
 }
 
@@ -292,25 +293,11 @@ int wake(pid_t targetPid){
 	return 0;
 }
 
+/*Sets the currently running process to wait.*/
 void wait(pid_t targetPid){
-     uint32_t currentPid = currentPCB->pid;
-     struct pcb *walkPCB = currentPCB;
-     if (walkPCB->pid != targetPid){
-          disable_interrupts();
-          do{
-               walkPCB = walkPCB->nextPCB;
-          }
-          while (walkPCB->pid != targetPid && walkPCB->pid != currentPid);
-          enable_interrupts();
-          if (currentPid == walkPCB->pid){
-               error_checker(E_FREE_PERM);
-               return; //we have gone all the way around and not found a ready process. All blocked?
-          }
-     }
-     // while (walkPCB->killPending == FALSE){
-     //      yield();
-     // }
-     block();
+     /*block and yield*/
+     blockPid(targetPid);
+     yield();
 }
 
 /*EXTRA CODE: checks for kill pending ONLY on current process*/
@@ -368,8 +355,8 @@ void* rr_sched(void* sp){
      }
      while (schedPCB->state != ready){
           if (currentPid == schedPCB->pid){
-        	  //if all processes are blocked, wake shell and wait
-        	  wake(SHELLPID);
+        	  //if all processes are blocked, wait
+        	  //wake(SHELLPID);
         	  delay(250);  
           }
           schedPCB = schedPCB->nextPCB;

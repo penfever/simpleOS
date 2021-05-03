@@ -952,7 +952,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  }
     struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(shellPid);
+    //SVC_wait(shellPid);
     return err;
   }
   /*CASE: pb2led*/
@@ -965,7 +965,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  }
     struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(shellPid);
+    //SVC_wait(shellPid);
     return err;
   }
   /*CASE: flashled*/
@@ -978,7 +978,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  }
     struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
-    SVC_wait(shellPid);
+    //SVC_wait(shellPid);
     return err;
   }
   /*CASE: uartsendmsg*/
@@ -992,6 +992,17 @@ int cmd_spawn(int argc, char* argv[]){
     struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &shellPid};
     err = SVC_spawn(commands[32].functionp, argc, argv, &thisSpawnData);
     //SVC_wait(shellPid);
+    return err;
+  }
+  if (strncmp(argv[1], "twowait", 7) != 0){
+    ;
+  }
+  else{
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &shellPid};
+    err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
+    struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_DEF, &shellPid};
+    err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnDataAlso);
+    SVC_wait(SHELLPID);
     return err;
   }
   return E_NOINPUT;
@@ -1070,7 +1081,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	err = SVC_fopen(&sw2, "dev_sw2", 'r');
 	if (err != 0){
 		if (spawnFlag){
-			SVC_wake(SHELLPID);
+			//SVC_wake(SHELLPID);
 		}
 		return err;
 	}
@@ -1080,7 +1091,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
     if (SVC_fgetc(sw2, &c) != 1){
     	;
     	if(spawnFlag){
-    		SVC_wake(SHELLPID);
+    		//SVC_wake(SHELLPID);
     	   //yield();
     	}
 	}
