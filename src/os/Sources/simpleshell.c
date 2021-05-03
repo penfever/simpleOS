@@ -1086,7 +1086,12 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	}
     else{
         char* output = "sw2 has been pressed. \n";
-        SVC_fputs(io_dev, output, strlen(output));
+        if (spawnFlag){
+            SVC_fputs(uart, output, strlen(output));
+        }
+        else{
+            SVC_fputs(io_dev, output, strlen(output));
+        }
     }
   } 
 }
