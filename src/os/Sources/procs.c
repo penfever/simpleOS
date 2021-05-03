@@ -313,44 +313,46 @@ void wait(pid_t targetPid){
      block();
 }
 
+/*EXTRA CODE: checks for kill pending ONLY on current process*/
+//     if (currentPCB->killPending == TRUE){
+//    	struct pcb* walkPCB = currentPCB;
+//     	disable_interrupts();
+//    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+//     	g_curPCBCount --; //Decrement length of PCB chain
+//        currentPCB = currentPCB->nextPCB;
+//     	int err = 0;
+//     	if ((err = pcb_destructor(walkPCB)) != 0){
+//     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+//     			printf("pcb_destructor error #%d \n", err);
+//     		}
+//     	}
+//     	enable_interrupts();
+//     }
+
 void* rr_sched(void* sp){
      uint32_t currentPid = currentPCB->pid;
      /*check for kill pending on all processes*/
-     if (currentPCB->killPending == TRUE){
-    	struct pcb* walkPCB = currentPCB;
-     	disable_interrupts();
-    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-     	g_curPCBCount --; //Decrement length of PCB chain
-        currentPCB = currentPCB->nextPCB;
-     	int err = 0;
-     	if ((err = pcb_destructor(walkPCB)) != 0){
-     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-     			printf("pcb_destructor error #%d \n", err);
-     		}
-     	}
-     	enable_interrupts();
-     }
-//     struct pcb *walkPCB = currentPCB;
-//          do{
-//        	     if (walkPCB->killPending == TRUE){
-//        	     	disable_interrupts();
-//        	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-//        	     	g_curPCBCount --; //Decrement length of PCB chain
-//        	        currentPCB = currentPCB->nextPCB;
-//        	     	int err = 0;
-//        	     	if ((err = pcb_destructor(walkPCB)) != 0){
-//        	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-//        	     			printf("pcb_destructor error #%d \n", err);
-//        	     		}
-//        	     	}
-//        	     	walkPCB = currentPCB;
-//        	     	enable_interrupts();
-//        	     }
-//              disable_interrupts();
-//               walkPCB = walkPCB->nextPCB;
-//               enable_interrupts();
-//
-//          }while (walkPCB->pid != currentPCB->pid);
+     struct pcb *walkPCB = currentPCB;
+          do{
+        	     if (walkPCB->killPending == TRUE){
+        	     	disable_interrupts();
+        	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+        	     	g_curPCBCount --; //Decrement length of PCB chain
+        	        currentPCB = currentPCB->nextPCB;
+        	     	int err = 0;
+        	     	if ((err = pcb_destructor(walkPCB)) != 0){
+        	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+        	     			printf("pcb_destructor error #%d \n", err);
+        	     		}
+        	     	}
+        	     	walkPCB = currentPCB;
+        	     	enable_interrupts();
+        	     }
+              disable_interrupts();
+               walkPCB = walkPCB->nextPCB;
+               enable_interrupts();
+
+          }while (walkPCB->pid != currentPCB->pid);
      /*during first quantum interrupt, do not save state.*/
      struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
      if (g_firstrun_flag != 0){

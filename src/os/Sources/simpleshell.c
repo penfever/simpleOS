@@ -1081,7 +1081,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
     	;
     	if(spawnFlag){
     		SVC_wake(SHELLPID);
-    	   yield();
+    	   //yield();
     	}
 	}
     else{
