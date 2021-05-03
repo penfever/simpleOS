@@ -205,25 +205,35 @@ int pcb_destructor(struct pcb* thisPCB){
 
      /*free process stack*/
      if ((err = myFreeErrorCode(thisPCB->procStackBase)) != 0){
-          return err;
+  		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+  			printf("pcb_destructor error #%d \n", err);
+  		}
      }
      /*free all argv and argc*/
      for (int i = 0; i < *(thisPCB->malArgc); i++){
           if (thisPCB->malArgv[i] != NULL){
                if ((err = myFreeErrorCode(thisPCB->malArgv[i])) != 0){
-                    return err;
+					if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+						printf("pcb_destructor error #%d \n", err);
+					}
                }
           }
      }
      if ((err = myFreeErrorCode(thisPCB->malArgv)) != 0){
-          return err;
+  		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+  			printf("pcb_destructor error #%d \n", err);
+  		}
      }
      if ((err = myFreeErrorCode(thisPCB->malArgc)) != 0){
-          return err;
+  		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+  			printf("pcb_destructor error #%d \n", err);
+  		}
      }
      /*free the pcb itself*/
      if ((err = myFreeErrorCode(thisPCB)) != 0){
-          return err;
+  		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+  			printf("pcb_destructor error #%d \n", err);
+  		}
      }
      return 0;
 }
@@ -334,7 +344,6 @@ void* rr_sched(void* sp){
         	     	disable_interrupts();
         	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
         	     	g_curPCBCount --; //Decrement length of PCB chain
-        	        currentPCB = currentPCB->nextPCB;
         	     	int err = 0;
         	     	if ((err = pcb_destructor(walkPCB)) != 0){
         	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
@@ -362,7 +371,7 @@ void* rr_sched(void* sp){
      else{
     	 g_firstrun_flag = 1;
      }
-     while (schedPCB->state != ready){
+     while (schedPCB->state == blocked){
           if (currentPid == schedPCB->pid){
         	  //if all processes are blocked, wait
         	  //wake(SHELLPID);
