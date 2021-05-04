@@ -461,7 +461,7 @@ int cmd_touch2led(int argc, char* argv[]){
 	int err;
 	uint8_t spawnFlag = FALSE;
 	if (argc != 1){
-		if (strncmp(argv[0], "spawn", 5) == 0){
+		if (strcmp(argv[0], "spawn") == 0){
 		  spawnFlag = TRUE;
 		}
 		else{
@@ -725,7 +725,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 int cmd_pb2led(int argc, char* argv[]){
 	uint8_t spawnFlag = FALSE;
 	if (argc != 1){
-		if (strncmp(argv[0], "spawn", 5) == 0){
+		if (strcmp(argv[0], "spawn") == 0){
 		  spawnFlag = TRUE;
 		}
 		else{
@@ -881,7 +881,7 @@ int cmd_flashled(int argc, char* argv[]){
   uint16_t delayCount;
   uint8_t spawnFlag = FALSE;
 	if (argc != 2){
-    if (strncmp(argv[0], "spawn", 5) == 0){
+    if (strcmp(argv[0], "spawn") == 0){
     	spawnFlag = TRUE;
 		delayCount = hex_dec_oct(argv[2]);
 		check_overflow(delayCount);
@@ -942,60 +942,51 @@ int cmd_spawn(int argc, char* argv[]){
   int err = 0;
   /*get pid for process to be spawned*/
   pid_t spawnPid;
-  spawnPid = get_next_free_pid();
-  /*CASE: touch2led*/
-  if (strncmp(argv[1], commands[20].name, strlen(commands[20].name)) != 0){
+  if (strcmp(argv[1], "touch2led") != 0){
     ;
   }
   else{
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[20].name, NEWPROC_DEF, &spawnPid};
-    err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnData);
-    //SVC_wait(shellPid);
+    struct spawnData thisSpawnData = {"touch2led", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_touch2led, argc, argv, &thisSpawnData);
     return err;
   }
-  /*CASE: pb2led*/
-  if (strncmp(argv[1], commands[23].name, strlen(commands[23].name)) != 0){
+  if (strcmp(argv[1], "pb2led") != 0){
     ;
   }
   else{
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[23].name, NEWPROC_DEF, &spawnPid};
-    err = SVC_spawn(commands[23].functionp, argc, argv, &thisSpawnData);
-    //SVC_wait(shellPid);
+    struct spawnData thisSpawnData = {"pb2led", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_pb2led, argc, argv, &thisSpawnData);
     return err;
   }
-  /*CASE: flashled*/
-  if (strncmp(argv[1], commands[26].name, strlen(commands[26].name)) != 0){
+  if (strcmp(argv[1], "flashled") != 0){
     ;
   }
   else{
 	  if (argc != 3){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &spawnPid};
-    err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
-    //SVC_wait(shellPid);
+    struct spawnData thisSpawnData = {"flashled", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_flashled, argc, argv, &thisSpawnData);
     return err;
   }
-  /*CASE: uartsendmsg*/
-  if (strncmp(argv[1], commands[32].name, strlen(commands[32].name)) != 0){
+  if (strcmp(argv[1], "uartsendmsg") != 0){
     ;
   }
   else{
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {commands[32].name, NEWPROC_DEF, &spawnPid};
-    err = SVC_spawn(commands[32].functionp, argc, argv, &thisSpawnData);
-    //SVC_wait(shellPid);
+    struct spawnData thisSpawnData = {"uartsendmsg", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_uartsendmsg, argc, argv, &thisSpawnData);
     return err;
   }
-  if (strncmp(argv[1], "twowait", 7) != 0){
+  if (strcmp(argv[1], "twowait") != 0){
     ;
   }
   else{
@@ -1008,16 +999,12 @@ int cmd_spawn(int argc, char* argv[]){
     SVC_wait(SHELLPID);
     return err;
   }
-  /*CASE: busywait*/
-  if (strncmp(argv[1], "busywait", 8) != 0){
+  if (strcmp(argv[1], "busywait") != 0){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[33].name, NEWPROC_DEF, &spawnPid};
-    err = SVC_spawn(commands[33].functionp, argc, argv, &thisSpawnData);
-//    struct spawnData thisSpawnDataAlso = {commands[33].name, NEWPROC_DEF, &shellPid};
-//    err = SVC_spawn(commands[33].functionp, argc, argv, &thisSpawnDataAlso);
-//    SVC_wait(SHELLPID);
+    struct spawnData thisSpawnData = {"busywait", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_busywait, argc, argv, &thisSpawnData);
     return err;
   }
   return E_NOINPUT;
@@ -1077,7 +1064,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
   file_descriptor uart;
   uint8_t spawnFlag = FALSE;
 	if (argc != 1){
-    if (strncmp(argv[0], "spawn", 5) == 0){
+    if (strcmp(argv[0], "spawn") == 0){
       spawnFlag = TRUE;
 		err = SVC_fopen(&uart, "dev_UART2", 'w');
 		if (err != 0){
@@ -1341,7 +1328,7 @@ int shell(void){
       if (MYFAT_DEBUG){
       	printf("%s compared to %s \n", argv[0], commands[i].name);
       }
-      if (strncmp(argv[0], commands[i].name, strlen(commands[i].name)) != 0){
+      if (strcmp(argv[0], commands[i].name) != 0){
         ;
       }
       else{

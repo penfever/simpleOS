@@ -317,7 +317,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 		else{
 			//there is a file -- perform search comparison and print attributes if needed
 			print_attr(dir_entry, search, i); 
-			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
+			int noMatch = (0 != strcmp((const char*) &dir_entry->DIR_Name, search));
 			if(!noMatch){
 				return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
 			}

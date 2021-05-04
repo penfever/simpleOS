@@ -36,7 +36,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      g_curPCBCount ++; //increment current PCB count
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
      spawnPCB = returnPCB;
-     returnPCB->pid = *(thisSpawnData->spawnedPidPtr);
+     returnPCB->pid = get_next_free_pid();
      /*Null out all openFiles memory (this avoids junk data causing file errors)*/
      for (int i = 0; i < MAXOPEN; i++){
     	 returnPCB->openFiles[i].clusterAddr = 0;
@@ -161,10 +161,10 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
 void set_kill(void){
 	kill(currentPCB->pid);
-	delay(QUANTUM); //?
-     //block();
-     //yield();
-     return;
+	while(TRUE){
+		;
+	}
+    return;
 }
 
 int kill(pid_t targetPid){
@@ -183,6 +183,7 @@ int kill(pid_t targetPid){
           }
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if kill cannot find targetPid
+     blockPid(targetPid);
      enable_interrupts();
 	return 0;
 }
@@ -295,7 +296,6 @@ int blockPid(pid_t targetPid){
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
      enable_interrupts();
-     yield();
 	return 0;
 }
 
@@ -339,29 +339,22 @@ void wait(pid_t targetPid){
 
 void* rr_sched(void* sp){
      uint32_t currentPid = currentPCB->pid;
-     /*check for kill pending on all processes*/
-     struct pcb *walkPCB = currentPCB;
-          do{
-        	     if (walkPCB->killPending == TRUE){
-        	     	disable_interrupts();
-        	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-        	     	g_curPCBCount --; //Decrement length of PCB chain
-        	     	int err = 0;
-        	     	if ((err = pcb_destructor(walkPCB)) != 0){
-        	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-        	     			printf("pcb_destructor error #%d \n", err);
-        	     		}
-        	     	}
-        	     	walkPCB = currentPCB;
-        	     	enable_interrupts();
-        	     }
-              disable_interrupts();
-              walkPCB = walkPCB->nextPCB;
-              enable_interrupts();
-
-          }while (walkPCB->pid != currentPCB->pid);
      /*during first quantum interrupt, do not save state.*/
      struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
+     if (schedPCB->killPending == TRUE){
+             	     	disable_interrupts();
+             	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+             	     	g_curPCBCount --; //Decrement length of PCB chain
+             	     	int err = 0;
+             	     	struct pcb *destroyPCB = schedPCB;
+                        schedPCB = schedPCB->nextPCB;
+             	     	if ((err = pcb_destructor(destroyPCB)) != 0){
+             	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+             	     			printf("pcb_destructor error #%d \n", err);
+             	     		}
+             	     	}
+             	     	enable_interrupts();
+     }
      if (g_firstrun_flag != 0){
           schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
           schedPCB->runTimeInSysticks ++; //TODO: fix this timer
@@ -369,6 +362,20 @@ void* rr_sched(void* sp){
               schedPCB->state = ready;
           }
           schedPCB = schedPCB->nextPCB;
+          if (schedPCB->killPending == TRUE){
+                  	     	disable_interrupts();
+                  	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+                  	     	g_curPCBCount --; //Decrement length of PCB chain
+                  	     	int err = 0;
+                  	     	struct pcb *destroyPCB = schedPCB;
+                             schedPCB = schedPCB->nextPCB;
+                  	     	if ((err = pcb_destructor(destroyPCB)) != 0){
+                  	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+                  	     			printf("pcb_destructor error #%d \n", err);
+                  	     		}
+                  	     	}
+                  	     	enable_interrupts();
+          }
      }
      else{
     	 g_firstrun_flag = 1;

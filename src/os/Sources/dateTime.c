@@ -106,7 +106,7 @@ struct date_time get_time(){
 
 uint8_t month_to_int(char* month){
   for (int i = 0; i < 12; ++i){
-    if (strncmp(allMonths[i].month, month, strlen(month)) != 0){
+    if (strcmp(allMonths[i].month, month) != 0){
       continue;
     }
     return i;

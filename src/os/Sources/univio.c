@@ -173,7 +173,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		if (strncmp(devTable[i].dev_name, filename, strlen(filename)) != 0){
+		if (strcmp(devTable[i].dev_name, filename) != 0){
 			continue;
 		}
 		else{
