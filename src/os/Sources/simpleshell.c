@@ -852,11 +852,23 @@ int cmd_catfile(int argc, char* argv[]){
   ^D (control-D) input character.
  * */
 int cmd_cat2file(int argc, char* argv[]){
+  uint8_t spawnFlag = FALSE;
 	if (argc != 2){
-		return E_NUMARGS;
+    if (strcmp(argv[0], "spawn") == 0){
+    	spawnFlag = TRUE;
+    }
+    else{
+		  return E_NUMARGS;
+    }
 	}
 	int err = 0;
-	char* filename = argv[1];
+  char* filename;
+  if (spawnFlag){
+    filename = argv[2];
+  }
+  else{
+	  filename = argv[1];
+  }
 	file_descriptor descr;
 	err = SVC_fopen(&descr, filename, 'w');
 	if (err != 0){
@@ -883,11 +895,11 @@ int cmd_flashled(int argc, char* argv[]){
 	if (argc != 2){
     if (strcmp(argv[0], "spawn") == 0){
     	spawnFlag = TRUE;
-		delayCount = hex_dec_oct(argv[2]);
-		check_overflow(delayCount);
+		  delayCount = hex_dec_oct(argv[2]);
+		  check_overflow(delayCount);
     }
     else{
-		return E_NUMARGS;
+		  return E_NUMARGS;
     }
 	}
   if (argc == 2){
@@ -975,6 +987,17 @@ int cmd_spawn(int argc, char* argv[]){
     err = SVC_spawn(cmd_flashled, argc, argv, &thisSpawnData);
     return err;
   }
+  if (strcmp(argv[1], "cat2file") != 0){
+    ;
+  }
+  else{
+	  if (argc != 3){
+	    return E_NUMARGS;
+	  }
+    struct spawnData thisSpawnData = {"cat2file", NEWPROC_DEF, &spawnPid};
+    err = SVC_spawn(cmd_cat2file, argc, argv, &thisSpawnData);
+    return err;
+  }
   if (strcmp(argv[1], "uartsendmsg") != 0){
     ;
   }
@@ -993,7 +1016,6 @@ int cmd_spawn(int argc, char* argv[]){
     struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &spawnPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
     pid_t spawnPidAlso;
-    spawnPidAlso = get_next_free_pid();
     struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_DEF, &spawnPidAlso};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnDataAlso);
     SVC_wait(SHELLPID);
@@ -1122,11 +1144,29 @@ int cmd_uartsendmsg(int argc, char* argv[]){
      command determines that that process has terminated, it will kill
      the other two processes.*/
 int cmd_multitask(int argc, char* argv[]){
-  //proc1: spawn cat2file
-  //proc2: spawn flashled
-  //proc3: 
-	//wait on process 1
-  //kill 2 and 3
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  //TODO: errcheck argvs
+  char* c2fArgv[1];
+  c2fArgv[0] = "cat2file";
+  c2fArgv[1] = argv[1];
+  pid_t c2fSpawnPid;
+  struct spawnData c2fSpawnData = {"cat2file", NEWPROC_DEF, &c2fSpawnPid};
+  err = SVC_spawn(cmd_cat2file, 2, c2fArgv, &usmSpawnData);
+  char* flsArgv[1];
+  flsArgv[0] = "flashled";
+  flsArgv[1] = "50";
+  pid_t flashLEDSpawnPid;
+  struct spawnData flsSpawnData = {"flashled", NEWPROC_DEF, &flashLEDSpawnPid};
+  err = SVC_spawn(cmd_flashled, 2, flsArgv, &usmSpawnData);
+  char* usmArgv[0] = "uartsendmsg";
+  pid_t usmSpawnPid;
+  struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_DEF, &usmSpawnPid};
+  err = SVC_spawn(cmd_uartsendmsg, 1, usmArgv, &usmSpawnData);
+  SVC_wait(&c2fSpawnPid);
+  SVC_kill(&flashLEDSpawnPid);
+  SVC_kill(&usmSpawnPid);
   return 0;
 }
 

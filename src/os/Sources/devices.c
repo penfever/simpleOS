@@ -109,10 +109,9 @@ int init_sys(){
 	/*SVC, pendSV interrupt priority, pid*/
 	svcInit_SetSVCPriority(15);
 	pendSVInit_SetpendSVPriority(14);
-	pid_t *shellPid = myMalloc(sizeof(pid_t*));
-	*shellPid = get_next_free_pid();
+	pid_t shellPid;
 	/*launch shell*/
-	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, shellPid};
+	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, &shellPid};
 	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
 	/*scheduler*/
 	systick_init();

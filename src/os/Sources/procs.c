@@ -314,11 +314,18 @@ int wake(pid_t targetPid){
 }
 
 /*Sets the currently running process to wait.*/
-/*TODO: Waiting ON another function*/
 void wait(pid_t targetPid){
-     /*block and yield*/
-     blockPid(targetPid);
-     yield();
+     struct pcb* walkPCB = currentPCB;
+     do{
+          if (walkPCB->pid == targetPid){
+               break;
+          }
+          walkPCB = walkPCB->nextPCB;
+     }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
+     while(walkPCB->killPending == FALSE){
+          yield();
+     }
+     return 0;
 }
 
 /*EXTRA CODE: checks for kill pending ONLY on current process*/
