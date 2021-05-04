@@ -664,7 +664,7 @@ int cmd_pot2ser(int argc, char* argv[]){
 	char* myOutput = SVC_malloc(16); //string output
   memset(myOutput, '\0', 16);
 	const unsigned long int delayCount = 0x7ffff;
-	while (SVC_fgetc(sw1, "a") != 1){
+	while (SVC_fgetc(sw1, "a") != SW1PRESSED){
 		delay(delayCount);
 		err = SVC_fgetc(pot, (char *)potVal);
 		if (err != 0){
@@ -703,7 +703,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
 	char c = 'a';
-	while (SVC_fgetc(sw1, &c) != 1){
+	while (SVC_fgetc(sw1, &c) != SW1PRESSED){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -767,8 +767,7 @@ int cmd_pb2led(int argc, char* argv[]){
 	}
 	const unsigned long int delayCount = 0x7ffff;
 	char* bufp = " ";
-	while (SVC_fgetc(sw2, 'a') != 3){
-		//delay(delayCount);
+	while (SVC_fgetc(sw2, 'a') != BOTHSWPRESSED){
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
@@ -929,7 +928,7 @@ int cmd_flashled(int argc, char* argv[]){
 		}
 		return err;
 	}
-  while(SVC_fgetc(sw1, "a") != 1){
+  while(SVC_fgetc(sw1, "a") != SW1PRESSED){
     if (g_timerExpired) {
       if (toggle){
     	char* bufp = " ";
@@ -1109,10 +1108,8 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 		}
 		return err;
 	}
-
-	char c;
   while (TRUE){
-    if (SVC_fgetc(sw2, &c) != 1){
+    if (SVC_fgetc(sw2, "a") != SW2PRESSED){
     	continue;
 	}
     else{
