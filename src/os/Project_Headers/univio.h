@@ -4,10 +4,10 @@
 #define UNIVIO_H_
 
 /*pushb_fgetc returns 1 if sw1 is pressed, 2 if sw2 is pressed, 3 if both are pressed, otherwise 0*/
-#define SW1PRESSED = 1
-#define SW2PRESSED = 2
-#define BOTHSWPRESSED = 3
-#define NOSWPRESSED = 0
+#define SW1PRESSED 1
+#define SW2PRESSED 2
+#define BOTHSWPRESSED 3
+#define NOSWPRESSED 0
 
 int myfopen (file_descriptor* descr, char* filename, char mode);
 

@@ -4,6 +4,9 @@
 #define _PROCS_H
 #define NEWPROC_DEF 100000
 
+#define KILLEDCURR 10
+#define KILLEDNEXT 11
+
 typedef uint32_t pid_t;
 
 extern uint32_t g_curPCBCount;

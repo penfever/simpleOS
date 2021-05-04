@@ -331,19 +331,24 @@ void wait(pid_t targetPid){
 
 void* rr_sched(void* sp){
   	 int err = 0;
-  	 
+  	 uint8_t killFlag = FALSE;
      /*Check whether one process, current or next, is waiting to be killed -- if so, destroys it.*/
      struct pcb *killPCB = NULL;
      if (currentPCB->killPending == TRUE){
-    	 killPCB = currentPCB;
-         currentPCB = currentPCB->nextPCB; //Avoids leaving currentPCB pointing to a "stranded" PCB
+          killFlag = KILLEDCURR;
+    	     killPCB = currentPCB;
+          currentPCB = currentPCB->nextPCB; //Avoids leaving currentPCB pointing to a "stranded" PCB
      }
      else if (currentPCB->nextPCB->killPending == TRUE){
-    	 killPCB = currentPCB->nextPCB;
+          killFlag = KILLEDNEXT;
+    	     killPCB = currentPCB->nextPCB;
      }
      if (killPCB != NULL){
-	     	disable_interrupts();
-	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+	     disable_interrupts();
+          if (killFlag == KILLEDCURR){
+	    	     g_firstrun_flag = 0; //we should not save state when killing current process
+          }
+          killFlag = FALSE;
 	     	g_curPCBCount --; //Decrement length of PCB chain
 	     	if ((err = pcb_destructor(killPCB)) != 0){
 	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){

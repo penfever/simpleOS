@@ -851,16 +851,22 @@ int cmd_catfile(int argc, char* argv[]){
   ^D (control-D) input character.
  * */
 int cmd_cat2file(int argc, char* argv[]){
+	int err = 0;
+  file_descriptor uart;
   uint8_t spawnFlag = FALSE;
 	if (argc != 2){
 		if (strcmp(argv[0], "spawn") == 0){
 			spawnFlag = TRUE;
+				err = SVC_fopen(&uart, "dev_UART2", 'w');
+				if (err != 0){
+					SVC_wake(SHELLPID);
+					return err;
+				}
 		}
     else{
 		  return E_NUMARGS;
     }
 	}
-	int err = 0;
   char* filename;
   if (spawnFlag){
     filename = argv[2];
@@ -871,15 +877,26 @@ int cmd_cat2file(int argc, char* argv[]){
 	file_descriptor descr;
 	err = SVC_fopen(&descr, filename, 'w');
 	if (err != 0){
+		if (spawnFlag){
+			SVC_wake(SHELLPID);
+		}
 		return err;
 	}
 	char c;
 	while(TRUE){
-	    SVC_fgetc(io_dev, &c);
+        if (spawnFlag){
+          SVC_fgetc(uart, &c);
+        }
+        else{
+    	  SVC_fgetc(io_dev, &c);
+        }
 	    if (c == EOT){
 	    	break;
 	    }
 		SVC_fputc(descr, c);
+	}
+	if (spawnFlag){
+		SVC_wake(SHELLPID);
 	}
 	return SVC_fclose(descr);
 }
@@ -928,7 +945,7 @@ int cmd_flashled(int argc, char* argv[]){
 		}
 		return err;
 	}
-  while(SVC_fgetc(sw1, "a") != SW1PRESSED){
+while(SVC_fgetc(sw1, "a") != SW1PRESSED){
     if (g_timerExpired) {
       if (toggle){
     	char* bufp = " ";
@@ -1089,9 +1106,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
       spawnFlag = TRUE;
 		err = SVC_fopen(&uart, "dev_UART2", 'w');
 		if (err != 0){
-			if (spawnFlag){
-				SVC_wake(SHELLPID);
-			}
+			SVC_wake(SHELLPID);
 			return err;
 		}
     }
@@ -1143,11 +1158,12 @@ int cmd_multitask(int argc, char* argv[]){
   }
   //TODO: errcheck argvs
   const char * c2fArgv[] = {
+		  "spawn",
 		  "cat2file",
 		  argv[1],
   };
   pid_t c2fSpawnPid;
-  uint8_t c2fArgc = 2;
+  uint8_t c2fArgc = 3;
   struct spawnData c2fSpawnData = {"cat2file", NEWPROC_DEF, &c2fSpawnPid};
   if ((err = SVC_spawn(cmd_cat2file, c2fArgc, c2fArgv, &c2fSpawnData)) != 0){
 	  return err;
