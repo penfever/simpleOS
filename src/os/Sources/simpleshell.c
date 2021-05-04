@@ -929,7 +929,7 @@ int cmd_flashled(int argc, char* argv[]){
 		}
 		return err;
 	}
-  while(!sw1In()){
+  while(SVC_fgetc(sw1, "a") != 1){
     if (g_timerExpired) {
       if (toggle){
     	char* bufp = " ";
@@ -1113,11 +1113,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
 	char c;
   while (TRUE){
     if (SVC_fgetc(sw2, &c) != 1){
-    	;
-    	if(spawnFlag){
-    		//SVC_wake(SHELLPID);
-    	   //yield();
-    	}
+    	continue;
 	}
     else{
         char* output = "sw2 has been pressed. \n";
@@ -1170,10 +1166,11 @@ int cmd_multitask(int argc, char* argv[]){
 	  return err;
   }
   const char * usmArgv[] = {
+		  "spawn",
 		  "uartsendmsg",
   };
   pid_t usmSpawnPid;
-  uint8_t usmArgc = 1;
+  uint8_t usmArgc = 2;
   struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_DEF, &usmSpawnPid};
   if ((err = SVC_spawn(cmd_uartsendmsg, usmArgc, usmArgv, &usmSpawnData)) != 0){
 	  return err;
