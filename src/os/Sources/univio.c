@@ -22,8 +22,9 @@
 #include "intSerialIO.h"
 #include "PDB.h"
 #include "flexTimer.h"
+#include "procs.h"
 
-static int pid = 0; //temporarily set everything to OS
+//static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
 
 /*Devices to support: pushbuttons, LEDs, FAT32*/
@@ -99,9 +100,12 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 //		struct stream userptr = currentPCB->openFiles[0]; 
 //		if (currentPCB->openFiles[0].minorId == dev_UART2){
 			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
+			if (userptr == NULL){
+				return E_FREE;
+			}
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
-			*fd = (file_descriptor *)userptr;
+			*fd = (file_descriptor)userptr;
 			intSerialIOInit();
 			return 0;
 //		}
@@ -127,22 +131,22 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	if (devicePtr >= PUSHB_MIN && devicePtr <= PUSHB_MAX){
 		userptr->deviceType = PUSHBUTTON;
 		pushbuttonInitAll();
-		if (UARTIO){
-			putsNLIntoBuffer("Pushbutton initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("Pushbutton initialized. \n");
 		}
 	}
 	else if (devicePtr >= LED_MIN && devicePtr <= LED_MAX){
 		userptr->deviceType = LED;
 		ledInitAll();
-		if (UARTIO){
-			putsNLIntoBuffer("LED initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("LED initialized. \n");
 		}
 	}
 	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
 		userptr->deviceType = ADC;
 		adc_init();
-		if (UARTIO){
-			putsNLIntoBuffer("ADC initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("ADC initialized. \n");
 		}
 	}
 	else if (devicePtr >= TSI_MIN && devicePtr <= TSI_MAX){
@@ -152,8 +156,8 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			TSI_Calibrate();
 			g_tsInit = TRUE;
 		}
-		if (UARTIO){
-			putsNLIntoBuffer("TSI initialized. \n");
+		if (MYFAT_DEBUG){
+			printf("TSI initialized. \n");
 		}
 	}
 	else{
@@ -163,13 +167,13 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		return E_DEV;
 	}
 	userptr->minorId = devicePtr; //This should macro to the correct minorId
-	*fd = (file_descriptor *)userptr; //device pointer becomes user pointer
+	*fd = (file_descriptor)userptr; //device pointer becomes user pointer
 	return 0;
 }
 
 file_descriptor check_dev_table(char* filename){
 	for (int i = 0; i < DEV; ++i){
-		if (strncmp(devTable[i].dev_name, filename, strlen(filename)) != 0){
+		if (strcmp(devTable[i].dev_name, filename) != 0){
 			continue;
 		}
 		else{
@@ -180,9 +184,6 @@ file_descriptor check_dev_table(char* filename){
 }
 
 int myfclose (file_descriptor descr){
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
@@ -212,9 +213,6 @@ int remove_device_from_PCB(file_descriptor fd){
  * Returns an error code if it encounters an error.  */
 int myfgetc (file_descriptor descr, char* bufp){
 	int err = 0;
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM;
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
@@ -291,24 +289,24 @@ int adc_fgetc(file_descriptor descr) {
 int pushb_fgetc(file_descriptor descr){
 	if (sw1In() && sw2In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw1, sw2 are pressed \n");
+			printf("Pushbutton sw1, sw2 are pressed \n");
 		}
 		return 3;
 	}
 	else if (sw1In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw1 is pressed \n");
+			printf("Pushbutton sw1 is pressed \n");
 		}
 		return 1;
 	}
 	else if (sw2In()){
 		if (MYFAT_DEBUG){
-			putsNLIntoBuffer("Pushbutton sw2 is pressed \n");
+			printf("Pushbutton sw2 is pressed \n");
 		}
 		return 2;
 	}
 	if (MYFAT_DEBUG){
-		putsNLIntoBuffer("Pushbutton sw1, sw2 are not pressed \n");
+		printf("Pushbutton sw1, sw2 are not pressed \n");
 	}
 	return 0;
 }
@@ -348,9 +346,6 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		return E_NOFS;
 	}
 	int err;
-	if (pid != currentPCB->pid){
-		return E_NOINPUT; //TODO: error checking
-	}
 	if (userptr->cursor + buflen >= userptr->fileSize){
 		return E_EOF;
 	}
@@ -364,9 +359,6 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 
 int myfputc (file_descriptor descr, char bufp){
 	int err = 0;
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM;
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
@@ -439,9 +431,6 @@ int led_fputc(file_descriptor descr){
 
 int myfputs (file_descriptor descr, char* bufp, int buflen){
 	int err = -1;
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_NOINPUT;
@@ -458,16 +447,14 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		}
 		err = file_putbuf(descr, &bufp, buflen);
 	}
-	if (err == 0 && UARTIO){
-		putsNLIntoBuffer("fputc success\r\n");
+	if (err == 0 && MYFAT_DEBUG){
+		printf("fputc success\r\n");
 	}
 	return err;
 }
 
 int mycreate(char* filename){
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM;
-	}
+	//TODO: no pid restrictions on delete and create. OK?
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
@@ -484,9 +471,7 @@ int mycreate(char* filename){
 }
 
 int mydelete(char* filename){
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM;
-	}
+	//TODO: no pid restrictions on delete and create. OK?
 	if (strncmp("dev_", filename, 4) != 0){ //if filename starts with dev_, reject
 		;
 	}
@@ -502,9 +487,6 @@ int mydelete(char* filename){
 }
 
 int myseek(file_descriptor descr, uint32_t pos){
-	if (pid != currentPCB->pid){
-		return E_FREE_PERM; //TODO: error checking
-	}
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE || userptr->deviceType != FAT32){
 		return E_UNFREE;
@@ -513,7 +495,7 @@ int myseek(file_descriptor descr, uint32_t pos){
 }
 
 int close_all_devices(void){
-	for (int i = 3; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
+	for (int i = 0; i < MAXOPEN; i++){ //0,1,2 reserved for stdin, stdout, stderr
 		currentPCB->openFiles[i].deviceType = UNUSED;
 	}
 	//stop any running timers

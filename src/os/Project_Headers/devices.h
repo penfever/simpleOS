@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "univio.h"
 
+/*General device handling*/
 #ifndef DEVICES_H_
 #define DEVICES_H_
 #define DEV 15
@@ -27,6 +28,7 @@
 #define UARTIO TRUE
 #endif
 
+/*ADC*/
 #define ADC_CHANNEL_POTENTIOMETER   	0x14
 #define ADC_CHANNEL_TEMPERATURE_SENSOR  0x1A
 
@@ -41,6 +43,13 @@
 
 #define ELECTRODE_COUNT 4
 #define THRESHOLD_OFFSET 0x200
+
+/*Systick*/
+#define CSRINIT 0x6F
+#define QUANTUM 6000000 //50ms default
+#define QUANTUM_INTERRUPT_PRIORITY 14
+
+extern uint32_t g_firstrun_flag;
 
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs
@@ -74,12 +83,6 @@ struct dev_id {
     char *dev_name;
 };
 
-struct pcb {
-    char* proc_name;
-    uint8_t pid;
-    struct stream openFiles[MAXOPEN];
-};
-
 enum minor_id{
 		dev_null = 0,
 		dev_sdhc = 0x99FF0000,
@@ -98,14 +101,12 @@ enum minor_id{
 		dev_TSI4 = 0x03EF0003
 };
 
-extern struct pcb* currentPCB;
-extern struct pcb op_sys;
 typedef struct dev_id dev_id_t;
 extern dev_id_t devTable[DEV];
 
 int uart_init(int baud);
 
-int init_clocks_sdram();
+int init_sys(void);
 
 void adc_init(void);
 
@@ -116,5 +117,13 @@ int electrode_in(int electrodeNumber);
 void TSI_Calibrate(void);
 
 void TSI_Init(void);
+
+void SysTickHandler(void);
+
+void systick_init(void);
+
+void systick_pause(void);
+
+void systick_resume(void);
 
 #endif

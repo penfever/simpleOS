@@ -40,6 +40,7 @@
 #include "uart.h"
 #include "nvic.h"
 #include "priv.h"
+#include "devices.h"
 
 /* The buffer to store characters input from serial port 2 */
 char serialPort2InputBuffer[SERIAL_PORT_2_INPUT_BUFFER_SIZE];
@@ -76,7 +77,7 @@ volatile int interruptNeitherTDREnorRDRFCount = 0;
 void interruptSerialPort2(void) {
 	uint32_t status;
 	char ch;
-	
+	systick_pause();
 	interruptCount++;
 
 	status = UART2_S1;
@@ -154,9 +155,9 @@ void interruptSerialPort2(void) {
                                        	   SERIAL_PORT_2_INPUT_BUFFER_SIZE;
 			serialPort2InputCharCount++;
 		}
-
 		/* If there is no room in the input buffer for this character; discard it */
 	}
+	systick_resume();
 }
 
 /*****************************************************************************/
@@ -184,18 +185,18 @@ char getcharFromBuffer(void) {
 	/* Guarantee the following operations are atomic */
 
     /* Disable interrupts (PRIMASK is set) */
-	__asm("cpsid i");
+	disable_interrupts();
 
 	while(serialPort2InputCharCount <= 0) {
     	/* No chars in the buffer; let's wait for at least one char to arrive */
 
 		/* Allows interrupts (PRIMASK is cleared) */
-		__asm("cpsie i");
+		enable_interrupts();
 
 		/* This is when an interrupt could occur */
 		
 		/* Disable interrupts (PRIMASK is set) */
-		__asm("cpsid i");
+		disable_interrupts();
     }
 
     /* A character should be in the buffer; remove the oldest one. */
@@ -205,7 +206,7 @@ char getcharFromBuffer(void) {
     serialPort2InputCharCount--;
 
     /* Allows interrupts (PRIMASK is cleared) */
-	__asm("cpsie i");
+	enable_interrupts();
 
 	return ch;
 }
@@ -233,18 +234,18 @@ void putcharIntoBuffer(char ch) {
 	/* Guarantee the following operations are atomic */
 
     /* Disable interrupts (PRIMASK is set) */
-	__asm("cpsid i");
+	disable_interrupts();
 
 	while(serialPort2OutputCharCount >= SERIAL_PORT_2_OUTPUT_BUFFER_SIZE) {
     	/* The buffer is full; let's wait for at least one char to be removed */
 
 	    /* Allows interrupts (PRIMASK is cleared) */
-		__asm("cpsie i");
+		enable_interrupts();
 
 		/* This is when an interrupt could occur */
 		
 		/* Disable interrupts (PRIMASK is set) */
-		__asm("cpsid i");
+		disable_interrupts();
 	}
 
 	/* There is room in the output buffer for another character */
@@ -259,7 +260,7 @@ void putcharIntoBuffer(char ch) {
 	UART2_C2 |= UART_C2_TIE_MASK;
 
 	/* Allows interrupts (PRIMASK is cleared) */
-	__asm("cpsie i");
+	enable_interrupts();
 }
 
 /*****************************************************************************/

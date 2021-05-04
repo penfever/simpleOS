@@ -11,6 +11,8 @@
 #include "intSerialIO.h"
 #include "sdram.h"
 #include "simpleshell.h"
+#include "procs.h"
+#include "svc.h"
 
 static int node_count = 0;
 
@@ -35,11 +37,6 @@ init_struct then fills in the correct values for 'free', 'size' and 'pid' for th
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
 	first = (struct mem_region*)SDRAM_START;
-//    if ((first = (struct mem_region*)malloc(MAX)) == NULL){
-//    	char* output = "K70 malloc fail \n";
-//    	uartPutsNL(UART2_BASE_PTR, output);
-//        return NULL;
-//    }
     g_lower_bound = SDRAM_START; //pointers to lower and upper memory bounds
     g_upper_bound = SDRAM_END;
     node_count += 1;
@@ -47,7 +44,6 @@ struct mem_region* init_struct(struct mem_region* first){
     first->size = MAX - MEMSTRUCT;
     first->pid = getCurrentPid();
     return first;
-    //subdivide memory
 }
 
 /* subdivide accepts as a parameter a struct representing a region of memory to be subdivided and a size in bytes to be 
@@ -108,12 +104,6 @@ void compact_next(struct mem_region* curr){ //CURR on REGION boundary
     }
 }
 
-/* You should implement an accessor function named getCurrentPID that returns the PID contained
-in the PCB of the current process (i.e., in the PCB pointed to by currentPCB). */
-uint8_t getCurrentPid(){
-    return currentPCB->pid;
-}
-
 /*walk_struct accepts as a parameter a struct representing a region of memory and returns the 
 address of the next struct in memory. If it walks past the end of the struct, it returns NULL
 and an error.*/
@@ -163,10 +153,7 @@ void memoryMap(void){
 }
 
 void walk_struct_err(){
-	if (UARTIO){
-		putsNLIntoBuffer("walk_struct error (check memory bounds)\n");
-	}
-	else if (MYFAT_DEBUG){
+	if (MYFAT_DEBUG){
 		printf("walk_struct error (check memory bounds)\n");
 	}
 	cmd_exit(1, NULL);
@@ -254,23 +241,28 @@ is the size in bytes of the storage needed by the caller.  The myMalloc
 function should allocate an appropriately sized region of memory and it 
 should return a pointer to (i.e., the address of) the first byte of that region. */
 void* myMalloc(unsigned int size){
+    disable_interrupts();
     void* return_ptr = NULL;
     if (size >= MAX - MEMSTRUCT || size <= 0){ //returns error if size is invalid
+        enable_interrupts();
         return NULL;
     }
     size = round_size(size);
     if (first == NULL){
         if ((first = init_struct(first)) == NULL){ //build initial struct
+            enable_interrupts();
             return NULL;
         }
     }
     return_ptr = first_fit(first, size);
     if (return_ptr == NULL){
+        enable_interrupts();
         return NULL;
     }
     else{
         return_ptr = subdivide((struct mem_region*)return_ptr, size);
     }
+    enable_interrupts();
     return return_ptr;
 }
 
@@ -278,17 +270,22 @@ void* myMalloc(unsigned int size){
 myFreeErrorCode returns an int to indicate success or failure of the
 storage deallocation request. */
 int myFreeErrorCode(void *ptr){
+    disable_interrupts();
 	struct mem_region* memPtr = (struct mem_region*)ptr - 1; //steps back from data region to mem-region
     int match_val = free_match(first, ptr);
     if (match_val == E_FREE){ //case: pointer not found in memory 
+        enable_interrupts();
         return E_FREE;
     }
     if (memPtr->pid != getCurrentPid()){ //case: PIDs do not match
+        enable_interrupts();
         return E_FREE_PERM;
     }
     else{
+        enable_interrupts();
         return 0; //success
     }
+    enable_interrupts();
     return E_FREE; //should never reach this point
 }
 

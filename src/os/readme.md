@@ -62,11 +62,7 @@ int SVC_free(void *ptr);
 
 int SVC_dir_ls(int full);
 
-The functions listed above described in detail in the next sections of this document.
-
-int SVC_ischar(file_descriptor descrf);
-
-This supervisor call is used to check whether a character is avaible on the UART -- if a file is not available, it implements a busy wait until one becomes available.
+The functions listed above are described in detail in the next sections of this document.
 
 All supervisor calls may be called as one would a normal C function. All supervisor calls except for SVC_malloc and SVC_free return error codes, and should be checked on return in case of error. SVC_malloc returns null in case of error.
 

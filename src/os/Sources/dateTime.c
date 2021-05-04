@@ -27,21 +27,20 @@ struct months allMonths[] = {{"January", 0, 31},
 
 int set_time(long long *newTime){
      /* Disable interrupts (PRIMASK is set) */
-     __asm("cpsid i");
+     disable_interrupts();
      curTime = *newTime;
      /* Allows interrupts (PRIMASK is cleared) */
-     __asm("cpsie i");
+     enable_interrupts();
      flexTimer0Init(1875);
      flexTimer0Start();
      return 0;
 }
 
+//NOTE: requires DI/EI because 64-bit integer
 void date_time_incr(){
-     /* Disable interrupts (PRIMASK is set) */
-     __asm("cpsid i");
-     curTime += 1;
-     /* Allows interrupts (PRIMASK is cleared) */
-     __asm("cpsie i");
+    disable_interrupts();
+     curTime += 1; //TODO: make unsigned
+     enable_interrupts();
 }
 
 struct date_time get_time(){
@@ -107,7 +106,7 @@ struct date_time get_time(){
 
 uint8_t month_to_int(char* month){
   for (int i = 0; i < 12; ++i){
-    if (strncmp(allMonths[i].month, month, strlen(month)) != 0){
+    if (strcmp(allMonths[i].month, month) != 0){
       continue;
     }
     return i;
@@ -161,13 +160,22 @@ int count_leap_years(int inputYear){
 	return count;
 }
 
+/*validates date setting*/
+void validate_date(char* string){
+	  if (check_digit(string[4]) != TRUE){
+		 string[4] = '0';
+	  }  
+}
+
 unsigned long long timestamp_to_ms(){
   char* comDate = __DATE__;
   char* comTime = __TIME__;
+  validate_date(comDate);
   unsigned long long returnTimeInSeconds = 0;
   unsigned int thisYear = ((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'));
   returnTimeInSeconds += ((thisYear-1980)*SECYEAR); //years
-  returnTimeInSeconds += count_leap_years(thisYear)*SECDAY;//adjust for leap years
+  unsigned int leapDiff = count_leap_years(thisYear);
+  returnTimeInSeconds = returnTimeInSeconds + (leapDiff*SECDAY);//adjust for leap years
   unsigned int thisMonth = (comDate[0] == 'J') ? ((comDate[1] == 'a') ? 0 : ((comDate[2] == 'n') ? 150 : 180))    // Jan, Jun or Jul
                                 : (comDate[0] == 'F') ? 30                                                              // Feb
                                 : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 119)                                 // Mar or May

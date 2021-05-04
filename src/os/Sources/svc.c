@@ -77,6 +77,7 @@
 #include "datetime.h"
 #include "uart.h"
 #include "pdb.h"
+#include "procs.h"
 
 #define XPSR_FRAME_ALIGNED_BIT 9
 #define XPSR_FRAME_ALIGNED_MASK (1<<XPSR_FRAME_ALIGNED_BIT)
@@ -113,6 +114,8 @@ struct frame {
 	int returnAddr;
 	int xPSR;
 };
+
+uint32_t g_interrupt_count;
 
 /* Issue the SVC (Supervisor Call) instruction (See A7.7.175 on page A7-503 of the
  * ARM�v7-M Architecture Reference Manual, ARM DDI 0403Derrata 2010_Q3 (ID100710)) */
@@ -285,6 +288,68 @@ int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
 	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
 }
 #endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+	__asm("svc %0" : : "I" (SVC_SPAWN));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+int __attribute__((never_inline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+	__asm("svc %0" : : "I" (SVC_SPAWN));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+void __attribute__((naked)) __attribute__((noinline)) SVC_yield(void) {
+	__asm("svc %0" : : "I" (SVC_YIELD));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#else
+void __attribute__((never_inline)) SVC_yield(void) {
+	__asm("svc %0" : : "I" (SVC_YIELD));
+}
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+void __attribute__((naked)) __attribute__((noinline)) SVC_block(void) {
+	__asm("svc %0" : : "I" (SVC_BLOCK));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_wake(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAKE));
+	__asm("bx lr");
+}
+#endif
+#pragma GCC diagnostic pop
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+int __attribute__((naked)) __attribute__((noinline)) SVC_kill(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_KILL));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wreturn-type"
+void __attribute__((naked)) __attribute__((noinline)) SVC_wait(pid_t targetPid) {
+	__asm("svc %0" : : "I" (SVC_WAIT));
+	__asm("bx lr");
+}
+#pragma GCC diagnostic pop
+#endif
 
 /* This function sets the priority at which the SVCall handler runs (See
  * B3.2.11, System Handler Priority Register 2, SHPR2 on page B3-723 of
@@ -317,6 +382,14 @@ void svcInit_SetSVCPriority(unsigned char priority) {
 
 	SCB_SHPR2 = (SCB_SHPR2 & ~SCB_SHPR2_PRI_11_MASK) |
 			SCB_SHPR2_PRI_11(priority << SVC_PriorityShift);
+}
+
+void pendSVInit_SetpendSVPriority(unsigned char priority) {
+	if(priority > SVC_MaxPriority)
+		return;
+
+	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |
+			SCB_SHPR3_PRI_14(priority << SVC_PriorityShift);
 }
 
 void svcHandlerInC(struct frame *framePtr);
@@ -463,6 +536,27 @@ void svcHandlerInC(struct frame *framePtr) {
 		case SVC_PDBONESHOT:
 			framePtr->returnVal = pdb0_one_shot_timer(framePtr->arg0);
 			break;
+		case SVC_SPAWN:
+			framePtr->returnVal = spawn(framePtr->arg0, framePtr->arg1, framePtr->arg2, framePtr->arg3);
+			break;
+		case SVC_YIELD:
+			yield();
+			framePtr->returnVal = NULL; //TODO: yield and block do not return a value. is this syntax OK?
+			break;
+		case SVC_BLOCK:
+			block();
+			framePtr->returnVal = NULL;
+			break;
+		case SVC_WAKE:
+			framePtr->returnVal = wake(framePtr->arg0);
+			break;
+		case SVC_KILL:
+			framePtr->returnVal = kill(framePtr->arg0);
+			break;
+		case SVC_WAIT:
+			wait(framePtr->arg0);
+			framePtr->returnVal = NULL;
+			break;
 		default:
 			if (MYFAT_DEBUG){
 				printf("Unknown SVC has been called\n");
@@ -470,5 +564,19 @@ void svcHandlerInC(struct frame *framePtr) {
 		}
 	if (MYFAT_DEBUG){
 		printf("Exiting svcHandlerInC\n");
+	}
+}
+
+/*Routines for safely enabling and disabling interrupts across the OS.*/
+void disable_interrupts(void){
+	__asm("cpsid i");
+	g_interrupt_count ++;
+}
+
+void enable_interrupts(void){
+	g_interrupt_count --;
+	if (g_interrupt_count == 0){
+		g_interrupt_count = 0;
+		__asm("cpsie i");
 	}
 }

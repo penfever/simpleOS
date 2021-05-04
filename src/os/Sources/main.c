@@ -13,47 +13,18 @@
 #include "svc.h"
 #include "priv.h"
 #include "intSerialIO.h"
+#include "delay.h"
 
-	int main(void){
+int main(void){
 	int error;
-	if ((error = init_clocks_sdram()) != 0){
+	if ((error = init_sys()) != 0){
 		if (MYFAT_DEBUG){
-			printf("sdram/MCG error \n");
+			printf("initialization error \n");
 		}
-		exit(-4);
+		return error;
 	}
-//	if (UARTIO){
-//		file_descriptor descr;
-//		if ((error = myfopen(&descr, "dev_UART2", 'w')) != 0){
-//			if (MYFAT_DEBUG){
-//				printf("UART initialization error \n");
-//			}
-//			exit(-4);
-//		}
-//	}
-    if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-        setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
-        setvbuf(stdout, NULL, _IONBF, 0);	
+    //main.c, after init. after calling spawn, main just enters an infinite loop. we never think of it again. It will never run again, we can forget it.
+    while (TRUE){
+        ;
     }
-    if ((error = file_structure_mount()) != 0 && MYFAT_DEBUG){
-    	printf("SDHC card could not be mounted. File commands unavailable. \n");
-    }
-    else if (MYFAT_DEBUG){
-    	printf("SDHC card mounted. \n");
-        g_noFS = FALSE;
-    }
-    else{
-        g_noFS = FALSE;
-    }
-    svcInit_SetSVCPriority(15);
-    //privUnprivileged();
-    int err = shell();
-    if (MYFAT_DEBUG){
-    	printf("Shell exits with code %d \n", err);
-    }
-	close_all_devices();   //TODO: turn off all LEDs?
-	if (!g_noFS){
-		file_structure_umount();
-	}
-	return err;
 }

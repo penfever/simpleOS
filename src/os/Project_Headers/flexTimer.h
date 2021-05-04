@@ -39,8 +39,8 @@
 
 /* IRQ for FTM0 is 62 */
 #define FTM0_IRQ_NUMBER 62
-/* Interrupt priority for FTM0 is 13 (range is 0 to 15) */
-#define FTM0_INTERRUPT_PRIORITY 13
+/* Interrupt priority for FTM0 is 10 (range is 0 to 15) */
+#define FTM0_INTERRUPT_PRIORITY 10
 
 /* Values for the FTM_SC_CLKS field in FTM0_SC */
 #define FTM_SC_CLKS_NO_CLOCK 0

@@ -22,6 +22,8 @@ extern void svcHandler(void); //handler for svc
 extern void interruptSerialPort2(void); //handler for UART2
 extern void flexTimer0Isr(void); //handler for flexTimer 0
 extern void PDB0Isr(void); //handler for pdb0
+extern void SysTickHandler(void); //handler for systick
+
 #if __cplusplus
 }
 #endif
@@ -58,7 +60,6 @@ void HardFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void MemManage_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void BusFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void UsageFault_Handler() __attribute__ ((weak, alias("Default_Handler")));
-//void SVC_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void DebugMonitor_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void PendSV_Handler() __attribute__ ((weak, alias("Default_Handler")));
 void SysTick_Handler() __attribute__ ((weak, alias("Default_Handler")));
@@ -81,9 +82,9 @@ void (* const InterruptVector[])() __attribute__ ((section(".vectortable"))) = {
   svcHandler,			/* Vector 11: SuperVisor Call (SVCall) */
   DebugMonitor_Handler,		/* Vector 12: Debug Monitor */
   0,				/* Vector 13 */
-  PendSV_Handler,		/* Vector 14: Pendable request for system
+  SysTickHandler,		/* Vector 14: Pendable request for system
 				   service (PendSV) */
-  SysTick_Handler,		/* Vector 15: System Tick Timer (SysTick) */
+  SysTickHandler,		/* Vector 15: System Tick Timer (SysTick) */
 
   /* Non-Core Vectors */
   Default_Handler,		/* Vector 16: DMA Chan 0, 16 Trnsfr Complete */

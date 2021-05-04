@@ -13,24 +13,16 @@
 #include "uart.h"
 #include "mcg.h"
 #include "sdram.h"
+#include "svc.h"
+#include "intSerialIO.h"
+#include "myerror.h"
+#include "simpleshell.h"
+#include "procs.h"
+#include "mymalloc.h"
+#include "priv.h"
 
-struct pcb* currentPCB;
-struct pcb op_sys;
-struct pcb op_sys = 
-{
-		"OS", //NAME
-		0, //PID
-		{ //NULL INIT STRUCT "STREAM" ARRAY
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0},
-				{0}
-		}
-};
+uint32_t g_firstrun_flag = 0;
+uint32_t g_pause_counter = 0;
 
 /* Note below that the counterRegister field is declared to be a pointer
  * to an unsigned 16-bit value that is the counter register for the
@@ -86,18 +78,45 @@ int uart_init(int baud){
 	return 0;
 }
 
-
-int init_clocks_sdram(){
+/*init_sys initializes all necessary devices for the system to run.*/
+int init_sys(){
+	int error = 0;
+	/*SDRAM and full clock speed*/
+		/* after this,
+	*  Core clock = 120 MHz
+	*  Bus (peripheral) clock = 60 MHz
+	*  FlexBus clock = 40 MHz
+	*  FLASH clock = 20 MHz
+	*  DDR clock = 150 MHz
+	*  MCGIRCLK (internal reference clock) is inactive */
 	mcgInit();
-	  /* So now,
-	   *  Core clock = 120 MHz
-	   *  Bus (peripheral) clock = 60 MHz
-	   *  FlexBus clock = 40 MHz
-	   *  FLASH clock = 20 MHz
-	   *  DDR clock = 150 MHz
-	   *  MCGIRCLK (internal reference clock) is inactive */
 	sdramInit();
-	return 0;
+	/*File IO and console IO*/
+	if (CONSOLEIO || MYFAT_DEBUG || MYFAT_DEBUG_LITE){
+        setvbuf(stdin, NULL, _IONBF, 0); //fix for consoleIO stdin and stdout
+        setvbuf(stdout, NULL, _IONBF, 0);	
+    }
+    if ((error = file_structure_mount()) != 0 && MYFAT_DEBUG){
+    	printf("SDHC card could not be mounted. File commands unavailable. \n");
+    }
+    else if (MYFAT_DEBUG){
+    	printf("SDHC card mounted. \n");
+        g_noFS = FALSE;
+    }
+    else{
+        g_noFS = FALSE;
+    }
+	/*SVC, pendSV interrupt priority, pid*/
+	svcInit_SetSVCPriority(15);
+	pendSVInit_SetpendSVPriority(14);
+	pid_t shellPid;
+	/*launch shell*/
+	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, &shellPid};
+	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
+	/*scheduler*/
+	systick_init();
+    privUnprivileged();
+	return error;
 }
 
 void adc_init(void) {
@@ -185,4 +204,100 @@ int electrode_in(int electrodeNumber) {
 	return oscCount > electrodeHW[electrodeNumber].threshold;
 }
 
+/*Systick interrupt handlers and routines*/
 
+void SysTickHandler(void){
+  uint32_t copyOfSP;
+
+  copyOfSP = 0;
+
+  /* The following assembly language will push registers r4 through r11 onto the stack */
+  __asm("push {r4,r5,r6,r7,r8,r9,r10,r11}");
+
+  /* The following assembly language will push the SVCALLACT and
+   * SVCALLPENDED bits onto the stack (See Application Note AN6:
+   * Interrupt handlers in general and the quantum interrupt handler
+   * in particular) */
+  __asm("ldr  r0, [%[shcsr]]"     "\n"
+	"mov  r1, %[active]"      "\n"
+	"orr  r1, r1, %[pended]"  "\n"
+	"and  r0, r0, r1"         "\n"
+	"push {r0}"
+	:
+	: [shcsr] "r" (&SCB_SHCSR),
+	  [active] "I" (SCB_SHCSR_SVCALLACT_MASK),
+	  [pended] "I" (SCB_SHCSR_SVCALLPENDED_MASK)
+	: "r0", "r1", "memory", "sp");
+
+  /* The following assembly language will put the current main SP
+   * value into the local, automatic variable 'copyOfSP' */
+  __asm("mrs %[mspDest],msp" : [mspDest]"=r"(copyOfSP));
+
+  if (MYFAT_DEBUG){
+	  printf("The current value of MSP is %08x\n", (unsigned int)copyOfSP);
+  }
+
+  /* Call the scheduler to find the saved SP of the next process to be
+   * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
+  copyOfSP = rr_sched(copyOfSP);
+
+  /* The following assembly language will write the value of the
+   * local, automatic variable 'copyOfSP' into the main SP */
+  __asm("msr msp,%[mspSource]" : : [mspSource]"r"(copyOfSP) : "sp");
+
+  /* The following assembly language will pop the SVCALLACT and
+   * SVCALLPENDED bits off the stack (and into their registers)*/
+  __asm("pop {r0}"               "\n"
+	"ldr r1, [%[shcsr]]"     "\n"
+	"bic r1, r1, %[active]"  "\n"
+	"bic r1, r1, %[pended]"  "\n"
+	"orr r0, r0, r1"         "\n"
+	"str r0, [%[shcsr]]"
+	:
+	: [shcsr] "r" (&SCB_SHCSR),
+	  [active] "I" (SCB_SHCSR_SVCALLACT_MASK),
+	  [pended] "I" (SCB_SHCSR_SVCALLPENDED_MASK)
+	: "r0", "r1", "sp", "memory");
+
+  /* The following assembly language will pop registers r4 through
+   * r11 off of the stack (and into their registers)*/
+  __asm("pop {r4,r5,r6,r7,r8,r9,r10,r11}");
+
+  return;
+}
+    //call scheduler
+//     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
+//     if (test1 != 0){
+//    	 //the systick was interrupted, handle accordingly
+//     }
+
+void systick_init(void){
+	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_15_MASK) |
+			SCB_SHPR3_PRI_15(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
+
+    SYST_RVR = QUANTUM;
+    SYST_CVR = 0;
+    SYST_CSR |= CSRINIT;
+    return;
+}
+
+/*Toggles systick resume. Note: atomic operation, because g_pause_counter is a semaphore.*
+Assign correct value with = operators. */
+void systick_resume(void){
+	disable_interrupts();
+	g_pause_counter --;
+	if (g_pause_counter > 0){
+	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
+	}
+	enable_interrupts();
+}
+
+/*Toggles systick pause. Note: atomic operation, because g_pause_counter is a semaphore.*/
+void systick_pause(void){
+	disable_interrupts();
+	g_pause_counter ++;
+	if (g_pause_counter == 1){
+	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
+	}
+	enable_interrupts();
+}
