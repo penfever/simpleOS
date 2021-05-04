@@ -37,6 +37,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));
      spawnPCB = returnPCB;
      returnPCB->pid = get_next_free_pid();
+     *(thisSpawnData->spawnedPidPtr) = returnPCB->pid; //pass copy of new pid back to caller
      /*Null out all openFiles memory (this avoids junk data causing file errors)*/
      for (int i = 0; i < MAXOPEN; i++){
     	 returnPCB->openFiles[i].clusterAddr = 0;
@@ -164,7 +165,6 @@ void set_kill(void){
 	while(TRUE){
 		;
 	}
-    return;
 }
 
 int kill(pid_t targetPid){
@@ -174,8 +174,9 @@ int kill(pid_t targetPid){
      disable_interrupts();
      struct pcb* walkPCB = currentPCB;
      do{
+    	  /*Wake the parent (shell)*/
           if (walkPCB->pid == SHELLPID && walkPCB->state == blocked){
-               wake(SHELLPID); //TODO: this only works if shell is parent, which it is for all currently extant processes
+               wake(SHELLPID); 
           }
           else if (walkPCB->pid == targetPid){
                walkPCB->killPending = TRUE;
@@ -268,12 +269,10 @@ void walk_pid_table_pid(pid_t maxPid){
      disable_interrupts();
      walkPCB = walkPCB->nextPCB;
      enable_interrupts();
-     while(curPid != walkPCB->pid){
           if (maxPid == walkPCB->pid){
                maxPid ++;
                walk_pid_table_pid(maxPid);
           }
-     }
      return;
 }
 
@@ -323,45 +322,40 @@ void wait(pid_t targetPid){
           walkPCB = walkPCB->nextPCB;
      }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
      while(walkPCB->killPending == FALSE){
-          yield();
+         yield();
      }
      return 0;
 }
 
-/*EXTRA CODE: checks for kill pending ONLY on current process*/
-//     if (currentPCB->killPending == TRUE){
-//    	struct pcb* walkPCB = currentPCB;
-//     	disable_interrupts();
-//    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-//     	g_curPCBCount --; //Decrement length of PCB chain
-//        currentPCB = currentPCB->nextPCB;
-//     	int err = 0;
-//     	if ((err = pcb_destructor(walkPCB)) != 0){
-//     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-//     			printf("pcb_destructor error #%d \n", err);
-//     		}
-//     	}
-//     	enable_interrupts();
-//     }
-
 void* rr_sched(void* sp){
-     uint32_t currentPid = currentPCB->pid;
-     /*during first quantum interrupt, do not save state.*/
-     struct pcb *schedPCB = currentPCB; //create a pointer to the global for us to work with
-     if (schedPCB->killPending == TRUE){
-             	     	disable_interrupts();
-             	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-             	     	g_curPCBCount --; //Decrement length of PCB chain
-             	     	int err = 0;
-             	     	struct pcb *destroyPCB = schedPCB;
-                        schedPCB = schedPCB->nextPCB;
-             	     	if ((err = pcb_destructor(destroyPCB)) != 0){
-             	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-             	     			printf("pcb_destructor error #%d \n", err);
-             	     		}
-             	     	}
-             	     	enable_interrupts();
+  	 int err = 0;
+  	 
+     /*Check whether one process, current or next, is waiting to be killed -- if so, destroys it.*/
+     struct pcb *killPCB = NULL;
+     if (currentPCB->killPending == TRUE){
+    	 killPCB = currentPCB;
+         currentPCB = currentPCB->nextPCB; //Avoids leaving currentPCB pointing to a "stranded" PCB
      }
+     else if (currentPCB->nextPCB->killPending == TRUE){
+    	 killPCB = currentPCB->nextPCB;
+     }
+     if (killPCB != NULL){
+	     	disable_interrupts();
+	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
+	     	g_curPCBCount --; //Decrement length of PCB chain
+	     	if ((err = pcb_destructor(killPCB)) != 0){
+	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
+	     			printf("pcb_destructor error #%d \n", err);
+	     		}
+	     	}
+	     	enable_interrupts();
+     }
+     
+     //create a pointer to the current process, and a copy of its pid
+     struct pcb *schedPCB = currentPCB; 
+     uint32_t currentPid = currentPCB->pid;
+     
+     /*g_firstrun_flag checks if it is the first quantum interrupt, does not save state if flag is true.*/
      if (g_firstrun_flag != 0){
           schedPCB->procStackCur = (uint32_t *)sp; //this saves process state
           schedPCB->runTimeInSysticks ++; //TODO: fix this timer
@@ -369,32 +363,19 @@ void* rr_sched(void* sp){
               schedPCB->state = ready;
           }
           schedPCB = schedPCB->nextPCB;
-          if (schedPCB->killPending == TRUE){
-                  	     	disable_interrupts();
-                  	    	g_firstrun_flag = 0; //we should not save state of a process we are killing
-                  	     	g_curPCBCount --; //Decrement length of PCB chain
-                  	     	int err = 0;
-                  	     	struct pcb *destroyPCB = schedPCB;
-                             schedPCB = schedPCB->nextPCB;
-                  	     	if ((err = pcb_destructor(destroyPCB)) != 0){
-                  	     		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-                  	     			printf("pcb_destructor error #%d \n", err);
-                  	     		}
-                  	     	}
-                  	     	enable_interrupts();
-          }
      }
      else{
     	 g_firstrun_flag = 1;
      }
+     
+     /*Check whether process is blocked. If so, skip it.*/
      while (schedPCB->state == blocked){
           if (currentPid == schedPCB->pid){
-        	  //if all processes are blocked, wait
-        	  //wake(SHELLPID);
-        	  delay(250);  
+        	  wake(SHELLPID); //if all processes are blocked, wake the shell
           }
           schedPCB = schedPCB->nextPCB;
      }
+     
      //convert next process scheduled to run to running state
      schedPCB->state = running;
      currentPCB = schedPCB;

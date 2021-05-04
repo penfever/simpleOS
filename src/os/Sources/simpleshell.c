@@ -1068,14 +1068,14 @@ int cmd_ps(int argc, char* argv[]){
     walkPCB = walkPCB->nextPCB;
     enable_interrupts();
   }
-  SVC_free(stateStrLoc);
+  //SVC_free(stateStrLoc); TODO:fix
   //Now that UART is again enabled, print contents of PS
   for (int i = 0; i < g_curPCBCount; i++){
     SVC_fputs(io_dev, malPS[i], strlen(malPS[i]));
-    SVC_free(malPS[i]);
+//    SVC_free(malPS[i]);
   }
   //free remaining pointers and return
-  SVC_free(malPS);  
+//  SVC_free(malPS);  
   return 0;
 }
 
@@ -1144,6 +1144,7 @@ int cmd_uartsendmsg(int argc, char* argv[]){
      command determines that that process has terminated, it will kill
      the other two processes.*/
 int cmd_multitask(int argc, char* argv[]){
+  int err;
   if (argc != 2){
     return E_NUMARGS;
   }
@@ -1153,14 +1154,14 @@ int cmd_multitask(int argc, char* argv[]){
   c2fArgv[1] = argv[1];
   pid_t c2fSpawnPid;
   struct spawnData c2fSpawnData = {"cat2file", NEWPROC_DEF, &c2fSpawnPid};
-  err = SVC_spawn(cmd_cat2file, 2, c2fArgv, &usmSpawnData);
+  err = SVC_spawn(cmd_cat2file, 2, c2fArgv, &c2fSpawnData);
   char* flsArgv[1];
   flsArgv[0] = "flashled";
   flsArgv[1] = "50";
   pid_t flashLEDSpawnPid;
   struct spawnData flsSpawnData = {"flashled", NEWPROC_DEF, &flashLEDSpawnPid};
-  err = SVC_spawn(cmd_flashled, 2, flsArgv, &usmSpawnData);
-  char* usmArgv[0] = "uartsendmsg";
+  err = SVC_spawn(cmd_flashled, 2, flsArgv, &flsSpawnData);
+  char* usmArgv = "uartsendmsg";
   pid_t usmSpawnPid;
   struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_DEF, &usmSpawnPid};
   err = SVC_spawn(cmd_uartsendmsg, 1, usmArgv, &usmSpawnData);
