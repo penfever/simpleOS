@@ -854,9 +854,9 @@ int cmd_catfile(int argc, char* argv[]){
 int cmd_cat2file(int argc, char* argv[]){
   uint8_t spawnFlag = FALSE;
 	if (argc != 2){
-    if (strcmp(argv[0], "spawn") == 0){
-    	spawnFlag = TRUE;
-    }
+		if (strcmp(argv[0], "spawn") == 0){
+			spawnFlag = TRUE;
+		}
     else{
 		  return E_NUMARGS;
     }
@@ -1149,25 +1149,40 @@ int cmd_multitask(int argc, char* argv[]){
     return E_NUMARGS;
   }
   //TODO: errcheck argvs
-  char* c2fArgv[1];
-  c2fArgv[0] = "cat2file";
-  c2fArgv[1] = argv[1];
+  const char * c2fArgv[] = {
+		  "cat2file",
+		  argv[1],
+  };
   pid_t c2fSpawnPid;
+  uint8_t c2fArgc = 2;
   struct spawnData c2fSpawnData = {"cat2file", NEWPROC_DEF, &c2fSpawnPid};
-  err = SVC_spawn(cmd_cat2file, 2, c2fArgv, &c2fSpawnData);
-  char* flsArgv[1];
-  flsArgv[0] = "flashled";
-  flsArgv[1] = "50";
+  if ((err = SVC_spawn(cmd_cat2file, c2fArgc, c2fArgv, &c2fSpawnData)) != 0){
+	  return err;
+  }
+  const char * flsArgv[] = {
+		  "flashled",
+		  "50",
+  };
   pid_t flashLEDSpawnPid;
+  uint8_t flsArgc = 2;
   struct spawnData flsSpawnData = {"flashled", NEWPROC_DEF, &flashLEDSpawnPid};
-  err = SVC_spawn(cmd_flashled, 2, flsArgv, &flsSpawnData);
-  char* usmArgv = "uartsendmsg";
+  if ((err = SVC_spawn(cmd_flashled, flsArgc, flsArgv, &flsSpawnData)) != 0){
+	  return err;
+  }
+  const char * usmArgv[] = {
+		  "uartsendmsg",
+  };
   pid_t usmSpawnPid;
+  uint8_t usmArgc = 1;
   struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_DEF, &usmSpawnPid};
-  err = SVC_spawn(cmd_uartsendmsg, 1, usmArgv, &usmSpawnData);
-  SVC_wait(&c2fSpawnPid);
-  SVC_kill(&flashLEDSpawnPid);
-  SVC_kill(&usmSpawnPid);
+  if ((err = SVC_spawn(cmd_uartsendmsg, usmArgc, usmArgv, &usmSpawnData)) != 0){
+	  return err;
+  }
+  SVC_block();
+  SVC_yield();
+  //SVC_wait(c2fSpawnPid);
+  SVC_kill(flashLEDSpawnPid);
+  SVC_kill(usmSpawnPid);
   return 0;
 }
 

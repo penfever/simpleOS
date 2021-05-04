@@ -83,8 +83,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      returnPCB->procStackCur = (uint32_t*)currAddr; //procStackCur now addresses TOP of memory, since stack grows down 
      /*malloc space for argc and argv, copy them, assign streams*/
      myfopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
-     returnPCB->malArgc = myMalloc(sizeof(uint32_t));
-     *(returnPCB->malArgc) = argc;
+     returnPCB->malArgc = argc;
      if (argv == NULL){
     	 returnPCB->malArgv = NULL;
      }
@@ -213,7 +212,7 @@ int pcb_destructor(struct pcb* thisPCB){
   		}
      }
      /*free all argv and argc*/
-     for (int i = 0; i < *(thisPCB->malArgc); i++){
+     for (int i = 0; i < thisPCB->malArgc; i++){
           if (thisPCB->malArgv[i] != NULL){
                if ((err = myFreeErrorCode(thisPCB->malArgv[i])) != 0){
 					if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
@@ -223,11 +222,6 @@ int pcb_destructor(struct pcb* thisPCB){
           }
      }
      if ((err = myFreeErrorCode(thisPCB->malArgv)) != 0){
-  		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
-  			printf("pcb_destructor error #%d \n", err);
-  		}
-     }
-     if ((err = myFreeErrorCode(thisPCB->malArgc)) != 0){
   		if (MYFAT_DEBUG_LITE || MYFAT_DEBUG){
   			printf("pcb_destructor error #%d \n", err);
   		}
@@ -314,17 +308,25 @@ int wake(pid_t targetPid){
 
 /*Sets the currently running process to wait.*/
 void wait(pid_t targetPid){
+	/*Create a new pcb struct for the purposes of walking the linked list.*/
      struct pcb* walkPCB = currentPCB;
+     uint8_t found = FALSE;
      do{
           if (walkPCB->pid == targetPid){
-               break;
+               found = TRUE;
           }
-          walkPCB = walkPCB->nextPCB;
-     }while (currentPCB->pid != walkPCB->pid); //TODO: as currently written, this does not send an error if wake cannot find targetPid
+          else{
+              walkPCB = walkPCB->nextPCB;
+              /*If we have come full circle, breakpoint*/
+              if (currentPCB->pid == walkPCB->pid){
+            	  __BKPT();
+              }
+          }
+     }while (!found);
      while(walkPCB->killPending == FALSE){
-         yield();
+         block();
      }
-     return 0;
+     return;
 }
 
 void* rr_sched(void* sp){
@@ -348,9 +350,9 @@ void* rr_sched(void* sp){
 	     			printf("pcb_destructor error #%d \n", err);
 	     		}
 	     	}
+	     	killPCB = NULL;
 	     	enable_interrupts();
      }
-     
      //create a pointer to the current process, and a copy of its pid
      struct pcb *schedPCB = currentPCB; 
      uint32_t currentPid = currentPCB->pid;
@@ -370,9 +372,9 @@ void* rr_sched(void* sp){
      
      /*Check whether process is blocked. If so, skip it.*/
      while (schedPCB->state == blocked){
-          if (currentPid == schedPCB->pid){
-        	  wake(SHELLPID); //if all processes are blocked, wake the shell
-          }
+//          if (currentPid == schedPCB->pid){
+//        	  wake(SHELLPID); //if all processes are blocked, wake the shell
+//          }
           schedPCB = schedPCB->nextPCB;
      }
      

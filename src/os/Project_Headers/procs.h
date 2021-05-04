@@ -48,7 +48,7 @@ struct pcb {
      struct pcb* nextPCB;
      /*data owned by this process*/
      struct stream openFiles[MAXOPEN];
-     uint32_t* malArgc;
+     uint32_t malArgc;
      char** malArgv;
 };
 

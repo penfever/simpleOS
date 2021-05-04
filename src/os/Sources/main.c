@@ -15,7 +15,7 @@
 #include "intSerialIO.h"
 #include "delay.h"
 
-	int main(void){
+int main(void){
 	int error;
 	if ((error = init_sys()) != 0){
 		if (MYFAT_DEBUG){
