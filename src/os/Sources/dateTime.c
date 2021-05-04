@@ -160,13 +160,22 @@ int count_leap_years(int inputYear){
 	return count;
 }
 
+/*validates date setting*/
+void validate_date(char* string){
+	  if (check_digit(string[4]) != TRUE){
+		 string[4] = '0';
+	  }  
+}
+
 unsigned long long timestamp_to_ms(){
   char* comDate = __DATE__;
   char* comTime = __TIME__;
+  validate_date(comDate);
   unsigned long long returnTimeInSeconds = 0;
   unsigned int thisYear = ((comDate[7]-'0') * 1000 + (comDate[8]-'0') * 100 + (comDate[9]-'0') * 10 + (comDate[10]-'0'));
   returnTimeInSeconds += ((thisYear-1980)*SECYEAR); //years
-  returnTimeInSeconds += count_leap_years(thisYear)*SECDAY;//adjust for leap years
+  unsigned int leapDiff = count_leap_years(thisYear);
+  returnTimeInSeconds = returnTimeInSeconds + (leapDiff*SECDAY);//adjust for leap years
   unsigned int thisMonth = (comDate[0] == 'J') ? ((comDate[1] == 'a') ? 0 : ((comDate[2] == 'n') ? 150 : 180))    // Jan, Jun or Jul
                                 : (comDate[0] == 'F') ? 30                                                              // Feb
                                 : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 119)                                 // Mar or May

@@ -17,6 +17,7 @@
 #define SHELLPID 1
 #define NULLCHAR '\0'
 #define HELPBLOCK "Welcome to the simple shell! \r\n"\
+                  "For additional details on command syntax and implementation, please check the readme.md on Github \r\n"\
                   "Here are a few commands you can try: \r\n"\
                   "exit will exit this shell. \r\n"\
                   "help will show you a list of commands and how they work. \r\n"\
@@ -27,18 +28,27 @@
                   "memset sets an allocated memory region to a value. \r\n"\
                   "memchk checks that an allocated memory region is set to a value. \r\n"\
                   "memorymap prints a map of all allocated memory. \r\n"\
+                  "malfree performs 100 semi-random allocations and frees of memory in order to test memory integrity. \r\n"\
                   "fopen opens a file or device. \r\n"\
                   "fclose closes a file or device. \r\n"\
                   "fgetc and fgets retrieve characters or strings from a file or device. \r\n"\
                   "fputc and fputs send characters or strings to a file or device. \r\n"\
-                  "fseek sets the file cursor to a particular position in a file. \r\n"\
+                  "create and delete create and delete files on the MicroSD card. \r\n"\
+                  "ls 0 lists the current directory contents. ls 1 lists the current directory contents with all attributes. \r\n"\
+                  "seek sets the file cursor to a particular position in a file. \r\n"\
                   "touch2led activates the LEDs based on whether you are touching their corresponding touch sensor. touch all 4 to exit. \r\n"\
                   "pot2ser continuously outputs the potentiometer value to STDOUT \r\n"\
-				  "therm2ser continuously outputs the thermistor value to STDOUT \r\n"\
-				  "pb2LED toggles LEDs based on inputs from pushbuttons \r\n"\
-				  "catfile prints the contents of a file to STDOUT \r\n"\
-				  "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"\
-          "flashled flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals) \r\n"
+				          "therm2ser continuously outputs the thermistor value to STDOUT \r\n"\
+				          "pb2LED toggles LEDs based on inputs from pushbuttons \r\n"\
+				          "catfile prints the contents of a file to STDOUT \r\n"\
+				          "cat2file copies characters from serial input to the specified <file> in the root directory \r\n"\
+                  "spawn creates a new background process and returns to the shell prompt. The following commands support spawn: flashled, touch2led, cat2file, pb2led, busywait, uartsendmsg\r\n"\
+                  "kill kills a target process, with the target indicated by its pid number \r\n"\
+                  "ps lists all processes currently running on the OS, including their pids and current uptime \r\n"\
+                  "uartsendmsg sends a message whenever pushbutton 2 is depressed \r\n"\
+                  "busywait loops forever and does nothing \r\n"\
+                  "multitask spawns cat2file, flashled and uartsendmsg. Terminate with ctrl+D \r\n"\
+                  "flashled flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals) \r\n"
 				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
 #define NUMESCAPES (int)(sizeof(escapechars)/sizeof(escapechars[0]))

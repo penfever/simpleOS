@@ -72,7 +72,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
     	 enable_interrupts();
          return E_CMD_NOT_FOUND;
      }
-     //TODO: size of stack should be rounded up to mult of 8
+     thisSpawnData->stackSize = round_size(thisSpawnData->stackSize);
      returnPCB->state = ready;
      returnPCB->stackSize = thisSpawnData->stackSize;
      returnPCB->killPending = FALSE;

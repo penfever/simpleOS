@@ -287,7 +287,7 @@ void systick_resume(void){
 	disable_interrupts();
 	g_pause_counter --;
 	if (g_pause_counter > 0){
-	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
+	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
 	}
 	enable_interrupts();
 }
@@ -297,7 +297,7 @@ void systick_pause(void){
 	disable_interrupts();
 	g_pause_counter ++;
 	if (g_pause_counter == 1){
-	    SYST_CSR |= SysTick_CSR_ENABLE_MASK;
+	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
 	}
 	enable_interrupts();
 }
