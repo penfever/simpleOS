@@ -118,7 +118,7 @@ void TSI_Calibrate(void);
 
 void TSI_Init(void);
 
-int SysTickHandler(void);
+void SysTickHandler(void);
 
 void systick_init(void);
 

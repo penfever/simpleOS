@@ -36,11 +36,10 @@ int set_time(long long *newTime){
      return 0;
 }
 
+//NOTE: requires DI/EI because 64-bit integer
 void date_time_incr(){
-     /* Disable interrupts (PRIMASK is set) */
-     disable_interrupts();
-     curTime += 1;
-     /* Allows interrupts (PRIMASK is cleared) */
+    disable_interrupts();
+     curTime += 1; //TODO: make unsigned
      enable_interrupts();
 }
 

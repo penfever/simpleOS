@@ -68,34 +68,35 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
      returnPCB->procName = thisSpawnData->procName;
      if (returnPCB->procName == NULL){
-          return E_CMD_NOT_FOUND;
+    	 enable_interrupts();
+         return E_CMD_NOT_FOUND;
      }
+     //TODO: size of stack should be rounded up to mult of 8
      returnPCB->state = ready;
      returnPCB->stackSize = thisSpawnData->stackSize;
      returnPCB->killPending = FALSE;
      returnPCB->runTimeInSysticks = 0;
      returnPCB->procStackBase = (uint32_t*)myMalloc(returnPCB->stackSize); //TODO: switch to pcb_malloc. pointer to base of memory. This will never change. We use this address to free the memory later.
      uint32_t currAddr = (uint32_t)(returnPCB->procStackBase); //Copy pointer address to avoid changing procStackBase when procStackCur changes
-     currAddr += returnPCB->stackSize - 4; //Moves "pointer" 99996 bytes
+     currAddr += returnPCB->stackSize - 4; //Moves "pointer" stacksize - 4 bytes
      returnPCB->procStackCur = (uint32_t*)currAddr; //procStackCur now addresses TOP of memory, since stack grows down 
      /*malloc space for argc and argv, copy them, assign streams*/
      myfopen(&io_dev, "dev_UART2", 'w'); //open stdin/stdout device
      returnPCB->malArgc = myMalloc(sizeof(uint32_t));
      *(returnPCB->malArgc) = argc;
-     returnPCB->malArgv = (char **)myMalloc((argc + 1) * sizeof(char *)); 
      if (argv == NULL){
     	 returnPCB->malArgv = NULL;
      }
      else {
+          returnPCB->malArgv = (char **)myMalloc((argc + 1) * sizeof(char *)); 
           for (int i = 0; i < argc; i++){
                int argSize = strlen(argv[i]);
                returnPCB->malArgv[i] = (char*)myMalloc(argSize+1);
                strcpy(returnPCB->malArgv[i], argv[i]);
-               returnPCB->malArgv[i][argSize] = '\0';
           }
      }
      /*Manipulate stack to resemble systick interrupt.*/
-     returnPCB->procStackCur -= 23;
+     returnPCB->procStackCur -= 22; //TODO: WAS 23
      //Assuming procStackCur points to a valid word, and we don't need the reserved word, we jump down 23 words in memory and build up from there
      //currAddr = (uint32_t)returnPCB->procStackCur;
      *(returnPCB->procStackCur++) = 0; //Word with SVCALLACT & SVCALLPENDED bits
@@ -141,12 +142,12 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
      *(returnPCB->procStackCur++) = 12; //R12
      
      *(returnPCB->procStackCur++) = (uint32_t)set_kill; //LR (R14) is where you will go if the program you invoke returns. This code sends to the function pcb_destructor
-     if (returnPCB->pid == SHELLPID){
-         *(returnPCB->procStackCur++) = (uint32_t)shell; //if PID is 1, shell goes here
-     }
-     else{
-         *(returnPCB->procStackCur++) = (uint32_t)main; //otherwise, cmd goes here
-     }
+//     if (returnPCB->pid == SHELLPID){
+//         *(returnPCB->procStackCur++) = (uint32_t)shell; //if PID is 1, shell goes here
+//     }
+//     else{
+     *(returnPCB->procStackCur++) = (uint32_t)main; //otherwise, cmd goes here
+//     }
      *(returnPCB->procStackCur) = 0x01000000; /* xPSR , "bottom" of stack 
      IN BINARY
      00000001000000000000000000000000
@@ -160,7 +161,7 @@ int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawn
 
 void set_kill(void){
 	kill(currentPCB->pid);
-	delay(QUANTUM);
+	delay(QUANTUM); //?
      //block();
      //yield();
      return;
@@ -313,6 +314,7 @@ int wake(pid_t targetPid){
 }
 
 /*Sets the currently running process to wait.*/
+/*TODO: Waiting ON another function*/
 void wait(pid_t targetPid){
      /*block and yield*/
      blockPid(targetPid);

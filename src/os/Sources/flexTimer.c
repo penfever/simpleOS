@@ -109,7 +109,7 @@ void flexTimer0Init(uint16_t count) {
    * Select no clock (disable), Prescaler to divide by 128 */
   FTM0_SC = FTM_SC_TOIE_MASK |
     FTM_SC_CLKS(FTM_SC_CLKS_NO_CLOCK) |
-    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_128);
+    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_32);
 
   /* Set the initial counter value (16-bit value) in the counter initial
    * value register */
@@ -144,7 +144,7 @@ void flexTimer0Stop(void) {
    * Select no clock (disable), Prescaler to divide by 128 */
   FTM0_SC = FTM_SC_TOIE_MASK |
     FTM_SC_CLKS(FTM_SC_CLKS_NO_CLOCK) |
-    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_128);
+    FTM_SC_PS(FTM_SC_PS_DIVIDE_BY_32);
 }
 
 /**

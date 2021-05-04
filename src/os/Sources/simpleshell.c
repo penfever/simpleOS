@@ -1008,6 +1008,7 @@ int cmd_spawn(int argc, char* argv[]){
     SVC_wait(SHELLPID);
     return err;
   }
+  /*CASE: busywait*/
   if (strncmp(argv[1], "busywait", 8) != 0){
     ;
   }
@@ -1058,7 +1059,7 @@ int cmd_ps(int argc, char* argv[]){
     walkPCB = walkPCB->nextPCB;
     enable_interrupts();
   }
-  SVC_free(stateStr);
+  SVC_free(stateStrLoc);
   //Now that UART is again enabled, print contents of PS
   for (int i = 0; i < g_curPCBCount; i++){
     SVC_fputs(io_dev, malPS[i], strlen(malPS[i]));

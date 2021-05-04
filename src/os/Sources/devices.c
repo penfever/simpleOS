@@ -207,7 +207,7 @@ int electrode_in(int electrodeNumber) {
 
 /*Systick interrupt handlers and routines*/
 
-int SysTickHandler(void){
+void SysTickHandler(void){
   uint32_t copyOfSP;
 
   copyOfSP = 0;
@@ -264,7 +264,7 @@ int SysTickHandler(void){
    * r11 off of the stack (and into their registers)*/
   __asm("pop {r4,r5,r6,r7,r8,r9,r10,r11}");
 
-  return 0;
+  return;
 }
     //call scheduler
 //     int countflag_test = (SYST_CSR & ~SysTick_CSR_COUNTFLAG_MASK) >> SysTick_CSR_COUNTFLAG_SHIFT;
@@ -273,8 +273,8 @@ int SysTickHandler(void){
 //     }
 
 void systick_init(void){
-	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_14_MASK) |
-			SCB_SHPR3_PRI_14(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
+	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_15_MASK) |
+			SCB_SHPR3_PRI_15(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
 
     SYST_RVR = QUANTUM;
     SYST_CVR = 0;
@@ -282,7 +282,8 @@ void systick_init(void){
     return;
 }
 
-/*Toggles systick resume. Note: atomic operation, because g_pause_counter is a semaphore.*/
+/*Toggles systick resume. Note: atomic operation, because g_pause_counter is a semaphore.*
+Assign correct value with = operators. */
 void systick_resume(void){
 	disable_interrupts();
 	g_pause_counter --;
