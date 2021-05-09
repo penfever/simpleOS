@@ -208,6 +208,7 @@ int free_match(struct mem_region* temp, void* ptr){ //PTR is on data boundary. T
         if (ptr == (void*)temp->data){ // is ptr identical to this address? DATA to DATA comparison
             if (temp->free == FALSE){ // throws error on attempt to free an already freed region
                 temp->free = TRUE;
+                temp->pid = SHELLPID; //all free memory should be owned by shell
                 if (i == 0){ //if at first block, check ahead only
                     compact_next(temp);
                 }
@@ -294,6 +295,6 @@ only parameter and not returning anything. The "ptr" parameter is a pointer
 to a region of memory previously allocated by the myMalloc function.  
 The myFree function deallocates the entire region of memory pointed to by the parameter. */
 void myFree(void *ptr){
-    myFreeErrorCode(ptr); //calls myFreeErrorCode and ignores return value
+    int err = myFreeErrorCode(ptr); //calls myFreeErrorCode and ignores return value
     return;
 }
