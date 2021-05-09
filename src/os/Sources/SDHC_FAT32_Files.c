@@ -29,10 +29,10 @@ struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
 uint32_t latestSector; //records sector number of most recent dir_entry
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cached = NULL; //records an unused dir_entry
-static int g_unusedSeek = FALSE;
 struct dir_entry_8_3 *cwd = NULL;
 /*Special flags used for read/write operations. These control cache behavior.
 NOTE: Cache behavior is triggered in a side-effect of file search.*/
+static int g_unusedSeek = FALSE;
 static int g_deleteFlag = FALSE;
 static int g_readFlag = FALSE;
 static int g_printAll = FALSE;
@@ -478,9 +478,6 @@ int dir_create_file(char *filename){
 	if (dir_find_file(filename, &myCluster) == 0){
 		return E_SEARCH;
 	}
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
-    	return E_IO;
-    }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
