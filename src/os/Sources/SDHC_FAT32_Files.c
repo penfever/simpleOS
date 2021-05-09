@@ -267,6 +267,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
     	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
     		//we've reached the end of the directory
+    		if(MYFAT_DEBUG_LITE){
+    			printf("last and unused found \n");
+    		}
     		if (search != NULL){
     			return E_SEARCH; //file not found
     		}
