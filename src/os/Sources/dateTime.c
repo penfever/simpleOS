@@ -178,7 +178,7 @@ unsigned long long timestamp_to_ms(){
   returnTimeInSeconds = returnTimeInSeconds + (leapDiff*SECDAY);//adjust for leap years
   unsigned int thisMonth = (comDate[0] == 'J') ? ((comDate[1] == 'a') ? 0 : ((comDate[2] == 'n') ? 150 : 180))    // Jan, Jun or Jul
                                 : (comDate[0] == 'F') ? 30                                                              // Feb
-                                : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 119)                                 // Mar or May
+                                : (comDate[0] == 'M') ? ((comDate[2] == 'r') ? 59 : 120)                                 // Mar or May
                                 : (comDate[0] == 'A') ? ((comDate[1] == 'p') ? 90 : 211)                                 // Apr or Aug
                                 : (comDate[0] == 'S') ? 242                                                              // Sep
                                 : (comDate[0] == 'O') ? 272                                                             // Oct
@@ -186,7 +186,7 @@ unsigned long long timestamp_to_ms(){
                                 : (comDate[0] == 'D') ? 333                                                             // Dec
                                 : 0;
   returnTimeInSeconds += thisMonth * SECDAY; //months
-  returnTimeInSeconds += ((10*(comDate[4]-'0')+(comDate[5]-'0'))-1)*SECDAY; //days, -1 because it starts on the first
+  returnTimeInSeconds += ((10*(comDate[4]-'0')+(comDate[5]-'0'-1)))*SECDAY; //days
   returnTimeInSeconds += (10*(comTime[6]-'0')+(comTime[7]-'0')); //seconds
   returnTimeInSeconds += (10*(comTime[3]-'0')+(comTime[4]-'0'))*60; //minutes
   returnTimeInSeconds += (10*(comTime[0]-'0')+(comTime[1]-'0'))*SECHOUR; //hours

@@ -1081,7 +1081,7 @@ int cmd_ps(int argc, char* argv[]){
     char output[64] = {'\0'};
     sprintf(output, "PID %d process name is %s, state is %s, running time is %d. \n", (int)walkPCB->pid, walkPCB->procName, &stateStrLoc[0], (int)walkPCB->runTimeInSysticks);
     localPCBCount ++;
-    disable_interrupts();
+    disable_interrupts(); //TODO: SVC_walkPCB
     walkPCB = walkPCB->nextPCB;
     enable_interrupts();
     SVC_fputs(io_dev, output, strlen(output));

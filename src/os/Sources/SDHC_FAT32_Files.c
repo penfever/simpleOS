@@ -317,7 +317,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 		else{
 			//there is a file -- perform search comparison and print attributes if needed
 			print_attr(dir_entry, search, i); 
-			int noMatch = (0 != strcmp((const char*) &dir_entry->DIR_Name, search));
+			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 			if(!noMatch){
 				return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
 			}
@@ -341,13 +341,10 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 			return err;
 		}
 	}
-	if(MYFAT_DEBUG){
+	if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		char output[64] = {'\0'};
 		sprintf(output, "Sector %d, entry %d is a match \n", logicalSector, i);
 		printf(output);
-	}
-	else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-		printf("Sector %d, entry %d is a match \n", logicalSector, i);
 	}
 	latest = dir_entry;
 	return 0;
