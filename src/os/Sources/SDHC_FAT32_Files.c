@@ -29,10 +29,10 @@ struct dir_entry_8_3 *latest = NULL; //records most recent dir_entry
 uint32_t latestSector; //records sector number of most recent dir_entry
 struct dir_entry_8_3 *unused = NULL; //records an unused dir_entry
 struct dir_entry_8_3 *cached = NULL; //records an unused dir_entry
-static int g_unusedSeek = FALSE;
 struct dir_entry_8_3 *cwd = NULL;
 /*Special flags used for read/write operations. These control cache behavior.
 NOTE: Cache behavior is triggered in a side-effect of file search.*/
+static int g_unusedSeek = FALSE;
 static int g_deleteFlag = FALSE;
 static int g_readFlag = FALSE;
 static int g_printAll = FALSE;
@@ -267,6 +267,9 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
     	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
     		//we've reached the end of the directory
+    		if(MYFAT_DEBUG_LITE){
+    			printf("last and unused found \n");
+    		}
     		if (search != NULL){
     			return E_SEARCH; //file not found
     		}
@@ -317,7 +320,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 		else{
 			//there is a file -- perform search comparison and print attributes if needed
 			print_attr(dir_entry, search, i); 
-			int noMatch = (0 != strcmp((const char*) &dir_entry->DIR_Name, search));
+			int noMatch = (0 != strncmp((const char*) &dir_entry->DIR_Name, search, 11));
 			if(!noMatch){
 				return search_match(dir_entry, logicalSector, i, data); //If search is successful, process search result and return
 			}
@@ -341,13 +344,10 @@ int search_match(struct dir_entry_8_3* dir_entry, int logicalSector, int i, uint
 			return err;
 		}
 	}
-	if(MYFAT_DEBUG){
+	if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
 		char output[64] = {'\0'};
 		sprintf(output, "Sector %d, entry %d is a match \n", logicalSector, i);
 		printf(output);
-	}
-	else if(MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-		printf("Sector %d, entry %d is a match \n", logicalSector, i);
 	}
 	latest = dir_entry;
 	return 0;
@@ -481,9 +481,6 @@ int dir_create_file(char *filename){
 	if (dir_find_file(filename, &myCluster) == 0){
 		return E_SEARCH;
 	}
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //TODO: optimize this away?
-    	return E_IO;
-    }
 	dir_set_attr_newfile(filename, len);
 	MOUNT->dirty = TRUE;
 	if ((err = write_cache()) != 0){
