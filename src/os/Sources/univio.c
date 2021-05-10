@@ -229,6 +229,7 @@ int myfgetc (file_descriptor descr, char* bufp){
 	//device type checks
 	if (userptr->minorId == dev_UART2){
 		*bufp = getcharFromBuffer();
+		lcdcConsolePutc(&console, *bufp);
 		putcharIntoBuffer(*bufp); //per instructor, echo-back handled at device level
 		return 0;
 	}
@@ -332,6 +333,7 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 		char c = getcharFromBuffer();
 		while (count < buflen - 1 && c != '\r' && c != '\n'){
 			bufp[count] = c;
+			lcdcConsolePutc(&console, bufp[count]);
 			putcharIntoBuffer(bufp[count]); //per instructor, echo-back handled at device level
 			count ++;
 			c = getcharFromBuffer();
@@ -340,7 +342,9 @@ int myfgets (file_descriptor descr, char* bufp, int buflen){
 			return E_NOINPUT;
 		}
 		else{
+			lcdcConsolePutc(&console, 13);
 			putcharIntoBuffer('\r'); //per instructor, echo-back handled at device level
+			lcdcConsolePutc(&console, 10);
 			putcharIntoBuffer('\n'); //per instructor, echo-back handled at device level
 			bufp[count] = NULLCHAR;
 		}
@@ -371,14 +375,14 @@ int myfputc (file_descriptor descr, char bufp){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		if (bufp == '\r' || bufp == '\n'){ //TODO: correct?
-			lcdcConsolePutc(console, (int)'\r'));
+		if (bufp == '\r' || bufp == '\n'){
+			lcdcConsolePutc(&console, 13);
 			putcharIntoBuffer('\r');
-			lcdcConsolePutc(console, (int)'\n'));
+			lcdcConsolePutc(&console, 10);
 			putcharIntoBuffer('\n');
 		}
 		else{
-			lcdcConsolePutc(console, (int)bufp));
+			lcdcConsolePutc(&console, (int)bufp);
 			putcharIntoBuffer(bufp);
 		}
 	}
