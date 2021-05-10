@@ -1,7 +1,8 @@
 /*
  * File:        dac12bit.h
  * Purpose:     Function prototypes 
- *
+ * Adapted from demo code provided by NXP for the K70.
+
  * Notes:
  */
 //#include "common.h"

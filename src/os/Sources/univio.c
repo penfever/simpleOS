@@ -28,6 +28,7 @@
 //static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
 char g_sw = '0';
+int g_relTim = 0;
 /*Devices to support: pushbuttons, LEDs, FAT32*/
 
 /*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
@@ -48,7 +49,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			}
 			return E_DEV;
 		}
-		err = add_device_to_PCB(devicePtr, descr);
+		err = add_device_to_PCB(devicePtr, descr, mode);
 		return err;
 	}
 	/*CASE: FAT32
@@ -96,10 +97,8 @@ void process_strname(char* fileProc, char* filename){
 	}
 }
 
-int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 	if (devicePtr == dev_UART2){
-//		struct stream userptr = currentPCB->openFiles[0]; 
-//		if (currentPCB->openFiles[0].minorId == dev_UART2){
 			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
 			if (userptr == NULL){
 				return E_FREE;
@@ -109,16 +108,6 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			*fd = (file_descriptor)userptr;
 			intSerialIOInit();
 			return 0;
-//		}
-//		userptr.deviceType = IO; //STDIN
-//		userptr.minorId = dev_UART2;
-//		userptr = currentPCB->openFiles[1]; 
-//		userptr.deviceType = IO; //STDOUT
-//		userptr.minorId = dev_UART2;
-//		userptr = currentPCB->openFiles[2]; 
-//		userptr.deviceType = IO; //STDERR
-//		userptr.minorId = dev_UART2;
-//		return 0;
 	}
 	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){
@@ -163,6 +152,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 	}
 	else if (devicePtr >= DAC_MIN && devicePtr <= DAC_MAX){
 		userptr->deviceType = DAC;
+		userptr->mode = mode; //The 'mode' argument to fopen is defined as mapping to the timing of DAC release (for synth functionality)
 		dacInit();
 		if (MYFAT_DEBUG){
 			printf("DAC initialized. \n");
@@ -210,6 +200,9 @@ int remove_device_from_PCB(file_descriptor fd){
 	struct stream* userptr = (struct stream*)fd;
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
+	}
+	if (userptr->deviceType == DAC){
+		//TODO: disable DAC
 	}
 	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;
@@ -390,7 +383,8 @@ int myfputc (file_descriptor descr, char bufp){
 		}
 	}
 	else if (userptr->deviceType == DAC){
-		g_sw = bufp;
+		g_sw = bufp; //global value references the desired DAC pitch
+		g_relTim = userptr->mode; //global value references the release timing input by the user
 		err = dac_fputc(descr);
 		if (err == 0 && MYFAT_DEBUG){
 			printf("fputc success\n");
