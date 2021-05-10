@@ -13,6 +13,7 @@
 #include "simpleshell.h"
 #include "procs.h"
 #include "svc.h"
+#include "lcdc.h"
 
 static int node_count = 0;
 
@@ -36,8 +37,9 @@ allocated to myMalloc, attempts to call malloc to acquire the necessary memory, 
 init_struct then fills in the correct values for 'free', 'size' and 'pid' for the initial struct. Finally, it updates the
 global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
-	first = (struct mem_region*)SDRAM_START;
-    g_lower_bound = SDRAM_START; //pointers to lower and upper memory bounds
+    uint32_t startRegion = (SDRAM_START + LCDC_FRAME_BUFFER_SIZE);
+	first = (struct mem_region*)startRegion;
+    g_lower_bound = startRegion; //pointers to lower and upper memory bounds
     g_upper_bound = SDRAM_END;
     node_count += 1;
     first->free = TRUE;
