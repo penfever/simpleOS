@@ -73,7 +73,8 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"multitask", cmd_multitask}, //30
                 {"ps", cmd_ps},
                 {"uartsendmsg", cmd_uartsendmsg},
-                {"busywait", cmd_busywait}
+                {"busywait", cmd_busywait},
+                {"synth", cmd_synth}
 };
 
 /*User Commands*/
@@ -888,7 +889,7 @@ int cmd_cat2file(int argc, char* argv[]){
           SVC_fgetc(uart, &c);
         }
         else{
-    	  SVC_fgetc(io_dev, &c);
+    	    SVC_fgetc(io_dev, &c);
         }
 	    if (c == EOT){
 	    	break;
@@ -1191,7 +1192,65 @@ int cmd_multitask(int argc, char* argv[]){
   return 0;
 }
 
-
+/*Synth accepts one argument, note duration or 'release', which should be a value between 0 and 127.
+0 is defined as a note of infinite duration (IE, until the next character is entered.)
+Invalid release values will probably default to 0.
+Entering a new character will cause the previous note to terminate.
+ Once the synth is running, type letters a through g
+to play the corresponding notes over DAC0 and DAC1. 
+w toggles between waveforms (sawtooth and square)
+Enter q to quit.*/
+int cmd_synth(int argc, char* argv[]){
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  uint32_t release = hex_dec_oct(argv[1]);
+  if (release > 127){
+    if (MYFAT_DEBUG){
+      printf("Release value invalid. \n");
+    }
+    release = 0;
+  }
+  int err = 0;
+  char c;
+  char releaseVal = (char)release;
+  file_descriptor dacZero;
+	err = SVC_fopen(&dacZero, "dev_DAC0", releaseVal);
+	if (err != 0){
+		return err;
+	}
+  file_descriptor dacOne;
+	err = SVC_fopen(&dacOne, "dev_DAC1", releaseVal);
+	if (err != 0){
+		return err;
+	}
+  while ((err = SVC_fgetc(io_dev, &c)) == 0){
+    /*Print newline after displayed character to keep the terminal output tidy*/
+    char* output = " \n";
+    SVC_fputs(io_dev, output, strlen(output));
+    /*w to change waveType*/
+    if (c == 'w'){
+      SVC_fputc(dacZero, c);
+      continue;
+    }
+    /*q to quit*/
+    if (c == 'q'){
+      break;
+    }
+    /*Ignore 'notes' outside the allowed range*/
+    if (c < 'a' || c > 'g'){
+      continue;
+    }
+    SVC_fputc(dacZero, c);
+    SVC_fputc(dacOne, c);
+  }
+  err = SVC_fclose(dacZero);
+  if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(dacOne);
+  return err;
+}
 /*String processing functions*/
 
 /*escape_char takes a user command string containing a backslash. 

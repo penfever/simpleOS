@@ -9,6 +9,10 @@
 #define BOTHSWPRESSED 3
 #define NOSWPRESSED 0
 
+extern char g_sw;
+
+extern int g_relTim;
+
 int myfopen (file_descriptor* descr, char* filename, char mode);
 
 int myfclose (file_descriptor descr);
@@ -33,7 +37,7 @@ int mydelete(char* filename);
 
 int myseek(file_descriptor descr, uint32_t pos);
 
-int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd);
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode);
 
 file_descriptor check_dev_table(char* filename);
 

@@ -2,7 +2,6 @@
  * devices.c
  *
  *  Created on: Mar 11, 2021
- *      Author: penfe
  */
 
 #include <stdio.h>
@@ -20,6 +19,7 @@
 #include "procs.h"
 #include "mymalloc.h"
 #include "priv.h"
+#include "dac12bit.h"
 
 uint32_t g_firstrun_flag = 0;
 uint32_t g_pause_counter = 0;
@@ -46,6 +46,7 @@ struct electrodeHW {
 	 {7, TSI_PEN_PEN7_MASK, 0, (uint16_t *)&TSI0_CNTR7+1},	/* E3 */
 	 {9, TSI_PEN_PEN9_MASK, 0, (uint16_t *)&TSI0_CNTR9+1}};	/* E4 */
 
+/*This is a list of all devices available to the operating system.*/
 dev_id_t devTable[DEV] = {
 	{dev_null, "dev_null"},
 	{dev_sdhc, "dev_sdhc"},
@@ -61,7 +62,9 @@ dev_id_t devTable[DEV] = {
 	{dev_TSI1, "dev_TSI1"},
 	{dev_TSI2, "dev_TSI2"},
 	{dev_TSI3, "dev_TSI3"},
-	{dev_TSI4, "dev_TSI4"}
+	{dev_TSI4, "dev_TSI4"},
+	{dev_DAC0, "dev_DAC0"},
+	{dev_DAC1, "dev_DAC1"}
 };
 
 int uart_init_noMCG(int baud){
@@ -270,7 +273,6 @@ void SysTickHandler(void){
 //     if (test1 != 0){
 //    	 //the systick was interrupted, handle accordingly
 //     }
-
 void systick_init(void){
 	SCB_SHPR3 = (SCB_SHPR3 & ~SCB_SHPR3_PRI_15_MASK) |
 			SCB_SHPR3_PRI_15(QUANTUM_INTERRUPT_PRIORITY << SVC_PriorityShift);
@@ -301,3 +303,10 @@ void systick_pause(void){
 	}
 	enable_interrupts();
 }
+
+/**/
+void dacInit(){
+	dac0_1_clk_enable();  //enabled system clock to DAC module.
+	DACx_reset_dac0_1_reg_values();//reset DAC0 and DAC1 value to default reset value;
+}
+/**/

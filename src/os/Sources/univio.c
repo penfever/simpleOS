@@ -23,10 +23,12 @@
 #include "PDB.h"
 #include "flexTimer.h"
 #include "procs.h"
+#include "dac12bit.h"
 
 //static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
-
+char g_sw = '0';
+int g_relTim = 0;
 /*Devices to support: pushbuttons, LEDs, FAT32*/
 
 /*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
@@ -47,7 +49,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			}
 			return E_DEV;
 		}
-		err = add_device_to_PCB(devicePtr, descr);
+		err = add_device_to_PCB(devicePtr, descr, mode);
 		return err;
 	}
 	/*CASE: FAT32
@@ -95,10 +97,8 @@ void process_strname(char* fileProc, char* filename){
 	}
 }
 
-int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
+int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 	if (devicePtr == dev_UART2){
-//		struct stream userptr = currentPCB->openFiles[0]; 
-//		if (currentPCB->openFiles[0].minorId == dev_UART2){
 			struct stream* userptr = find_open_stream(); //If STDIN is defined, open new UART2 stream
 			if (userptr == NULL){
 				return E_FREE;
@@ -108,16 +108,6 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			*fd = (file_descriptor)userptr;
 			intSerialIOInit();
 			return 0;
-//		}
-//		userptr.deviceType = IO; //STDIN
-//		userptr.minorId = dev_UART2;
-//		userptr = currentPCB->openFiles[1]; 
-//		userptr.deviceType = IO; //STDOUT
-//		userptr.minorId = dev_UART2;
-//		userptr = currentPCB->openFiles[2]; 
-//		userptr.deviceType = IO; //STDERR
-//		userptr.minorId = dev_UART2;
-//		return 0;
 	}
 	struct stream * userptr = find_open_stream();
 	if (userptr == NULL){
@@ -158,6 +148,14 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 		}
 		if (MYFAT_DEBUG){
 			printf("TSI initialized. \n");
+		}
+	}
+	else if (devicePtr >= DAC_MIN && devicePtr <= DAC_MAX){
+		userptr->deviceType = DAC;
+		userptr->mode = mode; //The 'mode' argument to fopen is defined as mapping to the timing of DAC release (for synth functionality)
+		dacInit();
+		if (MYFAT_DEBUG){
+			printf("DAC initialized. \n");
 		}
 	}
 	else{
@@ -203,6 +201,9 @@ int remove_device_from_PCB(file_descriptor fd){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
 	}
+	if (userptr->deviceType == DAC){
+		//TODO: disable DAC
+	}
 	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;
 	return 0;
@@ -243,11 +244,14 @@ int myfgetc (file_descriptor descr, char* bufp){
 		*bufp = tsi_fgetc(descr);
 		err = 0;
 	}
-	else{ //CASE: FAT32
+	else if (userptr->deviceType == FAT32){ //CASE: FAT32
 		if (g_noFS){
 			return E_NOFS;
 		}
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
+	}
+	else{
+		return E_DEV;
 	}
 	return err;
 }
@@ -372,21 +376,29 @@ int myfputc (file_descriptor descr, char bufp){
 			putcharIntoBuffer(bufp);
 		}
 	}
-	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
-		return E_DEV;
-	}
 	else if (userptr->deviceType == LED){
 		err = led_fputc(descr);
 		if (err == 0 && MYFAT_DEBUG){
 			printf("fputc success\n");
 		}
 	}
-	//CASE: FAT32
-	else{
+	else if (userptr->deviceType == DAC){
+		g_sw = bufp; //global value references the desired DAC pitch
+		g_relTim = userptr->mode; //global value references the release timing input by the user
+		err = dac_fputc(descr);
+		if (err == 0 && MYFAT_DEBUG){
+			printf("fputc success\n");
+		}
+		g_sw = '0';
+	}
+	else if (userptr->deviceType == FAT32){
 		if (g_noFS){
 			return E_NOFS;
 		}
 		err = file_putbuf(descr, &bufp, 1);
+	}
+	else{
+		return E_DEV;
 	}
 	if (err == 0 && MYFAT_DEBUG){
 		printf("fputc success\n");
@@ -426,6 +438,15 @@ int led_fputc(file_descriptor descr){
 	if (userptr->minorId == dev_E4){
         ledYellowOff();
 	}
+	return 0;
+}
+
+/*DAC fputc puts a set of values into the sixteen steps of the DAC's buffer.
+NOTE: This implementation also uses PDB 0, and therefore cannot be spawned or used at the 
+same time as other functions which rely on PDB 0.*/
+int dac_fputc(file_descriptor descr){
+	//TODO: pass a value into the DAC for 'n'
+	DAC12_HWTrigBuff(DAC0_BASE_PTR, DAC_BF_SWING_MODE,DAC_SEL_VREFO,DAC_SEL_PDB_HW_TRIG,DAC_SET_PTR_AT_BF(0),DAC_SET_PTR_UP_LIMIT(15));
 	return 0;
 }
 
