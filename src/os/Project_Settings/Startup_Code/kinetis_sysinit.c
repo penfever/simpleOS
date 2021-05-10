@@ -23,6 +23,8 @@ extern void interruptSerialPort2(void); //handler for UART2
 extern void flexTimer0Isr(void); //handler for flexTimer 0
 extern void PDB0Isr(void); //handler for pdb0
 extern void SysTickHandler(void); //handler for systick
+extern void dac0_12bit_isr(void); //handler for DAC0
+extern void dac1_12bit_isr(void); //handler for DAC1
 
 #if __cplusplus
 }
@@ -169,8 +171,8 @@ void (* const InterruptVector[])() __attribute__ ((section(".vectortable"))) = {
   Default_Handler,		/* Vector 94: Ethernet MAC, Error & Misc */
   Default_Handler,		/* Vector 95 */
   Default_Handler,		/* Vector 96: SDHC */
-  Default_Handler,		/* Vector 97: DAC0 */
-  Default_Handler,		/* Vector 98: DAC1 */
+  dac0_12bit_isr,		/* Vector 97: DAC0 */
+  dac1_12bit_isr,		/* Vector 98: DAC1 */
   Default_Handler,		/* Vector 99: TSI */
   Default_Handler,		/* Vector 100: MCG */
   Default_Handler,		/* Vector 101: Low Power Timer */

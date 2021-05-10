@@ -11,7 +11,7 @@
 /*General device handling*/
 #ifndef DEVICES_H_
 #define DEVICES_H_
-#define DEV 15
+#define DEV 17
 #define MAXOPEN 32
 #define PUSHB_MIN 0x00FF0000
 #define PUSHB_MAX 0x00FF0001
@@ -21,6 +21,8 @@
 #define ADC_MAX 0x02EF0001
 #define TSI_MIN 0x03EF0000
 #define TSI_MAX 0x03EF0003
+#define DAC_MIN 0x04EF0000
+#define DAC_MAX 0x04EF0001
 #ifndef CONSOLEIO
 #define CONSOLEIO 0
 #endif
@@ -61,7 +63,8 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 		LED = 3,
 		IO = 4,
 		ADC = 5,
-		TSI = 6
+		TSI = 6,
+		DAC = 7
 	}deviceType; //Major ID
 	int minorId;
 	int mode;  //rw mode	
@@ -100,7 +103,9 @@ enum minor_id{
 		dev_TSI1 = 0x03EF0000,
 		dev_TSI2 = 0x03EF0001,
 		dev_TSI3 = 0x03EF0002,
-		dev_TSI4 = 0x03EF0003
+		dev_TSI4 = 0x03EF0003,
+		dev_DAC0 = 0x04EF0000,
+		dev_DAC1 = 0x04EF0001
 };
 
 typedef struct dev_id dev_id_t;
