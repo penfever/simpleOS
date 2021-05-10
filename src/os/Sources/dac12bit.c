@@ -312,6 +312,9 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
         }
         n = n >> 1;
         DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
+        //Initialize PDB for DAC hardware trigger
+        PDB_DAC0_TriggerInit();  
+        PDB_DAC1_TriggerInit();
       }
       g_sw ='0';
     }
