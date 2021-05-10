@@ -23,6 +23,7 @@
 #include "PDB.h"
 #include "flexTimer.h"
 #include "procs.h"
+#include "dac12bit.h"
 
 //static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
@@ -160,6 +161,13 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd){
 			printf("TSI initialized. \n");
 		}
 	}
+	else if (devicePtr >= DAC_MIN && devicePtr <= DAC_MAX){
+		userptr->deviceType = DAC;
+		dacInit();
+		if (MYFAT_DEBUG){
+			printf("DAC initialized. \n");
+		}
+	}
 	else{
 		if (MYFAT_DEBUG){
 			printf("Invalid device name \n");
@@ -243,11 +251,14 @@ int myfgetc (file_descriptor descr, char* bufp){
 		*bufp = tsi_fgetc(descr);
 		err = 0;
 	}
-	else{ //CASE: FAT32
+	else if (userptr->deviceType == FAT32){ //CASE: FAT32
 		if (g_noFS){
 			return E_NOFS;
 		}
 		err = file_getbuf(descr, bufp, 1, &charsreadp);
+	}
+	else{
+		return E_DEV;
 	}
 	return err;
 }
@@ -372,21 +383,26 @@ int myfputc (file_descriptor descr, char bufp){
 			putcharIntoBuffer(bufp);
 		}
 	}
-	else if (userptr->deviceType == PUSHBUTTON || userptr->deviceType == ADC || userptr->deviceType == TSI){
-		return E_DEV;
-	}
 	else if (userptr->deviceType == LED){
 		err = led_fputc(descr);
 		if (err == 0 && MYFAT_DEBUG){
 			printf("fputc success\n");
 		}
 	}
-	//CASE: FAT32
-	else{
+	else if (userptr->deviceType == DAC){
+		err = dac_fputc(descr);
+		if (err == 0 && MYFAT_DEBUG){
+			printf("fputc success\n");
+		}
+	}
+	else if (userptr->deviceType == FAT32){
 		if (g_noFS){
 			return E_NOFS;
 		}
 		err = file_putbuf(descr, &bufp, 1);
+	}
+	else{
+		return E_DEV;
 	}
 	if (err == 0 && MYFAT_DEBUG){
 		printf("fputc success\n");
@@ -426,6 +442,16 @@ int led_fputc(file_descriptor descr){
 	if (userptr->minorId == dev_E4){
         ledYellowOff();
 	}
+	return 0;
+}
+
+/*DAC fputc puts a set of values into the sixteen steps of the DAC's buffer.
+NOTE: This implementation also uses PDB 0, and therefore cannot be spawned or used at the 
+same time as other functions which rely on PDB 0.*/
+int dac_fputc(file_descriptor descr){
+	//TODO: pass a value into the DAC for 'n'
+	struct stream* userptr = (struct stream*)descr;
+	DAC12_HWTrigBuff(DAC0_BASE_PTR, DAC_BF_SWING_MODE,DAC_SEL_VREFO,DAC_SEL_PDB_HW_TRIG,DAC_SET_PTR_AT_BF(0),DAC_SET_PTR_UP_LIMIT(15));
 	return 0;
 }
 
