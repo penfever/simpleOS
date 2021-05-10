@@ -27,7 +27,7 @@
 
 //static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
-
+char g_sw = '0';
 /*Devices to support: pushbuttons, LEDs, FAT32*/
 
 /*myfopen takes as arguments a FILE*, a filename, and a mode. It then attempts
@@ -390,10 +390,12 @@ int myfputc (file_descriptor descr, char bufp){
 		}
 	}
 	else if (userptr->deviceType == DAC){
+		g_sw = bufp;
 		err = dac_fputc(descr);
 		if (err == 0 && MYFAT_DEBUG){
 			printf("fputc success\n");
 		}
+		g_sw = '0';
 	}
 	else if (userptr->deviceType == FAT32){
 		if (g_noFS){
@@ -450,7 +452,6 @@ NOTE: This implementation also uses PDB 0, and therefore cannot be spawned or us
 same time as other functions which rely on PDB 0.*/
 int dac_fputc(file_descriptor descr){
 	//TODO: pass a value into the DAC for 'n'
-	struct stream* userptr = (struct stream*)descr;
 	DAC12_HWTrigBuff(DAC0_BASE_PTR, DAC_BF_SWING_MODE,DAC_SEL_VREFO,DAC_SEL_PDB_HW_TRIG,DAC_SET_PTR_AT_BF(0),DAC_SET_PTR_UP_LIMIT(15));
 	return 0;
 }

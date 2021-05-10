@@ -9,6 +9,8 @@
 #define BOTHSWPRESSED 3
 #define NOSWPRESSED 0
 
+extern char g_sw;
+
 int myfopen (file_descriptor* descr, char* filename, char mode);
 
 int myfclose (file_descriptor descr);

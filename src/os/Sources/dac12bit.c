@@ -266,12 +266,11 @@ while (1){
 
 
 void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos, byte BuffUpLimit) {
-    DAC12_buffered( dacx_base_ptr,0, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit) ;
+    DAC12_buffered(dacx_base_ptr,0, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit) ;
     DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)   
    //Initialize PDB for DAC hardware trigger
    PDB_DAC0_TriggerInit();  
    PDB_DAC1_TriggerInit();  
-
 } //end of DAC12_HWTrigBuff
 
 
@@ -357,7 +356,7 @@ void DAC12_WatermarkBuffInterrupt(DAC_MemMapPtr dacx_base_ptr, byte WatermarkBuf
     DAC12_buffered(dacx_base_ptr,WatermarkBuffMode, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit) ;
     DAC_SR_REG(dacx_base_ptr) = 0; //clear all the flags  
     DAC12_Interrupt_Init(dacx_base_ptr, DAC_BFWM_INT_ENABLE, DAC_BFT_PTR_INT_ENABLE,DAC_BFB_PTR_INT_ENABLE);
-    enableInterrupts(); 
+    enable_interrupts(); 
     return; 
 }
 

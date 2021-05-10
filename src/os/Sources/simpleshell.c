@@ -73,7 +73,8 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
                 {"multitask", cmd_multitask}, //30
                 {"ps", cmd_ps},
                 {"uartsendmsg", cmd_uartsendmsg},
-                {"busywait", cmd_busywait}
+                {"busywait", cmd_busywait},
+                {"synth", cmd_synth}
 };
 
 /*User Commands*/
@@ -888,7 +889,7 @@ int cmd_cat2file(int argc, char* argv[]){
           SVC_fgetc(uart, &c);
         }
         else{
-    	  SVC_fgetc(io_dev, &c);
+    	    SVC_fgetc(io_dev, &c);
         }
 	    if (c == EOT){
 	    	break;
@@ -1191,7 +1192,43 @@ int cmd_multitask(int argc, char* argv[]){
   return 0;
 }
 
-
+/*Synth accepts one argument, note duration. Once the synth is running, type letters a through g
+to play the corresponding notes over DAC0 and DAC1. Enter q to quit.*/
+int cmd_synth(int argc, char* argv[]){
+  if (argc != 2){
+    return E_NUMARGS;
+  }
+  int err = 0;
+  char c;
+  file_descriptor dacZero;
+	err = SVC_fopen(&dacZero, "dev_dac0", "w");
+	if (err != 0){
+		return err;
+	}
+  file_descriptor dacOne;
+	err = SVC_fopen(&dacOne, "dev_dac1", "w");
+	if (err != 0){
+		return err;
+	}
+  while ((err = SVC_fgetc(iodev, &c)) == 0){
+    /*q to quit*/
+    if (c == 'q'){
+      break;
+    }
+    /*Ignore 'notes' outside the allowed range*/
+    if (c < 'a' || c > 'g'){
+      continue;
+    }
+    SVC_fputc(dacZero, c);
+    SVC_fputc(dacOne, c);
+  }
+  err = SVC_fclose(dacZero);
+  if (err != 0){
+		return err;
+	}
+  err = SVC_fclose(dacOne);
+  return err;
+}
 /*String processing functions*/
 
 /*escape_char takes a user command string containing a backslash. 
