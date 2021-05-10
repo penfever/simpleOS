@@ -19,10 +19,16 @@
 #include "procs.h"
 #include "mymalloc.h"
 #include "priv.h"
+#include "lcdc.h"
+#include "lcdcConsole.h"
+#include "profont.h"
 #include "dac12bit.h"
 
 uint32_t g_firstrun_flag = 0;
 uint32_t g_pause_counter = 0;
+
+/*TWR-LCD-RGB display console*/
+struct console console;
 
 /* Note below that the counterRegister field is declared to be a pointer
  * to an unsigned 16-bit value that is the counter register for the
@@ -113,6 +119,9 @@ int init_sys(){
 	svcInit_SetSVCPriority(15);
 	pendSVInit_SetpendSVPriority(14);
 	pid_t shellPid;
+	/*TWR-LCD-RGB console init*/
+	lcdcInit();
+	lcdcConsoleInit(&console);
 	/*launch shell*/
 	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, &shellPid};
 	error = spawn(cmd_shell, 0, NULL, &mySpawnData);

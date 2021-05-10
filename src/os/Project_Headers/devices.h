@@ -53,6 +53,8 @@
 
 extern uint32_t g_firstrun_flag;
 
+extern struct console console;
+
 struct stream { //Abstraction: what device is this, and how do I talk to it?
 	enum device_type{ // Abstraction: Major IDs
 		UNUSED = 0,

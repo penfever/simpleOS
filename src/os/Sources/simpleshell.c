@@ -19,6 +19,9 @@
 #include "dateTime.h"
 #include "pdb.h"
 #include "procs.h"
+#include "lcdc.h"
+#include "lcdcConsole.h"
+#include "profont.h"
 
 /*Globals*/
 int g_noFS = TRUE;
