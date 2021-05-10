@@ -23,6 +23,9 @@
 #include "PDB.h"
 #include "flexTimer.h"
 #include "procs.h"
+#include "lcdc.h"
+#include "lcdcConsole.h"
+#include "profont.h"
 
 //static int pid = 0; //temporarily set everything to OS
 int g_tsInit = FALSE;
@@ -365,10 +368,13 @@ int myfputc (file_descriptor descr, char bufp){
 	}
 	if (userptr->minorId == dev_UART2){
 		if (bufp == '\r' || bufp == '\n'){ //TODO: correct?
+			lcdcConsolePutc(console, (int)'\r'));
 			putcharIntoBuffer('\r');
+			lcdcConsolePutc(console, (int)'\n'));
 			putcharIntoBuffer('\n');
 		}
 		else{
+			lcdcConsolePutc(console, (int)bufp));
 			putcharIntoBuffer(bufp);
 		}
 	}
