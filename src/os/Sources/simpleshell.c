@@ -1213,12 +1213,12 @@ int cmd_synth(int argc, char* argv[]){
   char c;
   char releaseVal = (char)release;
   file_descriptor dacZero;
-	err = SVC_fopen(&dacZero, "dev_DAC0", &releaseVal);
+	err = SVC_fopen(&dacZero, "dev_DAC0", releaseVal);
 	if (err != 0){
 		return err;
 	}
   file_descriptor dacOne;
-	err = SVC_fopen(&dacOne, "dev_DAC1", &releaseVal);
+	err = SVC_fopen(&dacOne, "dev_DAC1", releaseVal);
 	if (err != 0){
 		return err;
 	}
