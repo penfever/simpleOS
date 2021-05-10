@@ -41,6 +41,8 @@
 #include "nvic.h"
 #include "priv.h"
 #include "devices.h"
+#include "lcdc.h"
+#include "lcdcConsole.h"
 
 /* The buffer to store characters input from serial port 2 */
 char serialPort2InputBuffer[SERIAL_PORT_2_INPUT_BUFFER_SIZE];
@@ -291,8 +293,10 @@ void putsIntoBuffer(char *s) {
 void putsNLIntoBuffer(char *s) {
 	while(*s) {
 		if(*s == '\n'){
+			lcdcConsolePutc(&console, 13);
 			putcharIntoBuffer('\r');
 		}
+		lcdcConsolePutc(&console, *s);
 		putcharIntoBuffer(*s++);
 	}
 }
