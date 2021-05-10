@@ -297,24 +297,30 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       PDB_DAC1_TriggerInit();  
     }
     else{
-      uint16_t ct = g_relTim << 4;
       //Attack
+      DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
+      //Initialize PDB for DAC hardware trigger
+      PDB_DAC0_TriggerInit();  
+      PDB_DAC1_TriggerInit();
       //Sustain
+      uint32_t ct = g_relTim << 10;
+      //busy wait loop before release envelope
       for (int i = 0; i < ct; i++){
         ;
       }
       //Release
       uint16_t n = 256;
       while (n > 4){
-        //busy wait loop before decrementing voltage of DAC
-        for (int j = 0; j < ct; j++){
-          ;
-        }
-        n = n >> 1;
         DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
         //Initialize PDB for DAC hardware trigger
         PDB_DAC0_TriggerInit();  
         PDB_DAC1_TriggerInit();
+        //busy wait loop before decrementing voltage of DAC
+        for (int j = 0; j < ct; j++){
+          ;
+        }
+        //n scales down by factor of 2
+        n = n >> 1;
       }
       g_sw ='0';
     }
