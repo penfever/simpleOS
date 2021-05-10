@@ -1210,7 +1210,7 @@ int cmd_synth(int argc, char* argv[]){
 	if (err != 0){
 		return err;
 	}
-  while ((err = SVC_fgetc(iodev, &c)) == 0){
+  while ((err = SVC_fgetc(io_dev, &c)) == 0){
     /*q to quit*/
     if (c == 'q'){
       break;

@@ -5,7 +5,8 @@
  */
 
 #include "dac12bit.h"
-#include "dac12bit_demo.h"
+#include "univio.h"
+#include "devices.h"
 
    byte DAC1_UP_PTR =0;
 
@@ -278,25 +279,25 @@ void PDB_DAC0_TriggerInit(void) {
     SIM_SCGC6 |= SIM_SCGC6_PDB_MASK; // enable system clock to PDB
     PDB0_SC = PDB_SC_PDBEN_MASK; // enable PDB module
     if (g_sw == 'a'){
-    	PDB0_DACINT0 = 4545;
+    	PDB0_DACINT0 = NOTEA4;
     }
     else if (g_sw == 'g'){
-    	PDB0_DACINT0 = 5102;
+    	PDB0_DACINT0 = NOTEG4;
     }
     else if (g_sw == 'f'){
-    	PDB0_DACINT0 = 5727;
+    	PDB0_DACINT0 = NOTEF4;
     }
     else if (g_sw == 'e'){
-    	PDB0_DACINT0 = 6067;
+    	PDB0_DACINT0 = NOTEE4;
     }
     else if (g_sw == 'd'){
-    	PDB0_DACINT0 = 6810;
+    	PDB0_DACINT0 = NOTED4;
     }
     else if (g_sw == 'c'){
-    	PDB0_DACINT0 = 7644;
+    	PDB0_DACINT0 = NOTEC4;
     }
     else if (g_sw == 'b'){
-    	PDB0_DACINT0 = 8099;
+    	PDB0_DACINT0 = NOTEB3;
     }
     else{
     	PDB0_DACINT0 = 600; //TODO: errcheck

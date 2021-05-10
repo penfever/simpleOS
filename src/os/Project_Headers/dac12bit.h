@@ -5,6 +5,9 @@
  * Notes:
  */
 //#include "common.h"
+//#include "twr-k70f120m.h"
+#include "MK70F12.h"
+
 
 #ifndef _DAC12BIT_H 
 #define _DAC12BIT_H 1
@@ -75,6 +78,15 @@ typedef unsigned long dlong[2];
 #define Clear_DACBFWMF  0x03
 #define Clear_DACBFRPTF 0x05
 #define Clear_DACBFRPBF 0x06
+
+/*Notes of the scale corresponding to values in the PDB timer. Based on 2,000,000hz timer speed*/
+#define NOTEA4 4545
+#define NOTEG4 5102
+#define NOTEF4 5727
+#define NOTEE4 6067
+#define NOTED4 6810
+#define NOTEC4 7644
+#define NOTEB3 8099
 
 void dac0_12bit_isr (void);
 void dac1_12bit_isr (void);
