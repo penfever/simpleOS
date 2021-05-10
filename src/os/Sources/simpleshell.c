@@ -1200,13 +1200,14 @@ int cmd_synth(int argc, char* argv[]){
   }
   int err = 0;
   char c;
+  char* openType = "w";
   file_descriptor dacZero;
-	err = SVC_fopen(&dacZero, "dev_dac0", "w");
+	err = SVC_fopen(&dacZero, "dev_DAC0", openType);
 	if (err != 0){
 		return err;
 	}
   file_descriptor dacOne;
-	err = SVC_fopen(&dacOne, "dev_dac1", "w");
+	err = SVC_fopen(&dacOne, "dev_DAC1", openType);
 	if (err != 0){
 		return err;
 	}
