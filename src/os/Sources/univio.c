@@ -375,7 +375,7 @@ int myfputc (file_descriptor descr, char bufp){
 		return E_NOINPUT;
 	}
 	if (userptr->minorId == dev_UART2){
-		if (bufp == '\r' || bufp == '\n'){ //TODO: correct?
+		if (bufp == '\r' || bufp == '\n'){
 			lcdcConsolePutc(&console, 13);
 			putcharIntoBuffer('\r');
 			lcdcConsolePutc(&console, 10);
