@@ -80,6 +80,17 @@ typedef unsigned long dlong[2];
 #define Clear_DACBFRPTF 0x05
 #define Clear_DACBFRPBF 0x06
 
+/*Struct definition for wavetype*/
+struct waveType{
+    	char* wave;
+    	int index;
+};
+
+#define SAWTOOTH 0
+#define SQUARE 1
+
+#define NUMWAVES (int)(sizeof(waveIndex)/sizeof(waveIndex[0]))
+
 /*Notes of the scale corresponding to values in the PDB timer. Based on 2,000,000hz timer speed*/
 #define NOTEA4 4545
 #define NOTEG4 5102
@@ -102,7 +113,10 @@ void DAC12_VreferenceInit(DAC_MemMapPtr dacx_base_ptr,unsigned char Vinselect);
 void DAC12_VreferenceRamp(void);
 void DAC12_buffered (DAC_MemMapPtr dacx_base_ptr,byte WatermarkMode, byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos,byte BuffUpLimit);
 void DAC12_SoftTrigBuffInit(DAC_MemMapPtr dacx_base_ptr,byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos, byte BuffUpLimit);
-void DAC12_Buff_Init_Plus256( DAC_MemMapPtr dacx_base_ptr);
+void DAC12_Buff_Init_Plus256(DAC_MemMapPtr dacx_base_ptr);
+void DAC12_Buff_Init_Plus256Sqr(DAC_MemMapPtr dacx_base_ptr);
+void DAC12_Buff_Init_PlusN(DAC_MemMapPtr dacx_base_ptr, uint32_t n);
+void DAC12_Buff_Init_PlusNSqr(DAC_MemMapPtr dacx_base_ptr, uint32_t n);
 int SET_DACx_BUFFER( DAC_MemMapPtr dacx_base_ptr, byte dacindex, int buffval);
 
 void DAC12_Interrupt_Init(DAC_MemMapPtr dacx_base_ptr,byte watermark, byte zerobuffer, byte uplimitbuffer );

@@ -20,7 +20,13 @@
     int top_isr = 0 ;
     int watermark_isr = 0 ;
     
-    
+struct waveType waveIndex[] = {
+		{"sawtooth", SAWTOOTH},
+		{"square", SQUARE}
+};
+
+int curWaveIndex = 0;
+
  /********************************************************************/
 void dac0_12bit_isr (void){
   
@@ -209,7 +215,6 @@ void DAC12_buffered (DAC_MemMapPtr dacx_base_ptr, byte WatermarkMode, byte BuffM
 }//end of DAC12_buffered 
 
 void DAC12_Buff_Init_Plus256(DAC_MemMapPtr dacx_base_ptr){
-  
      int data = 0; 
      byte i =  0 ;
      //Uncomment the follows to test for buffer mode
@@ -222,6 +227,26 @@ void DAC12_Buff_Init_Plus256(DAC_MemMapPtr dacx_base_ptr){
       }
       else{ //Not last buffer.The next word buffer will have increment of 0xFF from previous word buffer.         
        data += 256;             
+      }  //end of if-else statement
+      
+      SET_DACx_BUFFER( dacx_base_ptr, i, data);
+     
+     }// end of for loop
+ }//end of DAC12_Buff_Init_Plus256
+
+void DAC12_Buff_Init_Plus256Sqr(DAC_MemMapPtr dacx_base_ptr){
+     int data = 0; 
+     byte i = 0;
+     //Uncomment the follows to test for buffer mode
+     data = 0;  
+     // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
+     for (i=0 ;i < 16; i++){
+      
+      if(i%2 == 0){ //even buffers get max value 
+       data += 255*16; 
+      }
+      else{ //odd buffers get zero         
+       data = 0;             
       }  //end of if-else statement
       
       SET_DACx_BUFFER( dacx_base_ptr, i, data);
@@ -251,6 +276,27 @@ void DAC12_Buff_Init_PlusN(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
      }
 }//end of DAC12_Buff_Init_PlusN
 
+void DAC12_Buff_Init_PlusNSqr(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
+	 if (n > 255){
+		 n = 255;
+	 }
+     int data = 0; 
+     byte i = 0;
+     //Uncomment the follows to test for buffer mode
+     data = 0;  
+     // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
+     for (i=0 ;i < 16; i++){
+      
+      if(i%2 == 0){ //even buffers get max value 
+       data += n*16; 
+      }
+      else{ //odd buffers get zero         
+       data = 0;             
+      }  //end of if-else statement   
+      SET_DACx_BUFFER( dacx_base_ptr, i, data);    
+     }// end of for loop
+ }//end of DAC12_Buff_Init_Plus256
+
 void DAC12_SoftwareTriggerLoop(void){
 int j = 0 ;
 
@@ -268,8 +314,6 @@ while (1){
 
  void DAC12_SoftTrigBuffInit(DAC_MemMapPtr dacx_base_ptr,byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos, byte BuffUpLimit)
  { 
-  
-     
     //Initilized DAC12  
     DAC12_buffered( dacx_base_ptr,DAC_BFWM_1WORD, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit) ;
     DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
@@ -289,19 +333,31 @@ while (1){
 
 
 void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos, byte BuffUpLimit) {
-    DAC12_buffered(dacx_base_ptr,0, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit);
+    /*CASE: user is changing waveType*/
+	if (g_sw == 'w'){
+		if (curWaveIndex == NUMWAVES){
+			curWaveIndex = 0;
+		}
+		else{
+			curWaveIndex ++;
+		}
+    	return;
+    }
+    //Attack
+	DAC12_buffered(dacx_base_ptr,0, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit);
+	if (curWaveIndex == SQUARE){
+ 	   DAC12_Buff_Init_Plus256Sqr(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
+	}
+	else{
+ 	   DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)	
+	}
+	//Initialize PDB for DAC hardware trigger
+	PDB_DAC0_TriggerInit();  
+	PDB_DAC1_TriggerInit();  
     if (g_relTim == 0){
-      DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)   
-      //Initialize PDB for DAC hardware trigger
-      PDB_DAC0_TriggerInit();  
-      PDB_DAC1_TriggerInit();  
+    	return;
     }
     else{
-      //Attack
-      DAC12_Buff_Init_Plus256(dacx_base_ptr);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
-      //Initialize PDB for DAC hardware trigger
-      PDB_DAC0_TriggerInit();  
-      PDB_DAC1_TriggerInit();
       //Sustain
       uint32_t ct = g_relTim << 10;
       //busy wait loop before release envelope
@@ -311,7 +367,12 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       //Release
       uint16_t n = 256;
       while (n > 4){
-        DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
+    		if (curWaveIndex == SQUARE){
+    			DAC12_Buff_Init_PlusNSqr(dacx_base_ptr, n);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
+    		}
+    		else{
+    	      DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
+    		}
         //Initialize PDB for DAC hardware trigger
         PDB_DAC0_TriggerInit();  
         PDB_DAC1_TriggerInit();
