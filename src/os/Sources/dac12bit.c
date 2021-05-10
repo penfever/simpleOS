@@ -297,7 +297,7 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       PDB_DAC1_TriggerInit();  
     }
     else{
-      uint16_t ct = g_relTim << 8; //value between 128 and 32768
+      uint16_t ct = g_relTim << 4;
       //Attack
       //Sustain
       for (int i = 0; i < ct; i++){
@@ -307,10 +307,10 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       uint16_t n = 256;
       while (n > 4){
         //busy wait loop before decrementing voltage of DAC
-        for (int j = 0; j < (ct >> 4); j++){
+        for (int j = 0; j < ct; j++){
           ;
         }
-        n >> 1;
+        n = n >> 1;
         DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
       }
       g_sw ='0';
