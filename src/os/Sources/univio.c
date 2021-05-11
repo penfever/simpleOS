@@ -205,7 +205,7 @@ int remove_device_from_PCB(file_descriptor fd){
 		return E_FREE_PERM;
 	}
 	if (userptr->deviceType == DAC){
-		//TODO: disable DAC
+		dacInit();
 	}
 	userptr->deviceType = UNUSED;
 	userptr->minorId = dev_null;

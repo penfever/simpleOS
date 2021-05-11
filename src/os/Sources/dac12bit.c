@@ -362,7 +362,7 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       }
       //Release
       uint16_t n = 256;
-      while (n > 4){
+      while (n > 0){
     		if (curWaveIndex == SQUARE){
     			DAC12_Buff_Init_PlusNSqr(dacx_base_ptr, n);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
     		}
