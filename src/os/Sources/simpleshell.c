@@ -1200,7 +1200,7 @@ int cmd_multitask(int argc, char* argv[]){
 Invalid release values will probably default to 0.
 Entering a new character will cause the previous note to terminate.
  Once the synth is running, type letters a through g
-to play the corresponding notes over DAC0 and DAC1. 
+to play the corresponding notes over DAC0.
 w toggles between waveforms (sawtooth and square)
 Enter q to quit.*/
 int cmd_synth(int argc, char* argv[]){
@@ -1245,7 +1245,7 @@ int cmd_synth(int argc, char* argv[]){
       continue;
     }
     SVC_fputc(dacZero, c);
-    SVC_fputc(dacOne, c);
+    //SVC_fputc(dacOne, c);
   }
   err = SVC_fclose(dacZero);
   if (err != 0){

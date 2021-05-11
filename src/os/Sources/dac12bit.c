@@ -236,23 +236,16 @@ void DAC12_Buff_Init_Plus256(DAC_MemMapPtr dacx_base_ptr){
  }//end of DAC12_Buff_Init_Plus256
 
 void DAC12_Buff_Init_Plus256Sqr(DAC_MemMapPtr dacx_base_ptr){
-     int data = 0; 
      byte i = 0;
-     data = 0;  
-     // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
-     for (i=0 ;i < 16; i++){
-      
-      if(i%2 == 0){ //even buffers get max value 
-       data += 255*16; 
-      }
-      else{ //odd buffers get zero         
-       data = 0;             
-      }  //end of if-else statement
-      
-      SET_DACx_BUFFER(dacx_base_ptr, i, data);
-     
-     }// end of for loop
- }//end of DAC12_Buff_Init_Plus256
+     int data = 4095;
+     for (i=0; i < 8; i++){
+       SET_DACx_BUFFER(dacx_base_ptr, i, data);
+     }
+     data = 0;
+     for (i=8; i < 16; i++){ 
+       SET_DACx_BUFFER(dacx_base_ptr, i, data);
+     }     
+}
 
 void DAC12_Buff_Init_PlusN(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
 	 if (n > 255){
@@ -279,21 +272,16 @@ void DAC12_Buff_Init_PlusNSqr(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
 	 if (n > 255){
 		 n = 255;
 	 }
-     int data = 0; 
      byte i = 0;
-     data = 0;  
-     // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
-     for (i=0 ;i < 16; i++){
-      
-      if(i%2 == 0){ //even buffers get max value 
-       data += n*16; 
-      }
-      else{ //odd buffers get zero         
-       data = 0;             
-      }  //end of if-else statement   
-      SET_DACx_BUFFER( dacx_base_ptr, i, data);    
-     }// end of for loop
- }//end of DAC12_Buff_Init_Plus256
+     int data = 16*n;
+     for (i=0; i < 8; i++){
+       SET_DACx_BUFFER(dacx_base_ptr, i, data);
+     }
+     data = 0;
+     for (i=8; i < 16; i++){ 
+       SET_DACx_BUFFER(dacx_base_ptr, i, data);
+     }     
+}
 
 void DAC12_SoftwareTriggerLoop(void){
 int j = 0 ;
@@ -364,10 +352,10 @@ void DAC12_HWTrigBuff(DAC_MemMapPtr dacx_base_ptr, byte BuffMode, byte Vreferenc
       uint16_t n = 256;
       while (n > 0){
     		if (curWaveIndex == SQUARE){
-    			DAC12_Buff_Init_PlusNSqr(dacx_base_ptr, n);//init buffer to with 256 increment with following values word 0(=256), Word 1 (=256+256) .... to word 15 (=4096)
+    			DAC12_Buff_Init_PlusNSqr(dacx_base_ptr, n);//init buffer to n ... 16n increments, square wave
     		}
     		else{
-    	      DAC12_Buff_Init_PlusN(dacx_base_ptr, n);
+    	      DAC12_Buff_Init_PlusN(dacx_base_ptr, n);//init buffer to n ... 16n increments, saw wave
     		}
         //Initialize PDB for DAC hardware trigger
         PDB_DAC0_TriggerInit();  
