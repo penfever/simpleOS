@@ -237,7 +237,6 @@ void DAC12_Buff_Init_Plus256(DAC_MemMapPtr dacx_base_ptr){
 void DAC12_Buff_Init_Plus256Sqr(DAC_MemMapPtr dacx_base_ptr){
      int data = 0; 
      byte i = 0;
-     //Uncomment the follows to test for buffer mode
      data = 0;  
      // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
      for (i=0 ;i < 16; i++){
@@ -249,7 +248,7 @@ void DAC12_Buff_Init_Plus256Sqr(DAC_MemMapPtr dacx_base_ptr){
        data = 0;             
       }  //end of if-else statement
       
-      SET_DACx_BUFFER( dacx_base_ptr, i, data);
+      SET_DACx_BUFFER(dacx_base_ptr, i, data);
      
      }// end of for loop
  }//end of DAC12_Buff_Init_Plus256
@@ -260,7 +259,6 @@ void DAC12_Buff_Init_PlusN(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
 	 }
      uint32_t data = 0; 
      byte i = 0;
-     //Uncomment the follows to test for buffer mode
      data = 0 ;  
      // for loop: Initializes the buffer words so that next buffer has an increment of n 
      for (i=0 ;i < 16 ; i++){
@@ -282,7 +280,6 @@ void DAC12_Buff_Init_PlusNSqr(DAC_MemMapPtr dacx_base_ptr, uint32_t n){
 	 }
      int data = 0; 
      byte i = 0;
-     //Uncomment the follows to test for buffer mode
      data = 0;  
      // for loop: Initializes the buffer words so that next buffer has an increment of 256 except last one (255)  
      for (i=0 ;i < 16; i++){
@@ -301,12 +298,10 @@ void DAC12_SoftwareTriggerLoop(void){
 int j = 0 ;
 
 while (1){
-       
       DAC_C0_REG(DAC0_BASE_PTR) |= DAC_SW_TRIG_NEXT; //SW trigger to advance to DAC0's next word buffer
       DAC_C0_REG(DAC1_BASE_PTR) |= DAC_SW_TRIG_NEXT; //SW trigger to advance to DAC1's next word buffer
       for (j=0;j<10000;j++){}  // random delay
-        
-     }
+  }
 
 
 }
