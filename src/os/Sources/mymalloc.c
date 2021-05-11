@@ -39,8 +39,8 @@ global variable for total node count and returns the modified struct. */
 struct mem_region* init_struct(struct mem_region* first){
     uint32_t startRegion = (SDRAM_START + LCDC_FRAME_BUFFER_SIZE);
 	first = (struct mem_region*)startRegion;
-    g_lower_bound = startRegion; //pointers to lower and upper memory bounds
-    g_upper_bound = SDRAM_END;
+    g_lower_bound = (char *)startRegion; //pointers to lower and upper memory bounds
+    g_upper_bound = (char *)SDRAM_END;
     node_count += 1;
     first->free = TRUE;
     first->size = MAX - MEMSTRUCT;
@@ -98,7 +98,7 @@ If it finds the next region is also free, it merges the two free regions togethe
 updates the global node_count variable. */
 
 void compact_next(struct mem_region* curr){ //CURR on REGION boundary
-    struct mem_region* next = curr->data + curr->size;
+    struct mem_region* next = (struct mem_region *)(curr->data + curr->size);
     if (next->free != FALSE){
         curr->size += MEMSTRUCT; //expand previous free block to include newly freed one
         curr->size += next->size;
@@ -298,5 +298,8 @@ to a region of memory previously allocated by the myMalloc function.
 The myFree function deallocates the entire region of memory pointed to by the parameter. */
 void myFree(void *ptr){
     int err = myFreeErrorCode(ptr); //calls myFreeErrorCode and ignores return value
+    if (MYFAT_DEBUG){
+    	printf("%d \n", err);
+    }
     return;
 }

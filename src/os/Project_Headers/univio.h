@@ -53,4 +53,6 @@ int tsi_fgetc(file_descriptor descr);
 
 int adc_fgetc(file_descriptor descr);
 
+int dac_fputc(file_descriptor descr);
+
 #endif /* UNIVIO_H_ */

@@ -467,77 +467,46 @@ void svcHandlerInC(struct frame *framePtr) {
 	}
 	switch(((unsigned char *)framePtr->returnAddr)[-2]) {
 		case SVC_FOPEN:
-			if (MYFAT_DEBUG){
-				printf("FOPEN\n");
-			}
-			framePtr->returnVal = myfopen(framePtr->descr,
-					framePtr->filename, framePtr->mode);
+			framePtr->returnVal = myfopen(framePtr->descr, framePtr->filename, framePtr->mode);
 			break;
 		case SVC_FCLOSE:
-			if (MYFAT_DEBUG){
-			printf("FCLOSE\n");
-			}
 			framePtr->returnVal = myfclose(framePtr->descrf);
 			break;
 		case SVC_CREATE:
-			if (MYFAT_DEBUG){
-				printf("CREATE\n");
-			}
-			framePtr->returnVal = mycreate(framePtr->arg0);
+			framePtr->returnVal = mycreate((void *)framePtr->arg0);
 			break;
 		case SVC_DELETE:
-			if (MYFAT_DEBUG){
-				printf("DELETE\n");
-			}
-			framePtr->returnVal = mydelete(framePtr->arg0);
+			framePtr->returnVal = mydelete((void *)framePtr->arg0);
 			break;
 		case SVC_FGETC:
-			if (MYFAT_DEBUG){
-				printf("FGETC\n");
-			}
 			framePtr->returnVal = myfgetc(framePtr->descrf, framePtr->filename);
 			break;
 		case SVC_FPUTC:
-			if (MYFAT_DEBUG){
-				printf("FPUTC\n");
-			}
 			framePtr->returnVal = myfputc(framePtr->descrf, framePtr->bufp);
 			break;
 		case SVC_FPUTS:
-			if (MYFAT_DEBUG){
-				printf("FPUTS\n");
-			}
 			framePtr->returnVal = myfputs(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_FGETS:
-			if (MYFAT_DEBUG){
-				printf("FGETS\n");
-			}
 			framePtr->returnVal = myfgets(framePtr->descrf, framePtr->filename, framePtr->arg2);
 			break;
 		case SVC_MALLOC:
-			if (MYFAT_DEBUG){
-				printf("MALLOC\n");
-			}
-			framePtr->returnVal = myMalloc(framePtr->unsInt);
+			framePtr->returnVal = (int)myMalloc(framePtr->arg0);
 			break;
 		case SVC_FREE:
-			if (MYFAT_DEBUG){
-				printf("FREE\n");
-			}
-			framePtr->returnVal = myFreeErrorCode(framePtr->arg0);
+			framePtr->returnVal = myFreeErrorCode((void *)framePtr->arg0);
 			break;
 		case SVC_DIR_LS:
 			framePtr->returnVal = dir_ls(framePtr->arg0);
 			break;
 		case SVC_SETTIME:
-			framePtr->returnVal = set_time(framePtr->arg0);
+			framePtr->returnVal = set_time((void *)framePtr->arg0);
 			break;
 		case SVC_PDBONESHOT:
-			framePtr->returnVal = pdb0_one_shot_timer(framePtr->arg0);
+			framePtr->returnVal = pdb0_one_shot_timer((void *)framePtr->arg0);
 			break;
 		case SVC_SPAWN:
-			framePtr->returnVal = spawn(framePtr->arg0, framePtr->arg1, framePtr->arg2, framePtr->arg3);
+			framePtr->returnVal = spawn((void *)framePtr->arg0, framePtr->arg1, (void *)framePtr->arg2, (void *)framePtr->arg3);
 			break;
 		case SVC_YIELD:
 			yield();

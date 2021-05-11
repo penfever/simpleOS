@@ -43,6 +43,7 @@
 #include "devices.h"
 #include "lcdc.h"
 #include "lcdcConsole.h"
+#include "svc.h"
 
 /* The buffer to store characters input from serial port 2 */
 char serialPort2InputBuffer[SERIAL_PORT_2_INPUT_BUFFER_SIZE];

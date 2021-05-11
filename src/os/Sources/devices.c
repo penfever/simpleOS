@@ -251,7 +251,7 @@ void SysTickHandler(void){
 
   /* Call the scheduler to find the saved SP of the next process to be
    * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
-  copyOfSP = rr_sched(copyOfSP);
+  copyOfSP = rr_sched((char *)copyOfSP);
 
   /* The following assembly language will write the value of the
    * local, automatic variable 'copyOfSP' into the main SP */
@@ -298,7 +298,7 @@ void systick_resume(void){
 	disable_interrupts();
 	g_pause_counter --;
 	if (g_pause_counter > 0){
-	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
+	    SYST_CSR = SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
 	}
 	enable_interrupts();
 }
@@ -308,7 +308,7 @@ void systick_pause(void){
 	disable_interrupts();
 	g_pause_counter ++;
 	if (g_pause_counter == 1){
-	    SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
+	    SYST_CSR = SYST_CSR ^ SysTick_CSR_ENABLE_MASK; //TODO: fix this so it does not read CSR
 	}
 	enable_interrupts();
 }

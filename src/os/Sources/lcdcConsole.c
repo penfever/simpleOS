@@ -71,7 +71,7 @@ void lcdcConsoleScroll(struct console *console) {
 }
 
 void lcdcConsolePutc(struct console *console, int ch) {
-  int x, y;	
+  int y;	
 
   switch (ch) {
   case '\r': // carriage return

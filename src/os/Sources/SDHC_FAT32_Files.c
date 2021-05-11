@@ -359,7 +359,7 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount){
 	if((dir_entry->DIR_Attr & DIR_ENTRY_ATTR_LONG_NAME_MASK) == DIR_ENTRY_ATTR_LONG_NAME){
 		//long file name
 		char output[64] = {'\0'};
-		sprintf(output, "Sector %d, entry %d has a long file name\n", latestSector, entryCount);
+		sprintf(output, "Sector %u, entry %d has a long file name\n", (unsigned int)latestSector, entryCount);
 		if (g_printAll){
 			putsNLIntoBuffer(output);
 		}
@@ -685,7 +685,7 @@ uint32_t find_free_cluster(){
 int dir_delete_file(char *filename){
 	//For current PCB only
 	for (int i = 0; i < MAXOPEN; i++){ //leave space for stdin, stdout, stderr
-		if (strncmp(&currentPCB->openFiles[i].fileName, filename, 11) == 0){ //TODO: check comparison validity
+		if (strncmp(&currentPCB->openFiles[i].fileName[0], filename, 11) == 0){ //TODO: check comparison validity
 			return E_FREE_PERM; 
 		}
 	}
@@ -741,7 +741,7 @@ int file_open(char *filename, file_descriptor *descrp){
 	userptr->clusterAddr = fileCluster;
 	userptr->fileSize =fileSize;
 	userptr->cursor = 0;
-    *descrp = (file_descriptor*)userptr;
+    *descrp = (file_descriptor)userptr;
 	return 0;
 }
 
@@ -929,7 +929,7 @@ int file_putbuf(file_descriptor descr, char *bufp, int buflen){
     int* dirLogSecPtr = &dirLogicalSector;
     uint8_t dirData[BLOCK];
     err = dir_get_cwd(dirLogSecPtr, dirData);
-    struct dir_entry_8_3* dir_entry = &dirData[0];
+    //struct dir_entry_8_3* dir_entry = (sttruct dir_entry_8_3 *)&dirData[0];
     if (err != 0){
     	return err;
     }

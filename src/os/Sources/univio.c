@@ -460,7 +460,7 @@ int dac_fputc(file_descriptor descr){
 	return 0;
 }
 
-int myfputs (file_descriptor descr, char* bufp, int buflen){
+int myfputs (file_descriptor descr, char *bufp, int buflen){
 	int err = -1;
 	struct stream* userptr = (struct stream*)descr;
 	if (find_curr_stream(userptr) == FALSE){
@@ -476,7 +476,7 @@ int myfputs (file_descriptor descr, char* bufp, int buflen){
 		if (g_noFS){
 			return E_NOFS;
 		}
-		err = file_putbuf(descr, &bufp, buflen);
+		err = file_putbuf(descr, (char *)&bufp, buflen);
 	}
 	if (err == 0 && MYFAT_DEBUG){
 		printf("fputc success\r\n");

@@ -87,7 +87,7 @@ int cmd_echo(int argc, char *argv[]){
   if (argc == 1){
     return 0;
   }
-  char* output[MAXLEN] = {NULLCHAR};
+  char *output[MAXLEN] = {NULLCHAR};
   for (int i = 1; i < argc - 1; i++){
 	sprintf(output, "%s \n", argv[i]);
 	SVC_fputs(io_dev, output, strlen(argv[i]));
@@ -557,31 +557,31 @@ int cmd_touch2led(int argc, char* argv[]){
 		  SVC_fgetc(E1, bufp); //fgetc turns LED on
 		} 
 		else {
-		  SVC_fputc(E1, 'a'); //fputc turns LED off
+		  SVC_fputc(E1, 'a'); //fputc turns LED off (the 'a' is ignored)
 		}
 		if(ts2Val){
 		  SVC_fgetc(E4, bufp); //fgetc turns YELLOW LED on
 		} 
 		else {
-		  SVC_fputc(E4, 'a'); //fputc turns YELLOW LED off
+		  SVC_fputc(E4, 'a'); //fputc turns YELLOW LED off (the 'a' is ignored)
 		}
 		if(ts3Val) {
 		  SVC_fgetc(E3, bufp); //fgetc turns LED on
 		} 
 		else {
-		  SVC_fputc(E3, 'a'); //fputc turns LED off
+		  SVC_fputc(E3, 'a'); //fputc turns LED off (the 'a' is ignored)
 		}
 		if(ts4Val) {
 		  SVC_fgetc(E2, bufp); //fgetc turns BLUE LED on
 		} 
 		else {
-		  SVC_fputc(E2, 'a'); //fputc turns BLUE LED off
+		  SVC_fputc(E2, 'a'); //fputc turns BLUE LED off (the 'a' is ignored)
 		}
 	}
-	  SVC_fputc(E1, 'a'); //fputc turns LED off
-	  SVC_fputc(E2, 'a'); //fputc turns LED off
-	  SVC_fputc(E3, 'a'); //fputc turns LED off
-	  SVC_fputc(E4, 'a'); //fputc turns LED off
+	  SVC_fputc(E1, 'a'); //fputc turns LED off (the 'a' is ignored)
+	  SVC_fputc(E2, 'a'); //fputc turns LED off (the 'a' is ignored)
+	  SVC_fputc(E3, 'a'); //fputc turns LED off (the 'a' is ignored)
+	  SVC_fputc(E4, 'a'); //fputc turns LED off (the 'a' is ignored)
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		if (spawnFlag){
@@ -769,9 +769,9 @@ int cmd_pb2led(int argc, char* argv[]){
 		}
 		return err;
 	}
-	const unsigned long int delayCount = 0x7ffff;
 	char* bufp = " ";
-	while (SVC_fgetc(sw2, 'a') != BOTHSWPRESSED){
+	char c = 'a';
+	while (SVC_fgetc(sw2, &c) != BOTHSWPRESSED){
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
@@ -783,14 +783,14 @@ int cmd_pb2led(int argc, char* argv[]){
       SVC_fgetc(E4, bufp); //fgetc turns LED on
 		}
 		else if (switchState == switch1Up){
-      SVC_fputc(E1, 'a'); //fputc turns LED off
+      SVC_fputc(E1, c); //fputc turns LED off
 		}
 		else if (switchState == switch2Up){
-      SVC_fputc(E4, 'a'); //fputc turns LED off
+      SVC_fputc(E4, c); //fputc turns LED off
 		}
 	}
-  SVC_fputc(E1, 'a'); //fputc turns LED off
-  SVC_fputc(E4, 'a'); //fputc turns LED off
+  SVC_fputc(E1, c); //fputc turns LED off
+  SVC_fputc(E4, c); //fputc turns LED off
 	err = SVC_fclose(E1);
 	if (err != 0){
 		if (spawnFlag){
@@ -1265,7 +1265,7 @@ void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen){
   for (int i = 0; i < NUMESCAPES; i++){
     if (*user_cmd == escapechars[i].c){
       *user_cmd_clean = escapechars[i].ascii;
-      *cleanLen ++;
+      //*cleanLen ++;
       return;
     }
   }

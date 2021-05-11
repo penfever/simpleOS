@@ -130,7 +130,7 @@ uint16_t time_format_FAT(){
 
 void print_time(struct date_time curr_date){
      char output[128] = {'\0'};
-     sprintf(output, "%s %u, %u " TIMESTAMP "\r\n", curr_date.month, curr_date.day, curr_date.year, curr_date.hour, curr_date.minute, curr_date.second, curr_date.msec, io_dev);
+     sprintf(output, "%s %u, %u " TIMESTAMP "\r\n", curr_date.month, (unsigned int)curr_date.day, (unsigned int)curr_date.year, (unsigned int)curr_date.hour, (unsigned int)curr_date.minute, (unsigned int)curr_date.second, (unsigned int)curr_date.msec);
      SVC_fputs(io_dev, output, strlen(output));
 }
 

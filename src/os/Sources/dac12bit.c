@@ -8,6 +8,7 @@
 #include "dac12bit.h"
 #include "univio.h"
 #include "devices.h"
+#include "svc.h"
 
    byte DAC1_UP_PTR =0;
 
@@ -469,7 +470,7 @@ void DAC12_WatermarkBuffInterrupt(DAC_MemMapPtr dacx_base_ptr, byte WatermarkBuf
     DAC12_buffered(dacx_base_ptr,WatermarkBuffMode, BuffMode, Vreference, TrigMode,BuffInitPos, BuffUpLimit) ;
     DAC_SR_REG(dacx_base_ptr) = 0; //clear all the flags  
     DAC12_Interrupt_Init(dacx_base_ptr, DAC_BFWM_INT_ENABLE, DAC_BFT_PTR_INT_ENABLE,DAC_BFB_PTR_INT_ENABLE);
-    enable_interrupts(); 
+    enable_interrupts();
     return; 
 }
 

@@ -329,7 +329,7 @@ void wait(pid_t targetPid){
      return;
 }
 
-void* rr_sched(void* sp){
+void *rr_sched(void *sp){
   	 int err = 0;
   	 uint8_t killFlag = FALSE;
      /*Check whether one process, current or next, is waiting to be killed -- if so, destroys it.*/
@@ -360,7 +360,6 @@ void* rr_sched(void* sp){
      }
      //create a pointer to the current process, and a copy of its pid
      struct pcb *schedPCB = currentPCB; 
-     uint32_t currentPid = currentPCB->pid;
      
      /*g_firstrun_flag checks if it is the first quantum interrupt, does not save state if flag is true.*/
      if (g_firstrun_flag != 0){
@@ -387,6 +386,5 @@ void* rr_sched(void* sp){
      schedPCB->state = running;
      currentPCB = schedPCB;
      sp = (void *)schedPCB->procStackCur; //sp gets saved version of stack pointer
-     currentPid = schedPCB->pid;
      return sp;
 }

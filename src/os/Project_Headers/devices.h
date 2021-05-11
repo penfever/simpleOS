@@ -71,7 +71,7 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 	//FAT32 specific entries
 	uint32_t cursor; // current position in file (shared read/write)
 	uint32_t clusterAddr;
-	uint8_t *fileName;
+	char *fileName;
 	uint32_t fileSize;
 	//LED-specific entries
 	enum led_color
@@ -132,5 +132,7 @@ void systick_init(void);
 void systick_pause(void);
 
 void systick_resume(void);
+
+void dacInit(void);
 
 #endif
