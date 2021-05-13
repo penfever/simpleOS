@@ -288,7 +288,7 @@ int tsi_fgetc(file_descriptor descr) {
 
 int adc_fgetc(file_descriptor descr) {
 	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorID != dev_pot && userptr->minorID != dev_temp){
+	if (userptr->minorId != dev_pot && userptr->minorId != dev_temp){
 		return E_DEV;
 	}
 	unsigned int temp = 0;
@@ -296,7 +296,7 @@ int adc_fgetc(file_descriptor descr) {
 		temp = adc_read(ADC_CHANNEL_POTENTIOMETER);
 	}
 	else if (userptr->minorId == dev_temp){
-		adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
+		temp = adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
 	}
 	return temp >> 4;
 }

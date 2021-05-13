@@ -664,8 +664,8 @@ int cmd_pot2ser(int argc, char* argv[]){
 	}
 	uint32_t* potVal = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	*potVal = 128;
-	char* myOutput = SVC_malloc(16); //string output
-  memset(myOutput, '\0', 16);
+	char* myOutput = SVC_malloc(6); //string output
+	memset(myOutput, '\0', 6);
 	const unsigned long int delayCount = 0x7ffff;
 	while (SVC_fgetc(sw1, "a") != SW1PRESSED){
 		delay(delayCount);
@@ -703,7 +703,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 		return err;
 	}
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
-	char* myOutput = SVC_malloc(16); //string output
+	char* myOutput = SVC_malloc(6); //string output
 	const unsigned long int delayCount = 0x7ffff;
 	while (SVC_fgetc(sw1, "a") != SW1PRESSED){
 		delay(delayCount);
