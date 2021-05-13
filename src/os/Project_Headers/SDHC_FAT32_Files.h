@@ -7,6 +7,7 @@
 #define LOOP_CONTD 101
 #define FOUND_AND_RETURNING 2
 #define BLOCK 512
+#define NUMDIRENTRIES bytes_per_sector/sizeof(struct dir_entry_8_3)
 
 struct myfat_mount{
    uint32_t rca;

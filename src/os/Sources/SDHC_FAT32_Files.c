@@ -263,8 +263,7 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
 	int i;
 	int err;
 	struct dir_entry_8_3 *dir_entry;
-	int numDirEntries = bytes_per_sector/sizeof(struct dir_entry_8_3);
-	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < numDirEntries; i++, dir_entry++){
+	for(i = 0, dir_entry = (struct dir_entry_8_3 *) data; i < NUMDIRENTRIES; i++, dir_entry++){
     	if(dir_entry->DIR_Name[0] == DIR_ENTRY_LAST_AND_UNUSED){
     		//we've reached the end of the directory
     		if(MYFAT_DEBUG_LITE){
@@ -411,6 +410,7 @@ int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
     return 0;
 }
 
+/*Loads unused cache with an empty dir_entry.*/
 int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
 	MOUNT->writeSector = logicalSector; //updates writeSector
     if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
@@ -493,21 +493,24 @@ int dir_create_file(char *filename){
     return 0;
 }
 
+/*This function is called when the only unused entry in the directory is dir_entry_last_and_unused.
+* This function extends the length of the current directory by one dir_entry.
+  Returns 0 on success, errcode on failure.*/
 int dir_extend_dir(int dirPos, uint32_t currCluster){
-	unused = (struct dir_entry_8_3*)MOUNT->data;
+	struct dir_entry_8_3 * extendDirEntry = (struct dir_entry_8_3 *)MOUNT->data;
 	//CASE 1: more entries exist in sector
-	if (dirPos < bytes_per_sector/sizeof(struct dir_entry_8_3)){
-		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
-		unused ++;
-		unused->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
-		unused --;
+	if (dirPos < NUMDIRENTRIES){
+		extendDirEntry += dirPos;
+		extendDirEntry->DIR_Name[0] = DIR_ENTRY_UNUSED;
+		extendDirEntry ++;
+		extendDirEntry->DIR_Name[0] = DIR_ENTRY_LAST_AND_UNUSED;
+		extendDirEntry --;
 	}
 	//CASE 2: more sectors exist in cluster
-	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector < sectors_per_cluster){
-		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
+	else if (dirPos == NUMDIRENTRIES && *g_numSector < sectors_per_cluster){
+		extendDirEntry->DIR_Name[0] = DIR_ENTRY_UNUSED;
 		MOUNT->dirty = TRUE;
 	    write_cache();
-	    
 		uint8_t nextData[512]; //load next sector in cluster
 	    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector + 1, &card_status, nextData)){
 	    	return E_IO;
@@ -519,7 +522,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 	}
 	//CASE 3, new cluster reqd
 	else if (dirPos == bytes_per_sector/sizeof(struct dir_entry_8_3) && *g_numSector == sectors_per_cluster){
-		unused->DIR_Name[0] = DIR_ENTRY_UNUSED;
+		extendDirEntry->DIR_Name[0] = DIR_ENTRY_UNUSED;
 		MOUNT->dirty = TRUE;
 	    write_cache();
 	    uint32_t nextCluster = 0;
