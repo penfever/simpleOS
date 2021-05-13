@@ -288,14 +288,17 @@ int tsi_fgetc(file_descriptor descr) {
 
 int adc_fgetc(file_descriptor descr) {
 	struct stream* userptr = (struct stream*)descr;
+	if (userptr->minorID != dev_pot && userptr->minorID != dev_temp){
+		return E_DEV;
+	}
+	unsigned int temp = 0;
 	if (userptr->minorId == dev_pot){
-		return adc_read(ADC_CHANNEL_POTENTIOMETER);
+		temp = adc_read(ADC_CHANNEL_POTENTIOMETER);
 	}
-	if (userptr->minorId == dev_temp){
-		unsigned int temp = adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
-		return temp;
+	else if (userptr->minorId == dev_temp){
+		adc_read(ADC_CHANNEL_TEMPERATURE_SENSOR);
 	}
-	return E_DEV;
+	return temp >> 4;
 }
 
 /*pushb_fgetc returns 1 if sw1 is pressed, 2 if sw2 is pressed, 3 if both are pressed, otherwise 0*/
