@@ -277,9 +277,6 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     			if ((err = dir_extend_dir(i, currCluster)) != 0){
     				return err;
     			}
-    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
-    				return err;
-    			}
     			g_unusedSeek = FOUND_AND_RETURNING;
     			return 0;
     		}
@@ -495,6 +492,7 @@ int dir_create_file(char *filename){
 
 /*This function is called when the only unused entry in the directory is dir_entry_last_and_unused.
 * This function extends the length of the current directory by one dir_entry.
+* SIDE EFFECTS: updates unused pointer and loads cache. Unused points to correct entry in cache.
   Returns 0 on success, errcode on failure.*/
 int dir_extend_dir(int dirPos, uint32_t currCluster){
 	struct dir_entry_8_3 * extendDirEntry = (struct dir_entry_8_3 *)MOUNT->data;
@@ -547,6 +545,7 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 		return E_NOINPUT; //some unexpected case came up
 	}
 	MOUNT->dirty = TRUE;
+	unused = extendDirEntry;
 	write_cache();
 	return 0;
 }
