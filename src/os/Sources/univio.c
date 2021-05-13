@@ -52,13 +52,11 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			}
 			return E_DEV;
 		}
-		userptr->devStatus = off;
 		err = add_device_to_PCB(devicePtr, descr, mode);
 		return err;
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
-	userptr->devStatus = on;
 	if (g_noFS){
 		return E_NOFS;
 	}
@@ -76,6 +74,7 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 	if (find_curr_stream(userptr) == FALSE){
 		return E_FREE_PERM;
 	}
+	userptr->devStatus = on;
 	userptr->mode = mode;
 	return 0;
 }
@@ -108,6 +107,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 			if (userptr == NULL){
 				return E_FREE;
 			}
+			userptr->devStatus = off;
 			userptr->deviceType = IO;
 			userptr->minorId = devicePtr;
 			*fd = (file_descriptor)userptr;
@@ -425,6 +425,12 @@ int myfputc (file_descriptor descr, char bufp){
  *Returns 1 if LED is on*/
 int led_fgetc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
+	if (MYFAT_DEBUG_LITE && userptr->devStatus){
+		printf("The LED is on. \n");
+	}
+	else if (MYFAT_DEBUG_LITE){
+		printf("The LED is off. \n");
+	}
 	return userptr->devStatus;
 }
 

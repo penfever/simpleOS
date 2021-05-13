@@ -543,7 +543,6 @@ int cmd_touch2led(int argc, char* argv[]){
 	uint32_t ts2Val = 0;
 	uint32_t ts3Val = 0;
 	uint32_t ts4Val = 0;
-	char* bufp = "a";
 	while(TRUE) {
 		SVC_fgetc(myTS1, (char*)&ts1Val);
 		SVC_fgetc(myTS2, (char*)&ts2Val);
@@ -554,28 +553,28 @@ int cmd_touch2led(int argc, char* argv[]){
 			break;
 		}
 		if(ts1Val){
-		  SVC_fgetc(E1, bufp);
+			SVC_fputc(E1, 'y'); //fputc with argument 'y' turns ORANGE LED on
 		} 
 		else {
-		  SVC_fputc(E1, 'y'); //fputc with argument 'y' turns ORANGE LED off
+			SVC_fputc(E1, 'n'); //fputc with argument 'y' turns ORANGE LED off
 		}
 		if(ts2Val){
-		  SVC_fgetc(E4, bufp);
+			SVC_fputc(E4, 'y'); //YELLOW
 		} 
 		else {
-		  SVC_fputc(E4, 'y'); //ORANGE
+			SVC_fputc(E4, 'n');
 		}
 		if(ts3Val) {
-		  SVC_fgetc(E3, bufp);
+			SVC_fputc(E3, 'y'); //GREEN
 		} 
 		else {
-		  SVC_fputc(E3, 'y'); //GREEN LED
+			SVC_fputc(E3, 'n');
 		}
 		if(ts4Val) {
-		  SVC_fgetc(E2, bufp);
+			SVC_fputc(E2, 'y'); //BLUE
 		} 
 		else {
-		  SVC_fputc(E2, 'y'); //BLUE LED
+			SVC_fputc(E2, 'n');
 		}
 	}
 	  SVC_fputc(E1, 'n'); //Turn all LEDs off (argument 'n')
@@ -769,7 +768,7 @@ int cmd_pb2led(int argc, char* argv[]){
 		}
 		return err;
 	}
-	char* bufp = " ";
+	char c;
 	while (SVC_fgetc(sw2, &c) != BOTHSWPRESSED){
 		int switchState = switchScan();
 		if (switchState == noChange){
@@ -961,8 +960,10 @@ while(SVC_fgetc(sw1, "a") != SW1PRESSED){
     }
   }
 	if (spawnFlag){
+        SVC_fputc(myE1, 'n');
 		SVC_wake(SHELLPID);
 	}
+  SVC_fputc(myE1, 'n');
   return 0;
 }
 /*   The spawn command will take a single argument which is one of
