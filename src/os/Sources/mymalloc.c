@@ -98,7 +98,7 @@ If it finds the next region is also free, it merges the two free regions togethe
 updates the global node_count variable. */
 
 void compact_next(struct mem_region* curr){ //CURR on REGION boundary
-    struct mem_region* next = (struct mem_region *)(curr->data + curr->size);
+    struct mem_region* next = (struct mem_region *)(curr->data + curr->size);;
     if (next->free != FALSE){
         curr->size += MEMSTRUCT; //expand previous free block to include newly freed one
         curr->size += next->size;

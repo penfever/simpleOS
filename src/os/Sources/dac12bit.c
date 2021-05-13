@@ -133,60 +133,6 @@ SIM_SCGC4 |= SIM_SCGC4_VREF_MASK ;
 
 }
 
-void DAC12_Vin_SWtrig(DAC_MemMapPtr dacx_base_ptr, unsigned char VrefSel)  {
-
-     DAC_C0_REG(dacx_base_ptr)  = (
-     DAC_BFB_PTR_INT_DISABLE |  // DACBIE =0 , buffer read pointer  bottom flag interrupt is disabled             
-     DAC_BFT_PTR_INT_DISABLE  | // DACTIE = 0 ,buffer read pointer top flag interrupt is disabled            
-     DAC_BFWM_INT_DISABLE |     // DACWIE = 0, buffer water mark interrupt disabled            
-     DAC_HP_MODE    |           // LPEN = 0, low power mode            
-     DAC_SW_TRIG_STOP |         // NO Software trigger yet            
-     DAC_SEL_SW_TRIG |          // DACTSEL =1, Databuffer outputs to DACO pin whenever a write to DACDAT0     
-     VrefSel |          
-     DAC_ENABLE                 //DAC enalbed
-     );  
-
-    if ( VrefSel == DAC_SEL_VREFO ) {
-    VREF_Init();
-    }// end of if
-
-     DAC_C1_REG(dacx_base_ptr)= ( 
-     DAC_BF_DISABLE  |  // Buffer read pointer is disabled, converted data is always the first word of buffer = DACCCDAT0            
-     DAC_BF_NORMAL_MODE |          
-     DAC_BFWM_1WORD |
-     DAC_DMA_DISABLE  
-     ) ;
-
-DAC_C2_REG(dacx_base_ptr) = DAC_SET_PTR_AT_BF(0)| DAC_SET_PTR_UP_LIMIT(0x0f);
-}// end of DAC12_Vin_SWtrig
-
- void DAC12_VreferenceInit(DAC_MemMapPtr dacx_base_ptr,unsigned char Vinselect){
- 
-
-      
-    DAC12_Vin_SWtrig(dacx_base_ptr, Vinselect); // input 1 to function to select  Vin = Vext = VDDA  
-    SET_DACx_BUFFER(dacx_base_ptr, 0,0); //Intialize Buffer 0  to value 0.
-    
-
- }//end of DAC12_VreferenceTest
-
-void DAC12_VreferenceRamp(void){
-
- int j = 0 ;
-    int increment = 0 ; 
-    while(1){ 
-    for (increment = 0 ; increment <4096; increment++) {
-     
-      //Set value for DACx output. This function assume dacx is configured to non-buffer mode, 
-      //The analog DACx output is reflected upon the change of value in buffer0 , not the read pointer.
-     SET_DACx_BUFFER(DAC0_BASE_PTR, 0,increment);  
-     SET_DACx_BUFFER(DAC1_BASE_PTR,0,increment);  
-    
-      for (j=0;j<1000;j++){}  // random delay
-     }//end of outer for loop
-  
-    }//end of while loop
-}
 void DAC12_buffered (DAC_MemMapPtr dacx_base_ptr, byte WatermarkMode, byte BuffMode, byte Vreference, byte TrigMode, byte BuffInitPos,byte BuffUpLimit){
 
     DAC_C0_REG(dacx_base_ptr) = (

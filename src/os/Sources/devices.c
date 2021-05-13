@@ -251,7 +251,7 @@ void SysTickHandler(void){
 
   /* Call the scheduler to find the saved SP of the next process to be
    * executed. Scheduler must return a new SP, which is the SP of the process to be executed (whose process stack will be pre-formatted to look like the previous stack)*/
-  copyOfSP = rr_sched((char *)copyOfSP);
+  copyOfSP = (uint32_t)rr_sched((void *)copyOfSP);
 
   /* The following assembly language will write the value of the
    * local, automatic variable 'copyOfSP' into the main SP */

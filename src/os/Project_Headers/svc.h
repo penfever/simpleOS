@@ -68,7 +68,7 @@ int SVC_free(void *ptr);
 /*This supervisor call prints the contents of a directory.*/
 int SVC_dir_ls(int full);
 /*This supervisor call sets the current time.*/
-int SVC_settime(long long *newTime);
+int SVC_settime(unsigned long long *newTime);
 /*This supervisor call sets or resets the one-shot PDB timer.*/
 int SVC_pdb0oneshottimer(uint16_t* delayCount);
 /*This supervisor call spawns a new process.*/

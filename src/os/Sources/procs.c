@@ -31,7 +31,7 @@ pid_t maxPid = 0;
 
 uint32_t g_curPCBCount = 0;
 
-int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawnData){
+int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData *thisSpawnData){
      disable_interrupts();
      g_curPCBCount ++; //increment current PCB count
      struct pcb* returnPCB = myMalloc(sizeof(struct pcb));

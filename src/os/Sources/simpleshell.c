@@ -84,17 +84,17 @@ struct commandEntry commands[] = {{"date", cmd_date}, //0
 
 /*echo prints to the terminal whatever was typed as an argument by the user following the call to echo itself.*/
 int cmd_echo(int argc, char *argv[]){
-  if (argc == 1){
-    return 0;
-  }
-  char *output[MAXLEN] = {NULLCHAR};
-  for (int i = 1; i < argc - 1; i++){
-	sprintf(output, "%s \n", argv[i]);
-	SVC_fputs(io_dev, output, strlen(argv[i]));
-  }
-  sprintf(output, "%s \n", argv[argc - 1]);
-  SVC_fputs(io_dev, output, strlen(argv[argc - 1]));
-  return 0;
+	  if (argc == 1){
+	    return 0;
+	  }
+	  char output[MAXLEN] = {NULLCHAR};
+	  for (int i = 1; i < argc - 1; i++){
+		sprintf(output, "%s \n", argv[i]);
+		SVC_fputs(io_dev, output, strlen(argv[i]));
+	  }
+	  sprintf(output, "%s \n", argv[argc - 1]);
+	  SVC_fputs(io_dev, output, strlen(argv[argc - 1]));
+	  return 0;
 }
 
 /*exit shuts down all processes and devices, frees memory and exits the shell.*/
@@ -160,7 +160,7 @@ int cmd_date(int argc, char *argv[]){
       printf("fieldsRead is %d, year, month, day end are %d, %d, %d, %d, %d. \n", fieldsRead, year, month, day, hour, minute);
     }
   }
-  long long setTime;
+  unsigned long long setTime;
   if ((setTime = hex_dec_oct_ll(argv[1])) < 1){
   	return E_NOINPUT;
   }
@@ -1155,8 +1155,7 @@ int cmd_multitask(int argc, char* argv[]){
   if (argc != 2){
     return E_NUMARGS;
   }
-  //TODO: errcheck argvs
-  const char * c2fArgv[] = {
+  char *c2fArgv[] = {
 		  "spawn",
 		  "cat2file",
 		  argv[1],
@@ -1167,7 +1166,7 @@ int cmd_multitask(int argc, char* argv[]){
   if ((err = SVC_spawn(cmd_cat2file, c2fArgc, c2fArgv, &c2fSpawnData)) != 0){
 	  return err;
   }
-  const char * flsArgv[] = {
+  char *flsArgv[] = {
 		  "flashled",
 		  "50",
   };
@@ -1177,7 +1176,7 @@ int cmd_multitask(int argc, char* argv[]){
   if ((err = SVC_spawn(cmd_flashled, flsArgc, flsArgv, &flsSpawnData)) != 0){
 	  return err;
   }
-  const char * usmArgv[] = {
+  char *usmArgv[] = {
 		  "spawn",
 		  "uartsendmsg",
   };

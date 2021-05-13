@@ -63,7 +63,7 @@ void* rr_sched(void* sp);
 char* get_proc_name(int main(int argc, char* argv[]));
 
 /*spawn spawns a new process*/
-int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn);
+int spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData *thisSpawnData);
 
 /*kill sets the state of PCB with targetPid to terminate*/
 int kill(pid_t targetPid);

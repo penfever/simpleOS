@@ -256,25 +256,17 @@ int __attribute__((naked)) __attribute__((noinline)) SVC_dir_ls(int full) {
 	__asm("svc %0" : : "I" (SVC_DIR_LS));
 	__asm("bx lr");
 }
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVC_dir_ls(int full) {
-	__asm("svc %0" : : "I" (SVC_DIR_LS));
-}
 #endif
+#pragma GCC diagnostic pop
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVC_settime(long long* newTime) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_settime(unsigned long long *newTime) {
 	__asm("svc %0" : : "I" (SVC_SETTIME));
 	__asm("bx lr");
 }
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVC_settime(long long newTime) {
-	__asm("svc %0" : : "I" (SVC_SETTIME));
-}
 #endif
+#pragma GCC diagnostic pop
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
@@ -282,22 +274,18 @@ int __attribute__((naked)) __attribute__((noinline)) SVC_pdb0oneshottimer(uint16
 	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
 	__asm("bx lr");
 }
-#pragma GCC diagnostic pop
-#else
-int __attribute__((never_inline)) SVC_pdb0oneshottimer(uint16_t* delayCount) {
-	__asm("svc %0" : : "I" (SVC_PDBONESHOT));
-}
 #endif
+#pragma GCC diagnostic pop
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wreturn-type"
-int __attribute__((naked)) __attribute__((noinline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+int __attribute__((naked)) __attribute__((noinline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData *thisSpawn) {
 	__asm("svc %0" : : "I" (SVC_SPAWN));
 	__asm("bx lr");
 }
 #pragma GCC diagnostic pop
 #else
-int __attribute__((never_inline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn) {
+int __attribute__((never_inline)) SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData *thisSpawn) {
 	__asm("svc %0" : : "I" (SVC_SPAWN));
 }
 #endif

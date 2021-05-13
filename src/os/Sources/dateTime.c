@@ -25,7 +25,7 @@ struct months allMonths[] = {{"January", 0, 31},
               {"December", 11, 31}, 
               {"February", 12, 29}};
 
-int set_time(long long *newTime){
+int set_time(unsigned long long *newTime){
      /* Disable interrupts (PRIMASK is set) */
      disable_interrupts();
      curTime = *newTime;
