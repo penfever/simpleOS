@@ -554,34 +554,34 @@ int cmd_touch2led(int argc, char* argv[]){
 			break;
 		}
 		if(ts1Val){
-		  SVC_fgetc(E1, bufp); //fgetc turns LED on
+		  SVC_fgetc(E1, bufp);
 		} 
 		else {
-		  SVC_fputc(E1, 'a'); //fputc turns LED off (the 'a' is ignored)
+		  SVC_fputc(E1, 'y'); //fputc with argument 'y' turns ORANGE LED off
 		}
 		if(ts2Val){
-		  SVC_fgetc(E4, bufp); //fgetc turns YELLOW LED on
+		  SVC_fgetc(E4, bufp);
 		} 
 		else {
-		  SVC_fputc(E4, 'a'); //fputc turns YELLOW LED off (the 'a' is ignored)
+		  SVC_fputc(E4, 'y'); //ORANGE
 		}
 		if(ts3Val) {
-		  SVC_fgetc(E3, bufp); //fgetc turns LED on
+		  SVC_fgetc(E3, bufp);
 		} 
 		else {
-		  SVC_fputc(E3, 'a'); //fputc turns LED off (the 'a' is ignored)
+		  SVC_fputc(E3, 'y'); //GREEN LED
 		}
 		if(ts4Val) {
-		  SVC_fgetc(E2, bufp); //fgetc turns BLUE LED on
+		  SVC_fgetc(E2, bufp);
 		} 
 		else {
-		  SVC_fputc(E2, 'a'); //fputc turns BLUE LED off (the 'a' is ignored)
+		  SVC_fputc(E2, 'y'); //BLUE LED
 		}
 	}
-	  SVC_fputc(E1, 'a'); //fputc turns LED off (the 'a' is ignored)
-	  SVC_fputc(E2, 'a'); //fputc turns LED off (the 'a' is ignored)
-	  SVC_fputc(E3, 'a'); //fputc turns LED off (the 'a' is ignored)
-	  SVC_fputc(E4, 'a'); //fputc turns LED off (the 'a' is ignored)
+	  SVC_fputc(E1, 'n'); //Turn all LEDs off (argument 'n')
+	  SVC_fputc(E2, 'n'); 
+	  SVC_fputc(E3, 'n'); 
+	  SVC_fputc(E4, 'n'); 
 	err = SVC_fclose(myTS1);
 	if (err != 0){
 		if (spawnFlag){
@@ -770,27 +770,26 @@ int cmd_pb2led(int argc, char* argv[]){
 		return err;
 	}
 	char* bufp = " ";
-	char c = 'a';
 	while (SVC_fgetc(sw2, &c) != BOTHSWPRESSED){
 		int switchState = switchScan();
 		if (switchState == noChange){
 			continue;
 		}
 		else if (switchState == switch1Down){
-      SVC_fgetc(E1, bufp); //fgetc turns LED on
+      SVC_fputc(E1, 'y'); 
 		}
 		else if (switchState == switch2Down){
-      SVC_fgetc(E4, bufp); //fgetc turns LED on
+      SVC_fputc(E4, 'y');
 		}
 		else if (switchState == switch1Up){
-      SVC_fputc(E1, c); //fputc turns LED off
+      SVC_fputc(E1, 'n');
 		}
 		else if (switchState == switch2Up){
-      SVC_fputc(E4, c); //fputc turns LED off
+      SVC_fputc(E4, 'n');
 		}
 	}
-  SVC_fputc(E1, c); //fputc turns LED off
-  SVC_fputc(E4, c); //fputc turns LED off
+  SVC_fputc(E1, 'n'); 
+  SVC_fputc(E4, 'n'); 
 	err = SVC_fclose(E1);
 	if (err != 0){
 		if (spawnFlag){
@@ -952,11 +951,10 @@ int cmd_flashled(int argc, char* argv[]){
 while(SVC_fgetc(sw1, "a") != SW1PRESSED){
     if (g_timerExpired) {
       if (toggle){
-    	char* bufp = " ";
-        SVC_fgetc(myE1, bufp); //fgetc turns LED on
+        SVC_fputc(myE1, 'y');
       }
       else{
-        SVC_fputc(myE1, 'a'); //fputc turns LED off
+        SVC_fputc(myE1, 'n');
       }
       toggle = !toggle; //toggle reverses
       SVC_pdb0oneshottimer(&delayCount); //timer reset

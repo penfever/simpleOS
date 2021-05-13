@@ -68,6 +68,11 @@ struct stream { //Abstraction: what device is this, and how do I talk to it?
 	}deviceType; //Major ID
 	int minorId;
 	int mode;  //rw mode	
+	enum dev_status
+	{
+		off = 0,
+		on = 1
+	}devStatus;
 	//FAT32 specific entries
 	uint32_t cursor; // current position in file (shared read/write)
 	uint32_t clusterAddr;

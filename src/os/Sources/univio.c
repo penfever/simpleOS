@@ -52,11 +52,13 @@ int myfopen (file_descriptor* descr, char* filename, char mode){
 			}
 			return E_DEV;
 		}
+		userptr->devStatus = off;
 		err = add_device_to_PCB(devicePtr, descr, mode);
 		return err;
 	}
 	/*CASE: FAT32
 	if mode is read, call file_open with a null descriptor, print error code if appropriate, return descriptor*/
+	userptr->devStatus = on;
 	if (g_noFS){
 		return E_NOFS;
 	}
@@ -138,6 +140,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 	else if (devicePtr >= ADC_MIN && devicePtr <= ADC_MAX){
 		userptr->deviceType = ADC;
 		adc_init();
+		userptr->devStatus = on;
 		if (MYFAT_DEBUG){
 			printf("ADC initialized. \n");
 		}
@@ -147,6 +150,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 		if (g_tsInit == FALSE){
 			TSI_Init();
 			TSI_Calibrate();
+			userptr->devStatus = on;
 			g_tsInit = TRUE;
 		}
 		if (MYFAT_DEBUG){
@@ -157,6 +161,7 @@ int add_device_to_PCB(uint32_t devicePtr, file_descriptor* fd, char mode){
 		userptr->deviceType = DAC;
 		userptr->mode = mode; //The 'mode' argument to fopen is defined as mapping to the timing of DAC release (for synth functionality)
 		dacInit();
+		userptr->devStatus = on;
 		if (MYFAT_DEBUG){
 			printf("DAC initialized. \n");
 		}
@@ -387,7 +392,7 @@ int myfputc (file_descriptor descr, char bufp){
 		}
 	}
 	else if (userptr->deviceType == LED){
-		err = led_fputc(descr);
+		err = led_fputc(descr, bufp);
 		if (err == 0 && MYFAT_DEBUG){
 			printf("fputc success\n");
 		}
@@ -416,37 +421,51 @@ int myfputc (file_descriptor descr, char bufp){
 	return err;
 }
 
-/*LED_fgetc is defined as 'on'*/
+/*led_fgetc returns 0 if LED is off
+ *Returns 1 if LED is on*/
 int led_fgetc(file_descriptor descr){
 	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorId == dev_E1){
-        ledOrangeOn();
-	}
-	if (userptr->minorId == dev_E2){
-        ledBlueOn();
-	}
-	if (userptr->minorId == dev_E3){
-        ledGreenOn();
-	}
-	if (userptr->minorId == dev_E4){
-        ledYellowOn();
-	}
-	return 0;
+	return userptr->devStatus;
 }
-/*led_fputc is defined as off*/
-int led_fputc(file_descriptor descr){
+
+/*led_fputc is defined as follows:
+ *fputc devId y (activate)
+ *fputc devId n (deactivate)
+ *fputc devId ANY OTHER CHAR (invalid input)*/
+int led_fputc(file_descriptor descr, char c){
+	if (c != 'y' && c != 'n'){
+		return E_NOINPUT;
+	}
 	struct stream* userptr = (struct stream*)descr;
-	if (userptr->minorId == dev_E1){
-        ledOrangeOff();
+	if (c == 'y'){
+		if (userptr->minorId == dev_E1){
+			ledOrangeOn();
+		}
+		if (userptr->minorId == dev_E2){
+			ledBlueOn();
+		}
+		if (userptr->minorId == dev_E3){
+			ledGreenOn();
+		}
+		if (userptr->minorId == dev_E4){
+			ledYellowOn();
+		}
+		userptr->devStatus = on;
 	}
-	if (userptr->minorId == dev_E2){
-        ledBlueOff();
-	}
-	if (userptr->minorId == dev_E3){
-        ledGreenOff();
-	}
-	if (userptr->minorId == dev_E4){
-        ledYellowOff();
+	if (c == 'n'){
+		if (userptr->minorId == dev_E1){
+			ledOrangeOff();
+		}
+		if (userptr->minorId == dev_E2){
+			ledBlueOff();
+		}
+		if (userptr->minorId == dev_E3){
+			ledGreenOff();
+		}
+		if (userptr->minorId == dev_E4){
+			ledYellowOff();
+		}
+		userptr->devStatus = off;
 	}
 	return 0;
 }

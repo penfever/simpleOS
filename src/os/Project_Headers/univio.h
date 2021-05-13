@@ -27,7 +27,7 @@ int pushb_fgetc(file_descriptor descr);
 
 int led_fgetc(file_descriptor descr);
 
-int led_fputc(file_descriptor descr);
+int led_fputc(file_descriptor descr, char c);
 
 int myfputs (file_descriptor descr, char* bufp, int buflen);
 
