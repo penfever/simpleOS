@@ -364,7 +364,7 @@ int cmd_delete(int argc, char *argv[]){
 }
 
 /*shell interface for fgetc (file_descriptor descr, char bufp).
- * Prints output directly to terminal. */
+ * Prints output directly to terminal.*/
 int cmd_fgetc(int argc, char *argv[]){
 	if (argc != 2){
 		return E_NUMARGS;
@@ -382,8 +382,8 @@ int cmd_fgetc(int argc, char *argv[]){
 	else{
 		char output[3];
 		output[0] = bufp;
-		output[1] = '\r';
-		output[2] = '\n';
+		output[1] = '\n';
+		output[2] = '\0';
 		SVC_fputs(io_dev, output, strlen(output));
 	}
 	return err;

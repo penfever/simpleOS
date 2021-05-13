@@ -765,7 +765,7 @@ int find_curr_stream(struct stream* fileptr){
 }
 
 /**
- * Close the file associated with descr and disassociate descr from that file
+ * Close the file associated with descr and disassociates descr from that file
  * Returns an error code if the file descriptor is not open
  * Frees all dynamic storage associated with the formerly open file descriptor
  * and indicates that the descriptor is closed
@@ -788,6 +788,7 @@ int file_close(file_descriptor descr){
 				return err;
 			}
 			userptr->deviceType = UNUSED;
+			userptr->minorId = dev_null;
 			return 0;
 		}
 	}
