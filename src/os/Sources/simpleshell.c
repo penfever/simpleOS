@@ -899,6 +899,9 @@ int cmd_cat2file(int argc, char* argv[]){
 	if (spawnFlag){
 		SVC_wake(SHELLPID);
 	}
+  /*Print newline after displayed character to keep the terminal output tidy*/
+  char* output = " \n";
+  SVC_fputs(io_dev, output, strlen(output));
 	return SVC_fclose(descr);
 }
 
@@ -980,7 +983,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {"touch2led", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"touch2led", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_touch2led, argc, argv, &thisSpawnData);
     return err;
   }
@@ -991,7 +994,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {"pb2led", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"pb2led", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_pb2led, argc, argv, &thisSpawnData);
     return err;
   }
@@ -1002,7 +1005,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 3){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {"flashled", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"flashled", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_flashled, argc, argv, &thisSpawnData);
     return err;
   }
@@ -1013,7 +1016,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 3){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {"cat2file", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"cat2file", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_cat2file, argc, argv, &thisSpawnData);
     return err;
   }
@@ -1024,7 +1027,7 @@ int cmd_spawn(int argc, char* argv[]){
 	  if (argc != 2){
 	    return E_NUMARGS;
 	  }
-    struct spawnData thisSpawnData = {"uartsendmsg", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"uartsendmsg", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_uartsendmsg, argc, argv, &thisSpawnData);
     return err;
   }
@@ -1032,10 +1035,10 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {commands[26].name, NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(commands[26].functionp, argc, argv, &thisSpawnData);
     pid_t spawnPidAlso;
-    struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_DEF, &spawnPidAlso};
+    struct spawnData thisSpawnDataAlso = {commands[20].name, NEWPROC_STACKSIZE, &spawnPidAlso};
     err = SVC_spawn(commands[20].functionp, argc, argv, &thisSpawnDataAlso);
     SVC_wait(SHELLPID);
     return err;
@@ -1044,7 +1047,7 @@ int cmd_spawn(int argc, char* argv[]){
     ;
   }
   else{
-    struct spawnData thisSpawnData = {"busywait", NEWPROC_DEF, &spawnPid};
+    struct spawnData thisSpawnData = {"busywait", NEWPROC_STACKSIZE, &spawnPid};
     err = SVC_spawn(cmd_busywait, argc, argv, &thisSpawnData);
     return err;
   }
@@ -1161,7 +1164,7 @@ int cmd_multitask(int argc, char* argv[]){
   };
   pid_t c2fSpawnPid;
   uint8_t c2fArgc = 3;
-  struct spawnData c2fSpawnData = {"cat2file", NEWPROC_DEF, &c2fSpawnPid};
+  struct spawnData c2fSpawnData = {"cat2file", NEWPROC_STACKSIZE, &c2fSpawnPid};
   if ((err = SVC_spawn(cmd_cat2file, c2fArgc, c2fArgv, &c2fSpawnData)) != 0){
 	  return err;
   }
@@ -1171,7 +1174,7 @@ int cmd_multitask(int argc, char* argv[]){
   };
   pid_t flashLEDSpawnPid;
   uint8_t flsArgc = 2;
-  struct spawnData flsSpawnData = {"flashled", NEWPROC_DEF, &flashLEDSpawnPid};
+  struct spawnData flsSpawnData = {"flashled", NEWPROC_STACKSIZE, &flashLEDSpawnPid};
   if ((err = SVC_spawn(cmd_flashled, flsArgc, flsArgv, &flsSpawnData)) != 0){
 	  return err;
   }
@@ -1181,7 +1184,7 @@ int cmd_multitask(int argc, char* argv[]){
   };
   pid_t usmSpawnPid;
   uint8_t usmArgc = 2;
-  struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_DEF, &usmSpawnPid};
+  struct spawnData usmSpawnData = {"uartsendmsg", NEWPROC_STACKSIZE, &usmSpawnPid};
   if ((err = SVC_spawn(cmd_uartsendmsg, usmArgc, usmArgv, &usmSpawnData)) != 0){
 	  return err;
   }

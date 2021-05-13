@@ -123,7 +123,7 @@ int init_sys(){
 	lcdcInit();
 	lcdcConsoleInit(&console);
 	/*launch shell*/
-	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_DEF, &shellPid};
+	struct spawnData mySpawnData = {"cmd_shell", NEWPROC_STACKSIZE, &shellPid};
 	error = spawn(cmd_shell, 0, NULL, &mySpawnData);
 	/*scheduler*/
 	systick_init();

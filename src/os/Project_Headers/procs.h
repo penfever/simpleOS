@@ -2,7 +2,7 @@
 
 #ifndef _PROCS_H
 #define _PROCS_H
-#define NEWPROC_DEF 100000
+#define NEWPROC_STACKSIZE 100000
 
 #define KILLEDCURR 10
 #define KILLEDNEXT 11
