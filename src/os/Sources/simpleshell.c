@@ -705,8 +705,7 @@ int cmd_therm2ser(int argc, char* argv[]){
 	uint32_t* i = SVC_malloc(sizeof(uint32_t)); //range of potentiometer is uint32_t
 	char* myOutput = SVC_malloc(16); //string output
 	const unsigned long int delayCount = 0x7ffff;
-	char c = 'a';
-	while (SVC_fgetc(sw1, &c) != SW1PRESSED){
+	while (SVC_fgetc(sw1, "a") != SW1PRESSED){
 		delay(delayCount);
 		err = SVC_fgetc(thm, (char *)i);
 		if (err != 0){
@@ -947,7 +946,8 @@ int cmd_flashled(int argc, char* argv[]){
 		}
 		return err;
 	}
-while(SVC_fgetc(sw1, "a") != SW1PRESSED){
+  /*NOTE: SVC_fgetc ignores the mode argument when the pushbutton device is referenced.*/
+  while(SVC_fgetc(sw1, "a") != SW1PRESSED){
     if (g_timerExpired) {
       if (toggle){
         SVC_fputc(myE1, 'y');

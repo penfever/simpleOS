@@ -300,28 +300,38 @@ int adc_fgetc(file_descriptor descr) {
 
 /*pushb_fgetc returns 1 if sw1 is pressed, 2 if sw2 is pressed, 3 if both are pressed, otherwise 0*/
 int pushb_fgetc(file_descriptor descr){
+	struct stream* userptr = (struct stream*)descr;
 	if (sw1In() && sw2In()){
 		if (MYFAT_DEBUG){
 			printf("Pushbutton sw1, sw2 are pressed \n");
 		}
 		return 3;
 	}
-	else if (sw1In()){
+	else if (sw1In() && userptr->minorId == dev_sw1){
 		if (MYFAT_DEBUG){
 			printf("Pushbutton sw1 is pressed \n");
 		}
 		return 1;
 	}
-	else if (sw2In()){
+	else if (sw2In() && userptr->minorId == dev_sw2){
 		if (MYFAT_DEBUG){
 			printf("Pushbutton sw2 is pressed \n");
 		}
 		return 2;
 	}
-	if (MYFAT_DEBUG){
-		printf("Pushbutton sw1, sw2 are not pressed \n");
+	else if (userptr->minorId == dev_sw2){
+		if (MYFAT_DEBUG){
+			printf("Pushbutton sw2 is not pressed \n");
+		}
+		return 0;
 	}
-	return 0;
+	else if (userptr->minorId == dev_sw1){
+		if (MYFAT_DEBUG){
+			printf("Pushbutton sw1 is not pressed \n");
+		}
+		return 0;
+	}
+	return E_INF; //should never reach this point
 }
 
 /*myfgets() reads in at most one less than size characters from a stream and 
