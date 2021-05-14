@@ -7,11 +7,17 @@
  * CSCI E-92 Spring 2021, Professor James L. Frankel, Harvard Extension School
  *
  * Written by James L. Frankel (frankel@seas.harvard.edu)
+ * 
+ * Additional code by Benjamin Feuer
  *
  * Copyright (c) 2021, 2017, 2015, 2014, 2012 James L. Frankel.  All rights reserved.
  */
-
 #include "util.h"
+#include "simpleshell.h"
+#include "myerror.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* Routine to convert an unsigned char value into its corresponding three
    digit ASCII value.  The returned three ASCII chars are placed in the first
@@ -69,10 +75,100 @@ void longInt2hex(unsigned long int i, char *string) {
   string[7] = nibble2hex((unsigned char) i);
 }
 
-/*mytoupper converts a character to uppercase, if it is a letter between a and z.*/
 char mytoupper(char c){
 	if ((c >= 'a') && (c <= 'z')){
 		c = c - 32;
 	}
 	return c;
+}
+
+int check_digit (char c) {
+    if ((c >= '0') && (c <= '9')) return 1;
+    return 0;
+}
+
+int check_hex (char c) {
+    if ((c >= '0') && (c <= '9')) return 1;
+    if ((c >= 'a') && (c <= 'f')) return 1;
+    if ((c >= 'A') && (c <= 'F')) return 1;
+    return 0;
+}
+
+void check_overflow(unsigned long my_num){
+  if (my_num == 0){
+    error_checker(E_NOINPUT);
+  }
+  return;
+}
+
+int check_digit_all(char* str){
+	int len = strlen(str);
+	if (len == 0){
+		return TRUE;
+	}
+  for (int i = 0; i < len; i++){
+    if (!check_digit(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+int check_hex_all(char* str){
+  for (int i = 0; i < strlen(str); i++){
+    if (!check_hex(str[i])){
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+size_t hex_dec_oct(char* str){
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
+      return strtoul(str, NULL, 16); //return hex
+    }
+    if (check_str == FALSE){
+      return 0;
+    }
+    return strtoul(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
+  }
+  return strtoul(str, NULL, 10); //return decimal
+}
+
+long long hex_dec_oct_ll(char* str){
+  char* p_str = str + 2;
+  int check_str;
+  check_str = check_digit_all(str);
+  if (!check_digit(str[0])){
+    return 0;
+  }
+  if (str[0] == '0'){
+    if (str[1] == 'x' || str[1] == 'X'){
+      if (check_hex_all(p_str) == FALSE){
+        return 0;
+      }
+      return strtoll(str, NULL, 16); //return hex
+    }
+    if (check_str == FALSE){
+      return 0;
+    }
+    return strtoll(str, NULL, 8); //return octal
+}
+  if (check_str == FALSE){
+    return 0;
+  }
+  return strtoll(str, NULL, 10); //return decimal
 }

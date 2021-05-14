@@ -407,7 +407,6 @@ int cmd_fputc(int argc, char *argv[]){
 		return E_NOINPUT;
 	}
 	char m = argv[2][0];
-	//svcInit_SetSVCPriority(7);
 	return SVC_fputc(descr, m);
 }
 
@@ -423,7 +422,6 @@ int cmd_fputs(int argc, char *argv[]){
 	if (argv[1][0] != '"' && argv[2][strlen(argv[2])-1] != '"'){ //must use quotation marks
 		return E_NOINPUT;
 	}
-	//svcInit_SetSVCPriority(7);
 	return SVC_fputs(descr, argv[2], strlen(argv[2]));
 }
 
@@ -1477,106 +1475,4 @@ int shell(void){
   error_t err_code = E_INF;
   error_checker(err_code);
   return err_code;
-}
-
-//HELPERS
-
-//basic implementation of isdigit
-int check_digit (char c) {
-    if ((c >= '0') && (c <= '9')) return 1;
-    return 0;
-}
-
-//basic implementation of ishex
-int check_hex (char c) {
-    if ((c >= '0') && (c <= '9')) return 1;
-    if ((c >= 'a') && (c <= 'f')) return 1;
-    if ((c >= 'A') && (c <= 'F')) return 1;
-    return 0;
-}
-
-/*Helper: checks strtoul output for integer overflow error and prints error if one is encountered.*/
-void check_overflow(unsigned long my_num){
-  if (my_num == 0){
-    error_checker(E_NOINPUT);
-  }
-  return;
-}
-
-/*Helper function accepts a string and returns true if every character in the string is a digit.*/
-int check_digit_all(char* str){
-	int len = strlen(str);
-	if (len == 0){
-		return TRUE;
-	}
-  for (int i = 0; i < len; i++){
-    if (!check_digit(str[i])){
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-/*Helper function accepts a string and returns true if every character in the string is a hex digit.*/
-int check_hex_all(char* str){
-  for (int i = 0; i < strlen(str); i++){
-    if (!check_hex(str[i])){
-      return FALSE;
-    }
-  }
-  return TRUE;
-}
-
-/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an unsigned int or long. If it is not an integer or some other error has occurred, returns 0.*/
-size_t hex_dec_oct(char* str){
-  char* p_str = str + 2;
-  int check_str;
-  check_str = check_digit_all(str);
-  if (!check_digit(str[0])){
-    return 0;
-  }
-  if (str[0] == '0'){
-    if (str[1] == 'x' || str[1] == 'X'){
-      if (check_hex_all(p_str) == FALSE){
-        return 0;
-      }
-      return strtoul(str, NULL, 16); //return hex
-    }
-    if (check_str == FALSE){
-      return 0;
-    }
-    return strtoul(str, NULL, 8); //return octal
-}
-  if (check_str == FALSE){
-    return 0;
-  }
-  return strtoul(str, NULL, 10); //return decimal
-}
-
-/*Helper function parses a user string str and returns it in hex, octal or decimal form, if 
-it is an long long integer. If it is not an integer or some other error has occurred, returns 0.*/
-long long hex_dec_oct_ll(char* str){
-  char* p_str = str + 2;
-  int check_str;
-  check_str = check_digit_all(str);
-  if (!check_digit(str[0])){
-    return 0;
-  }
-  if (str[0] == '0'){
-    if (str[1] == 'x' || str[1] == 'X'){
-      if (check_hex_all(p_str) == FALSE){
-        return 0;
-      }
-      return strtoll(str, NULL, 16); //return hex
-    }
-    if (check_str == FALSE){
-      return 0;
-    }
-    return strtoll(str, NULL, 8); //return octal
-}
-  if (check_str == FALSE){
-    return 0;
-  }
-  return strtoll(str, NULL, 10); //return decimal
 }

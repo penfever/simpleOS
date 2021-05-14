@@ -48,6 +48,7 @@
                   "uartsendmsg sends a message whenever pushbutton 2 is depressed \r\n"\
                   "busywait loops forever and does nothing \r\n"\
                   "multitask spawns cat2file, flashled and uartsendmsg. Terminate with ctrl+D \r\n"\
+                  "synth launches the built-in synthesizer. a-g plays notes, w switches waveforms, q to quit \r\n"\
                   "flashled flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals) \r\n"
 				
 #define NUMCOMMANDS (int)(sizeof(commands)/sizeof(commands[0]))
@@ -76,6 +77,8 @@ extern struct commandEntry commands[];
 extern int g_noFS;
 extern file_descriptor io_dev;
 extern uint8_t g_timerExpired;
+
+/*shell command function prototypes*/
 
 int cmd_date(int argc, char *argv[]);
 int cmd_echo(int argc, char *argv[]);
@@ -114,19 +117,13 @@ int cmd_uartsendmsg(int argc, char* argv[]);
 int cmd_busywait(int argc, char* argv[]);
 int cmd_synth(int argc, char* argv[]);
 
+/*shell string processing function prototypes*/
+
 int parse_string(char* user_cmd, char* user_cmd_clean, int arg_len[], uint16_t cmdLen);
 int quote_check(char* user_cmd, uint16_t cmdLen);
 void quote_char(char* user_cmd, char* user_cmd_clean, int* quote_len);
 void escape_char(char* user_cmd, char* user_cmd_clean, int* cleanLen);
 
 int shell(void);
-
-int check_digit(char c);
-int check_hex (char c);
-int check_digit_all(char* str);
-int check_hex_all(char* str);
-size_t hex_dec_oct(char* str);
-void check_overflow(unsigned long my_num);
-long long hex_dec_oct_ll(char* str);
 
 #endif

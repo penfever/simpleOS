@@ -1,115 +1,259 @@
-# Simple Shell
+# Simple OS
 
-## Purpose
+[Video Presentation: Simple OS Features and Functionality](https://www.youtube.com/watch?v=RgsQV31lbEA)
 
-Simple shell is the shell for an operating system I am developing as part of the Principles of Operating Systems course. 
+The Simple OS is a command-line operating system written in the C Programming Language. It is designed to run on the [NXP Kinetis K70 Tower System](https://www.nxp.com/design/development-boards/tower-development-boards/mcu-and-processor-modules/kinetis-modules/kinetis-k70-120-mhz-tower-system-module:TWR-K70F120M). 
 
-## Use
 
-Simple shell is currently able to run a variety of commands -- type 'help' for a comprehensive list of the commands which are available.
+## Key Features
 
-The shell supports most normal IO operations over the UART and/or CONSOLE IO.
+* REPL Shell
 
-Certain messages may be enabled for UART only or for CONSOLE only.
-Backspace, delete, copy/paste, arrow keys and tab are currently NOT supported on the shell.
+* Custom implementations of malloc and free
 
-All shell commands are named according to the standards laid out in the problem sets for this course, EXCEPT for the following:
+* Console I/O over UART-RS232
 
-cat -> catfile
+* Simplified, Windows-Compatible FAT32 File System
+  
+* Supervisor calls and privileged mode
 
-## Building the Shell
-In order to build the shell and test the commands, create a new Codewarrior project, adding all items in src/os/Project_Headers to your headers folder, and all items in src/os/Sources to your sources folder. 
+* Hardware drivers and support for 18 different devices, including LEDs, system timers, ADC and DAC
+  
+* Hardware and software interrupts
 
-Note that some of the files required for the build are not included in this repo. These files are available at [this link](http://cscie92.dce.harvard.edu/spring2021/index.html).
+* Date and time support
+  
+* Multiprocessing
 
-Debug is disabled. It can be enabled by setting #MYFAT_DEBUG and #MYFAT_DEBUG_LITE to true.  defined in myerror.h.
+* Console display support
+  
+* Digital synthesizer
 
-UART2 support is implemented. #UARTIO, which calls certain printing functions based on whether the UART is used, is defined in devices.h. This is enabled by default, and can safely be ignored.
+## K70 Hardware Setup
 
-src/os_hw is included in the repo for the purposes of showing my commit history. It is not required for the build.
+The Simple OS is designed to take advantage of many built-in features of the K70 MCU and Tower System. In order to use all of the features of the OS, you will need to have access to a [fully assembled K70 Tower](https://cscie92.dce.harvard.edu/spring2021/Photos/K70%20Right%20Above%20with%20J-Link%20&%20Serial%2020210120_141725.jpg) with the [TWR-SER](https://www.nxp.com/part/TWR-SER#/) card and [TWR-LCD-RGB](https://www.nxp.com/part/TWR-LCD-RGB#/) display installed.
 
-The modified kinetis_sysinit.c included in the repo must be used in order for the shell to run.
+A [Segger J-Link](https://www.segger.com/products/debug-probes/j-link/) is recommended (but not required) for debugging messages.
 
-## IDE Notes
+A MicroSD SDHC card is required in order for the operating system to function normally. This card should be formatted as FAT32 and inserted into the K70 MCU board.
 
-I used C99 conventions, so please enable C99 in your IDE when building.
+### K70 Connection to PC
 
-If using Codewarrior, I recommend building in debug mode, as I am using formatted I/O to string functions.
+In order for the Simple OS to compile and run, the K70 hardware must be properly connected to your computer. Depending on the versions of the hardware you have, this may require up to four USB connections.
 
-# Supervisor Call Implementation
+Debug messages, if enabled, will be sent over either the Segger J-Link or the OSBDM/OSJTAG direct connection on the MCU board. If you are using the Segger J-Link on Windows, you may need to connect both in order for the output to display. New device drivers from Freescale/P&E
+Micro are establishing a connection for UART2 over the usual USB cable rather than over
+the DE9 connector on the TWR-SER board.
 
-Supervisor calls and privileged mode have been enabled in this version of the shell. Therefore, attempts to access hardware directly may result in a default breakpoint error. Please use shell commands to access system functions.
+A [Tripp-Lite Keyspan USB to Serial Adapter](https://www.tripplite.com/sku/USA19HS/), or another similar product, is required to handle the normal I/O functions to the console. Appropriate terminal simulation software will also be required, such as [PuTTY](https://www.putty.org/). The Simple OS UART is configured to run at 115,200 baud, with 8 data bits, 1 stop bit and no parity bit.
 
-Supervisor calls available to the systems programmer include the following --
+The TWR-LCD-RGB and DAC draw more power than the OSBDM/OSJTAG connector provides. Therefore, you will need to attach a separate USB cable to a power source, such as your laptop or (ideally) a separate powered hub on the same electrical circuit, so that they share a common ground.
 
-int SVC_fopen(file_descriptor* descr, char* filename, char mode);
+Please note that at least in some cases, you need to plug the MCU board cable into the computer first, before attaching the power cable.
 
-int SVC_fclose(file_descriptor descrf);
+### Synthesizer
 
-int SVC_create(char* filename);
+The synthesizer requires additional hardware setup in order to operate. Details of the implementation are provided below.
 
-int SVC_delete(char* filename);
+## Building the Simple OS
 
-int SVC_fgetc (file_descriptor descrf, char* bufp);
+NXP supports the CodeWarrior development environment.  Here are [some instructions](https://cscie92.dce.harvard.edu/spring2021/InstallingCodeWarrior.txt) on how to get the environment running on your computer.
 
-int SVC_fputc (file_descriptor descrf, char bufp);
+In order to build and run the Simple OS, you will need to create a new project and import the source files and headers provided into your Sources folder in CodeWarrior. For the sake of tidiness, you may choose to keep your headers in the Project_Headers folder instead -- however, this is not required.
 
-int SVC_fputs (file_descriptor descrf, char* bufp, int buflen);
+Please enable C99 in CodeWarrior before attempting to build the shell.
 
-void* SVC_malloc(unsigned int size);
+If using Codewarrior, I recommend building in debug mode, as the debugger uses console I/O when it is enabled.
 
-int SVC_free(void *ptr);
+## Enabling Debug Mode
 
-int SVC_dir_ls(int full);
+Debug mode is disabled by default. It can be enabled by setting either #MYFAT_DEBUG or #MYFAT_DEBUG_LITE to true in myerror.h. The lite mode outputs fewer messages to the console -- this improves system responsiveness, and is the recommended debug mode in most circumstances.
 
-The functions listed above are described in detail in the next sections of this document.
+## Operating the Shell
 
-All supervisor calls may be called as one would a normal C function. All supervisor calls except for SVC_malloc and SVC_free return error codes, and should be checked on return in case of error. SVC_malloc returns null in case of error.
+The simple shell is the user's primary mode of interaction with the Simple OS. The shell is able to run a variety of commands -- type 'help' for a comprehensive list.
 
-# Simple Shell myMalloc and myFree
+If you do not have the TWR-LCD-RGB attached, you will need to be connected over the UART in order to see the output of the shell. In either circumstance, you will need the UART in order to pass input into the shell. 
 
-## Purpose
+The shell supports quotation marks and escape characters. Backspace, delete, copy/paste, arrow keys and tab are currently NOT supported. Press enter to complete a command.
 
-myMalloc and myFree are implementations of memory allocation and deallocation for the operating system I am developing as part of the Principles of Operating Systems course. They allocate and free, respectively, portions of a 128MB region of memory according to a size parameter passed in by the user, so that programs will have access to the memory resources they require in order to operate.
+## Shell Commands
 
-## Solution
+Each shell command is listed below with a brief description of its behavior, followed by the syntax required to invoke it.
 
-Because the operating system I am writing is likely to be used mostly for small programs and will not be running
-    any massively parallel or RAM-intensive applications for now, and because the NXP/Freescale Hardware is quite
-    limited in its capabilities, I decided the speed of first-fit, combined with merging adjacent regions when free is called,
-    was the optimal choice. Although first-fit can lead to memory fragmentation over time, my operating
-    system is not capable of running enough concurrent programs for this to be as much of an issue as speed at the moment.
+The maximum length of a shell command is 256 characters. The maximum number of allowed arguments is 32.
 
-## Use
+None of the shell commands require quotation marks in order to function.
 
-myMalloc and myFree can be called from the simple shell using the commands malloc and free, respectively. Memory can be set to a particular value with the memset command. Memchk checks that the value was properly assigned.
+**exit** will exit this shell.
 
-# Simple Shell File System and Device-Independent I/O
+exit
 
-My file system uses FAT32, 8.3 short filenames, and currently only works with one directory, the current working directory.
+**help** displays a list of commands and how they work.
 
-## LS
-ls will list the contents of the current working directory on an inserted FAT32-formatted SDHC card.
+help
 
-ls expects one argument, either 0 or an 1. If 0, it will print the directory contents without additional attributes. If 1, it will print the contents of the directory with additional, or FULL, attributes.
+**echo** will echo back whatever words follow the command itself.
 
-## STDIN, STDOUT, STDERR
+echo (*arguments to be echoed back*)
 
-STDIN, STDOUT and STDERR are opened on the UART when the shell launches. A FILE* will print to your UART when the shell launches representing this connection. Although you can use this FILE* in conjunction with the Device-Independent IO commands, that is not necessary in order for shell commands to run.
+**date** will print the current date and time (GMT, MS-DOS EPOCH), which is acquired by the system at compile time. The time will continue updating for as long as the application is running.
 
-## FOPEN
-fopen is case insensitive -- you can type either lowercase or uppercase. You can ignore trailing spaces when entering a filename. You can include the period before the file extension or exclude it.
+date
 
-fopen accepts a ‘w’ flag for write access, an ‘r’ flag for read-only access, and an 'a' flag for append access, which is recognized only by fputc/fputs.
+**date** can also set the current system time by accepting an argument in milliseconds or a simplified ISO-8601 formatted string.
+
+date (*system time in ms*)
+
+date (*017-04-29T14:30*)
+
+**malloc** takes as an argument an amount of memory to be allocated and returns a pointer to the allocated memory region.
+
+malloc (*amount*)
+
+**free** frees memory at a given pointer. 
+
+malloc (*0xFFFFFFFF*)
+
+**memset** sets an allocated memory region to a value. 
+
+**memchk** checks that an allocated memory region is set to a value. 
+
+**memorymap** prints a map of all allocated memory. 
+
+memorymap
+
+**malfree** performs 100 semi-random allocations and frees of memory in order to test memory integrity.
+
+malfree
+
+**fopen** opens a file or device in a particular mode. The default mode is r. For devices with write support, w and a modes may also be available -- however, the implementation is device-specific. If successful, fopen will echo back to the shell a pointer to the device which can then be used to issue commands to the device.
+
+fopen is case insensitive -- you can type either lowercase or uppercase. You can ignore trailing spaces when entering a filename. You can include the period before the file extension or exclude it. Quotation marks should not be included.
+
+fopen accepts a ‘w’ flag for write access, an ‘r’ flag for read-only access (default), and an 'a' flag for append access, which is recognized only by fputc/fputs.
 
 If the file open is successful, fopen will print a file pointer to the uart. type this pointer value into the console (including 0x for hexadecimal values) in order to access the file.
+
 fopen also opens devices, including pushbuttons and LEDs, and returns a file pointer which allows you to pass input to those devices.
 
-## DEVICE SUPPORT
+fopen (*filename*) (*mode*)
 
-The device table for fopen is as follows
+**fclose** closes a file or device.
 
-Device names are case sensitive.
+fclose (*0xFFFFFFFF*)
+
+**fgetc** and **fgets** retrieve characters and strings, respectively, from a file or device and print them to the terminal.
+
+fgetc (*0xFFFFFFFF*)
+
+fgets (*0xFFFFFFFF*) (*amount*)
+
+**fputc** and **fputs** send characters or strings to a file or device. 
+
+**create** and **delete** create and delete files on the inserted MicroSD card. 
+
+create (*filename*)
+
+delete (*0xFFFFFFFF*)
+
+**ls** lists the current directory contents without extended attributes.
+
+ls
+
+ls 1 lists with extended attributes.
+
+ls (*1*)
+
+**seek** sets the file cursor to a particular position in a file. Cursor address is shared between read and write operations on a given file.
+
+seek (*0xFFFFFFFF*) (*position*)
+
+**touch2led** activates the LEDs based on whether you are touching their corresponding touch sensor. Touch all 4 to exit.
+
+touch2led
+
+**pot2ser** continuously outputs the potentiometer value to STDOUT as a value between 0 and 255. The K70's potentiometer knob is located on the hardware itself, and can be adjusted manually.
+
+pot2ser
+
+**therm2ser** continuously outputs the thermistor (system temperature) value to STDOUT as a value between 0 and 255
+
+therm2ser
+
+**pb2LED** toggles LEDs based on inputs from the K70's two onboard pushbuttons.
+
+pb2led
+
+**catfile** prints the contents of a file to STDOUT.
+
+catfile (*filename*)
+
+**cat2file** copies characters from serial input to the specified <file> in the root directory. Please note that the file must already exist on the card in order for this command to function. The command terminates when ctrl+D is entered.
+
+cat2file (*filename*)
+
+**spawn** creates a new background process and returns to the shell prompt. 
+
+The following commands currently support spawn: flashled, touch2led, cat2file, pb2led, 
+busywait, uartsendmsg
+
+spawn (*command*)
+
+**kill** kills a target process, with the target indicated by its pid number.
+
+kill (*pid*)
+
+**ps** lists all processes currently running on the OS, including their pids and current uptime
+
+ps
+
+**uartsendmsg** sends a message whenever pushbutton 2 is depressed
+
+uartsendmsg
+
+**busywait** loops forever and does nothing
+
+busywait
+
+**multitask** spawns cat2file, flashled and uartsendmsg. Terminate with ctrl+D.
+
+multitask
+
+**flashled** flashes an LED on and off at an interval determined by the user (1-20 in 50ms intervals)
+
+flashled (*interval*)
+
+**synth** launches a synthesizer application which outputs notes over DAC0.
+
+synth (*note duration from 0 to 127*)
+
+0 means that a note will play until interrupted. The other values represent release envelopes of various durations.
+
+Type letters a through g to play those notes.
+
+Type q to quit.
+
+Type w to toggle between square and sawtooth waveforms.
+
+## SVC_malloc and SVC_free
+
+The Simple OS includes customized routines for memory allocation and deallocation of the 128MB region of DDR memory provided in the K70 development environment.  according to a size parameter passed in by the user, so that programs will have access to the memory resources they require in order to operate.
+
+These implementations use a first-fit algorithm in order to partition the memory space. Although first-fit can lead to memory fragmentation over time, the speed advantages of first-fit made it a natural choice for this basic OS.
+
+Memory ownership and protection are implemented to prevent unauthorized programs from modifying regions of memory which do not belong to them.
+
+## FAT32 and Device-Independent I/O
+
+The Simple OS file system uses FAT32, 8.3 short filenames, and currently only works with one directory, the current working directory.
+
+## STDIN, STDOUT, STDERR Streams
+
+STDIN, STDOUT and STDERR are opened on the UART when the shell launches. A FILE* will print to your UART when the shell launches representing this connection. Although you can use this FILE* in conjunction with the Device-Independent IO commands, that is not necessary in order for shell commands to run.
+## Devices
+
+Simple OS is designed around device-independent I/O, which means that devices on the system are accessed and manipulated as though they were files. Here are the 'filenames' of the devices available via fopen from the command line.
 
 dev_sw1 = pushbutton 1
 
@@ -125,7 +269,9 @@ dev_temp = the on-board temperature sensor.
 
 dev_TSI1 -> dev_TSI4 = the four on-board capacitive touch pads.
 
-Pushbuttons, LEDs, potentiometer, temperature sensor and touch pads should be opened with the ‘r’ flag, for read.
+dev_DAC0 -> dev_DAC1 = the two on-board 12-bit DACs.
+
+Pushbuttons, LEDs, potentiometer, temperature sensor, DAC and touch pads should be opened with the ‘r’ flag, for read.
 
 EG: fopen PTR_ADDR r
 
@@ -137,26 +283,87 @@ The touch pads respond to fgetc by returning whether or not they are currently b
 
 Pushbuttons respond only to fgetc, which prints out whether the pushbutton is pressed or not.
 
-LEDs respond to fgetc and fputc. fgetc turns an LED on, fputc (with any character) turns it off.
+LEDs respond to fgetc with a value (ignored by the shell) which corresponds to whether they are on (TRUE) or off (FALSE). fputc DEV_PTR y will turn an LED on, fputc DEV_PTR n will turn it off.
 
-EG: fputc PTR_ADDR c
+## Supervisor Calls
 
-## FCLOSE
-fclose expects a file pointer in hexadecimal format. It outputs a success message on a successful close, and an error message in case of failure.
+Supervisor calls and privileged mode are supported in the Simple OS. Therefore, attempts to access hardware directly may result in a default breakpoint error. Please use shell commands to access system functions.
 
-## CREATE AND DELETE
-Create and delete are case insensitive -- you can type either lowercase or uppercase. You can ignore trailing spaces when entering a filename. You can include the period before the file extension or exclude it. They each take one argument -- a filename.
+Supervisor calls available to the systems programmer include the following --
 
-## FGETC AND FPUTC
-fgetc takes one argument – a pointer to a file descriptor. If the device is enabled for fgetc, it will then perform the appropriate action for that device.
+```c
+/*This supervisor call is for opening files and devices.*/
+int SVC_fopen(file_descriptor* descr, char* filename, char mode);
+/*This supervisor call is for closing files and devices.*/
+int SVC_fclose(file_descriptor descrf);
+/*This supervisor call is for creating files.*/
+int SVC_create(char* filename);
+/*This supervisor call is for deleting files.*/
+int SVC_delete(char* filename);
+/*This supervisor call gets character-length input from devices and files.*/
+int SVC_fgetc (file_descriptor descrf, char* bufp);
+/*This supervisor call gets string-length input from devices and files.*/
+int SVC_fgets (file_descriptor descrf, char* bufp, int buflen);
+/*This supervisor call sends character-length input to devices and files.*/
+int SVC_fputc (file_descriptor descrf, char bufp);
+/*This supervisor call sends string-length input to devices and files.*/
+int SVC_fputs (file_descriptor descrf, char* bufp, int buflen);
+/*This supervisor call allocates memory to a process.*/
+void* SVC_malloc(unsigned int size);
+/*This supervisor call frees memory previously allocated to a process.*/
+int SVC_free(void *ptr);
+/*This supervisor call prints the contents of a directory.*/
+int SVC_dir_ls(int full);
+/*This supervisor call sets the current time.*/
+int SVC_settime(unsigned long long *newTime);
+/*This supervisor call sets or resets the one-shot PDB timer.*/
+int SVC_pdb0oneshottimer(uint16_t* delayCount);
+/*This supervisor call spawns a new process.*/
+int SVC_spawn(int main(int argc, char *argv[]), int argc, char *argv[], struct spawnData* thisSpawn);
+/*This supervisor call allows a process to yield its remaining quantum.*/
+void SVC_yield(void);
+/*This supervisor call blocks a process.*/
+void SVC_block(void);
+/*This supervisor call wakes a blocked process.*/
+int SVC_wake(pid_t targetPid);
+/*This supervisor call instructs a process to destroy itself.*/
+int SVC_kill(pid_t targetPid);
+/*This supervisor call allows a process to wait until another process completes.*/
+void SVC_wait(pid_t targetPid);
+```
 
-fputc takes two arguments – a pointer to a file descriptor, and a character to be ‘put’. If the device is enabled for fgetc, it will then perform the appropriate action for that device.
+All supervisor calls may be called as one would a normal C function. All supervisor calls except for SVC_malloc and SVC_free return error codes, and should be checked on return in case of error. SVC_malloc returns null in case of error.
 
-## FPUTS
-fputs takes three arguments - a pointer to a file descriptor, a char* buffer to be written, and a length of string. fputs is enabled for STDIN, STDOUT, and file I/O.
+## Hardware and Software Interrupts
 
-## SEEK
-This command allows you to adjust the cursor position of an open file.
-Cursor address is shared between read and write operations on a given file.
+Several timers are available in the Simple OS in order to complete certain functions. These timers rely on hardware interrupts in order to perform their tasks. The UART also relies on interrupts in order to cache and display characters the user has typed to the terminal. Finally, supervisor calls rely on software interrupts like those documented above in order to segregate privileged and unprivileged tasks.
 
+The priority of these timers and the interrupt service handlers can be found in kinetis_sysinit.c, a standard file which was modified in order to implement this OS.
 
+## Multiprogramming and Context Switching
+
+Spawn, kill and the other multiprogramming commands incorporated into the OS make use of a round robin scheduler in order to implement context switching between processes. State is preserved in a PCB (process control block). Every process in the simple shell has a PCB. They are stored as a circular linked list and associated with a PID, which determines device and memory ownership.
+
+When the time comes to switch out the old process and switch in the new process, state is restored by directly mapping the correct values into the registers on the ARM processor, using a mix of assembly code and C.
+
+## Synth
+
+The synth command turns your K70 into a digital synthesizer! The synth supports two waveforms and a custom release envelope. See the video link at the top of the readme for an example of how this looks (and sounds) in action.
+
+The synth requires any consumer-grade speaker, a breadboard, a one microfarad capacitor, some copper wire, and a method for connecting the speaker to the breadboard. However, one can also verify the output of the synth by connecting any oscilloscope to the ground and DAC0 contacts on the K70 and launching the synth program.
+
+CIRCUIT DIAGRAM
+
+![Circuit Diagram](../../etc/img/circuit.png)
+
+HARDWARE SETUP WITH BREADBOARD
+
+![Hardware Setup with Breadboard](../../etc/img/dac_synth_bb.jpg)
+
+In order to function, the synth initializes DAC0's 16 hardware buffers to preset voltage values, relative to the reference voltage (3.3v). This represents a (very low-resolution) waveform. Synth then launches the PDB timer in continuous mode in order to repeatedly sweep over the hardware buffers at a frequency corresponding to the correct note of the twelve-tone scale (EG: 440Hz for A4).
+
+## Licensing and Attribution
+
+Special thanks to Prof. James Frankel of the Harvard Extension School, whose source code is used extensively throughout this project. The portions of this project written by Prof. Frankel are subject to his copyright and should not be re-used without his express permission.
+
+The portions of this project written by me are open-source, and are released under the MIT License.

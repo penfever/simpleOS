@@ -10,6 +10,7 @@
 *.d
 *.cpp
 *.7z
+*.afphoto
 .vscode/
 build/
 ps*/

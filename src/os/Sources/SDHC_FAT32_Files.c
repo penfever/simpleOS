@@ -290,14 +290,12 @@ int dir_read_sector_search(uint8_t data[BLOCK], int logicalSector, char* search,
     	else if(dir_entry->DIR_Name[0] == DIR_ENTRY_UNUSED){
     		//this directory entry is unused
     		if (unused == NULL || g_unusedSeek == TRUE){
-    			if ((err = load_cache_unused(dir_entry, logicalSector)) != 0){
+    			if ((err = load_cache(logicalSector, data, i)) != 0){
     				return err;
     			}
+    			unused = (struct dir_entry_8_3 *)MOUNT->data;
 	    		if (g_unusedSeek == TRUE){
 	    			g_unusedSeek = FOUND_AND_RETURNING;
-	    		}
-	    		if (MYFAT_DEBUG || MYFAT_DEBUG_LITE){
-	    			printf("Sector %d, entry %d goes to unused as address %p\n", logicalSector, i, unused);
 	    		}
     		}
     		continue;
@@ -397,23 +395,12 @@ void print_attr(struct dir_entry_8_3* dir_entry, char* search, int entryCount){
 	}
 }
 
-/*Loads MOUNT cache with an empty dir_entry.*/
+/*Loads MOUNT cache with a dir_entry.*/
 int load_cache(uint32_t logicalSector, uint8_t data[BLOCK], int i){
 	MOUNT->writeSector = logicalSector; //updates writeSector
 	memcpy(MOUNT->data, data, BLOCK);
 	cached = (struct dir_entry_8_3*)MOUNT->data; //point to cache
-	unused = cached;
 	cached += i; //walk to current dir_entry
-    return 0;
-}
-
-/*Loads unused cache with an empty dir_entry.*/
-int load_cache_unused(struct dir_entry_8_3* dir_entry, uint32_t logicalSector){
-	MOUNT->writeSector = logicalSector; //updates writeSector
-    if(SDHC_SUCCESS != sdhc_read_single_block(MOUNT->rca, MOUNT->writeSector, &card_status, MOUNT->data)){ //updates cache
-    	return E_IO;
-    }
-	unused = (struct dir_entry_8_3*)MOUNT->data; //points unused at the write cache in MOUNT
     return 0;
 }
 
@@ -469,7 +456,7 @@ int dir_create_file(char *filename){
 	uint32_t myCluster;
 	if (unused == NULL){ //if we already know where an unused dir_entry is, use that
 		g_unusedSeek = TRUE;
-		dir_ls(0); //fills unused slot and copies data to MOUNT->data
+		dir_ls(0); //fills unused slot and loads cache into MOUNT->data. Unused points to MOUNT->data sector root.
 		if (unused == NULL){
 			return E_FREE; //no free dir_entry could be created (out of space)
 		}
@@ -545,33 +532,33 @@ int dir_extend_dir(int dirPos, uint32_t currCluster){
 		return E_NOINPUT; //some unexpected case came up
 	}
 	MOUNT->dirty = TRUE;
-	unused = extendDirEntry;
-	write_cache();
+	unused = (struct dir_entry_8_3 *)MOUNT->data; //The cache currently has an unused dir-entry
+	cached = extendDirEntry;
+	//write_cache();
 	return 0;
 }
 
 /*Terminate and fill both the main filename part and the extension name field with spaces (0x20)
  * If the extension field is all spaces, then the period 
  * separating the main filename part and the extension is not part of the filename */
-
 int dir_set_attr_newfile(char* filename, int len){
 	int i = 0;
 	uint16_t date = date_format_FAT();
 	uint16_t time = time_format_FAT();
 	for (; i < 11; i++){ //per instructions, this assumes that filename is exactly 11 chars, padded with spaces
-		unused->DIR_Name[i] = (uint8_t)filename[i];
+		cached->DIR_Name[i] = (uint8_t)filename[i];
 	}
-	unused->DIR_Attr = (uint8_t)0x00;
-	unused->DIR_NTRes = 0;		/* Offset 12 */
-	unused->DIR_CrtTimeHundth = 0;		/* Offset 13 */
-	unused->DIR_CrtTime = time;			/* Offset 14 */
-	unused->DIR_CrtDate = date;			/* Offset 16 */
-	unused->DIR_LstAccDate = date;		/* Offset 18 */
-	unused->DIR_FstClusHI = 0;		/* Offset 20 */
-	unused->DIR_WrtTime = 0;			/* Offset 22 */
-	unused->DIR_WrtDate = 0;			/* Offset 24 */
-	unused->DIR_FstClusLO = 0;		/* Offset 26 */
-	unused->DIR_FileSize = 0;
+	cached->DIR_Attr = (uint8_t)0x00;
+	cached->DIR_NTRes = 0;		/* Offset 12 */
+	cached->DIR_CrtTimeHundth = 0;		/* Offset 13 */
+	cached->DIR_CrtTime = time;			/* Offset 14 */
+	cached->DIR_CrtDate = date;			/* Offset 16 */
+	cached->DIR_LstAccDate = date;		/* Offset 18 */
+	cached->DIR_FstClusHI = 0;		/* Offset 20 */
+	cached->DIR_WrtTime = 0;			/* Offset 22 */
+	cached->DIR_WrtDate = 0;			/* Offset 24 */
+	cached->DIR_FstClusLO = 0;		/* Offset 26 */
+	cached->DIR_FileSize = 0;
 	return 0;
 }
 
