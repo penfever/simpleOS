@@ -29,6 +29,22 @@ The Simple OS is a command-line operating system written in the C Programming La
   
 * Digital synthesizer
 
+## Code Attribution
+
+The code for the operating system is located in the src folder.
+
+Multiple authors contributed to the code in simpleOS. Each source file begins with a header which includes the attribution for that file.
+
+The files I authored include (but are not limited to):
+main.c
+simpleshell.c (REPL shell)
+mymalloc.c (first-fit memory allocation)
+SDHC_FAT32_Files.c (FAT32 file system)
+univio.c (device-independent I/O)
+devices.c (hardware drivers and device support)
+dateTime.c (date and time support)
+procs.c (multiprocessing support)
+
 ## K70 Hardware Setup
 
 The Simple OS is designed to take advantage of many built-in features of the K70 MCU and Tower System. In order to use all of the features of the OS, you will need to have access to a [fully assembled K70 Tower](https://cscie92.dce.harvard.edu/spring2021/Photos/K70%20Right%20Above%20with%20J-Link%20&%20Serial%2020210120_141725.jpg) with the [TWR-SER](https://www.nxp.com/part/TWR-SER#/) card and [TWR-LCD-RGB](https://www.nxp.com/part/TWR-LCD-RGB#/) display installed.
