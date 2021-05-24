@@ -36,13 +36,21 @@ The code for the operating system is located in the src folder.
 Multiple authors contributed to the code in simpleOS. Each source file begins with a header which includes the attribution for that file.
 
 The files I authored include (but are not limited to):
+
 main.c
+
 simpleshell.c (REPL shell)
+
 mymalloc.c (first-fit memory allocation)
+
 SDHC_FAT32_Files.c (FAT32 file system)
+
 univio.c (device-independent I/O)
+
 devices.c (hardware drivers and device support)
+
 dateTime.c (date and time support)
+
 procs.c (multiprocessing support)
 
 ## K70 Hardware Setup
